@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YaYa Chicken · Менеджер</title>
+<style>
+:root {
+  --orange: #D85A30; --orange-dark: #993C1D; --orange-light: #FAECE7; --orange-mid: #F0997B;
+  --green: #639922; --green-light: #EAF3DE;
+  --amber: #EF9F27; --amber-light: #FAEEDA;
+  --red: #E24B4A;   --red-light: #FCEBEB;
+  --blue: #378ADD;  --blue-light: #E6F1FB;
+  --teal: #1D9E75;  --teal-light: #E1F5EE;
+  --gray: #888780;  --gray-light: #F1EFE8;
+  --border: rgba(0,0,0,0.1); --bg: #F7F5F0; --surface: #FFFFFF;
+  --text: #1a1a18; --muted: #6b6b66; --radius: 10px; --radius-sm: 6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+.shell { display: flex; height: 100vh; overflow: hidden; }
+.sidebar { width: 220px; flex-shrink: 0; background: #1C1B18; color: #e8e4da; display: flex; flex-direction: column; overflow-y: auto; }
+.sidebar-logo { padding: 20px 18px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 17px; font-weight: 600; }
+.sidebar-logo span { color: var(--orange); }
+.sidebar-sub { font-size: 11px; color: #6b6760; font-weight: 400; margin-top: 2px; }
+.nav-group { padding: 14px 10px 6px; }
+.nav-label { font-size: 10px; color: #4a4945; text-transform: uppercase; letter-spacing: 0.08em; padding: 0 8px; margin-bottom: 4px; }
+.nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: #9b9890; transition: all 0.15s; margin-bottom: 1px; border: none; background: none; width: 100%; text-align: left; }
+.nav-item:hover { background: rgba(255,255,255,0.05); color: #e8e4da; }
+.nav-item.active { background: var(--orange); color: #fff; }
+.nav-item .icon { font-size: 15px; width: 20px; text-align: center; }
+.nav-badge { margin-left: auto; background: var(--red); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 99px; font-weight: 600; }
+.sidebar-footer { margin-top: auto; padding: 14px 18px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 11px; color: #4a4945; }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.topbar-title { font-size: 16px; font-weight: 600; }
+.content { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.panel { display: none; }
+.panel.active { display: block; }
+.stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+.stats-5 { grid-template-columns: repeat(5,1fr); }
+.stat-card { background: var(--surface); border-radius: var(--radius); padding: 16px; border: 1px solid var(--border); }
+.stat-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+.stat-val { font-size: 24px; font-weight: 700; }
+.stat-ok { color: var(--green); } .stat-warn { color: var(--amber); } .stat-danger { color: var(--red); } .stat-teal { color: var(--teal); }
+.card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; margin-bottom: 14px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.card-title { font-size: 14px; font-weight: 600; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 7px 10px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+td { padding: 8px 10px; border-bottom: 1px solid rgba(0,0,0,0.04); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg); }
+.form-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 10px; }
+.fg { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 100px; }
+.fg label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+input, select, textarea { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 10px; font-size: 13px; background: var(--surface); color: var(--text); width: 100%; transition: border-color 0.15s; }
+input:focus, select:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(216,90,48,0.1); }
+.btn { padding: 8px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); cursor: pointer; font-size: 13px; font-weight: 500; background: var(--surface); color: var(--text); white-space: nowrap; transition: all 0.15s; }
+.btn:hover { background: var(--bg); }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--orange); color: #fff; border-color: var(--orange); }
+.btn-primary:hover { background: var(--orange-dark); }
+.btn-teal { background: var(--teal); color: #fff; border-color: var(--teal); }
+.btn-teal:hover { background: #167a5b; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-danger { border-color: var(--red); color: var(--red); }
+.btn-danger:hover { background: var(--red-light); }
+.btn-ghost { border-color: transparent; background: transparent; }
+.btn-ghost:hover { background: var(--bg); }
+.badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; }
+.badge-ok { background: var(--green-light); color: #27500A; }
+.badge-warn { background: var(--amber-light); color: #633806; }
+.badge-danger { background: var(--red-light); color: #791F1F; }
+.badge-blue { background: var(--blue-light); color: #0C447C; }
+.badge-teal { background: var(--teal-light); color: #0A5540; }
+.badge-gray { background: var(--gray-light); color: #444441; }
+.stock-bar-wrap { background: var(--bg); border-radius: 3px; height: 6px; flex: 1; overflow: hidden; min-width: 60px; }
+.stock-bar { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.log-entry { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 13px; }
+.log-entry:last-child { border-bottom: none; }
+.order-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px; }
+.order-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.order-num { font-weight: 700; font-size: 15px; }
+.order-time { font-size: 11px; color: var(--muted); margin-left: auto; }
+.order-items { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.order-foot { display: flex; align-items: center; justify-content: space-between; }
+.order-total { font-weight: 600; color: var(--orange); }
+.cart-line { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 13px; }
+.cart-line:last-child { border-bottom: none; }
+.cart-emoji { font-size: 16px; width: 24px; text-align: center; }
+.cart-name { flex: 1; }
+.cart-price { color: var(--orange); font-weight: 600; white-space: nowrap; }
+.scroll { overflow-y: auto; }
+.scroll::-webkit-scrollbar { width: 4px; }
+.scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.section-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 16px 0 8px; }
+hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+.ext-link { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: var(--blue-light); color: #0C447C; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; text-decoration: none; border: 1px solid #B5D4F4; transition: background 0.15s; }
+.ext-link:hover { background: #B5D4F4; }
+#toast { position: fixed; bottom: 24px; right: 24px; background: #1C1B18; color: #fff; padding: 10px 18px; border-radius: var(--radius); font-size: 13px; font-weight: 500; transform: translateY(20px); opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 999; }
+#toast.show { transform: translateY(0); opacity: 1; }
+
+/* ═══ HELP MODE ═══ */
+#help-fab{position:fixed;top:12px;right:16px;z-index:8000;width:32px;height:32px;border-radius:50%;background:#fff;border:2px solid #D85A30;color:#D85A30;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(216,90,48,0.3);transition:all 0.2s;line-height:1;user-select:none;font-family:inherit;}
+#help-fab:hover{background:#D85A30;color:#fff;}
+#help-fab.hactive{background:#D85A30;color:#fff;}
+#help-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:7999;background:linear-gradient(90deg,#D85A30,#E8744E);color:#fff;font-size:12px;font-weight:600;padding:6px 50px;text-align:center;pointer-events:none;}
+body.help-mode #help-banner{display:block;}
+body.help-mode{padding-top:28px;}
+body.help-mode [data-tip]{outline:2px dashed rgba(216,90,48,0.6)!important;outline-offset:3px;cursor:help!important;border-radius:4px;transition:outline-color 0.15s;}
+body.help-mode [data-tip]:hover{outline-color:#D85A30!important;background:rgba(216,90,48,0.07)!important;}
+#htip-pop{display:none;position:fixed;z-index:9999;background:#1C1B18;color:#F0EDE6;border-radius:8px;padding:10px 13px;max-width:250px;font-size:12px;line-height:1.6;box-shadow:0 4px 24px rgba(0,0,0,0.45);pointer-events:none;}
+#htip-pop.vis{display:block;}
+#htip-pop b{color:#FFD9CC;font-weight:700;display:block;margin-bottom:3px;font-size:12.5px;}
+
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+  <div class="sidebar-logo">YaYa <span>Chicken</span><div class="sidebar-sub">Панель менеджера</div></div>
+  <div class="nav-group">
+    <div class="nav-label">Основное</div>
+    <button class="nav-item active" onclick="nav('orders',this)"><span class="icon">📋</span> Заказы<span class="nav-badge" id="nb-new" style="display:none">0</span></button>
+    <button class="nav-item" onclick="navFrame('kitchen-stock.html','🍳 Склад кухни',this)"><span class="icon">🍳</span> Склад кухни</button>
+    <button class="nav-item" onclick="navFrame('workshop.html','🏭 Склад цеха',this)"><span class="icon">🏭</span> Склад цеха</button>
+    <button class="nav-item" onclick="nav('deductions',this)"><span class="icon">🔻</span> Списания</button>
+    <button class="nav-item" onclick="nav('transfers',this)"><span class="icon">🔄</span> Перемещения</button>
+    <button class="nav-item" onclick="nav('reports',this)"><span class="icon">📊</span> Отчёты</button>
+    <button class="nav-item" onclick="navFrame('kitchen.html','👨‍🍳 Кухня',this)"><span class="icon">👨‍🍳</span> Кухня</button>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">Настройки</div>
+    <button class="nav-item" onclick="nav('techcards',this)"><span class="icon">📝</span> Техкарты</button>
+    <button class="nav-item" onclick="nav('stoplist',this)"><span class="icon">🚫</span> Стоп-лист</button>
+    <button class="nav-item" onclick="nav('ingredients',this)"><span class="icon">⚙️</span> Ингредиенты</button>
+  </div>
+  <div class="sidebar-footer" id="clock"></div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="panel-title">Заказы</div>
+  </div>
+  <div class="content">
+
+  <!-- ═══ ЗАКАЗЫ ═══ -->
+  <div id="panel-orders" class="panel active">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Заказов сегодня</div><div class="stat-val" data-tip-title="Заказов сегодня" data-tip="Принятые заказы за текущий день. Отменённые не считаются." id="s-cnt">0</div></div>
+      <div class="stat-card"><div class="stat-label">Выручка</div><div class="stat-val stat-ok" data-tip-title="Выручка" data-tip="Суммарная выручка за день по всем активным и выполненным заказам." id="s-rev">0 тг</div></div>
+      <div class="stat-card"><div class="stat-label">В работе</div><div class="stat-val stat-warn" data-tip-title="В работе" data-tip="Заказы со статусом Новый или Готовится прямо сейчас. Ноль = все заказы выданы." id="s-active">0</div></div>
+      <div class="stat-card"><div class="stat-label">Критично (К+Ц)</div><div class="stat-val stat-danger" data-tip-title="Критично (К+Ц)" data-tip="Позиции ниже минимума на складе. К = кухня, Ц = цех. Нужно срочно пополнить или убрать в стоп-лист!" id="s-low">0</div></div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Новый заказ</div></div>
+          <div class="form-row">
+            <div class="fg"><label>Позиция</label><select id="o-sel" data-tip-title="Позиция" data-tip="Выберите блюдо из меню. Позиции со 🚫 находятся в стоп-листе — их брать нельзя."></select></div>
+            <div class="fg" style="max-width:70px"><label>Кол-во</label><input type="number" id="o-qty" data-tip-title="Кол-во" data-tip="Количество порций данного блюда в заказе." value="1" min="1"></div>
+            <button class="btn" onclick="cartAdd()" data-tip-title="+ Добавить" data-tip="Добавить выбранное блюдо в корзину текущего заказа.">+ Добавить</button>
+          </div>
+          <div id="cart-list" style="min-height:40px;margin-bottom:10px"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:15px;font-weight:700">Итого: <span id="cart-sum" style="color:var(--orange)">0 тг</span></span>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-sm btn-ghost" onclick="cartClear()" data-tip-title="Очистить" data-tip="Удалить все позиции из корзины без сохранения заказа.">Очистить</button>
+              <button class="btn btn-primary" onclick="orderPlace()" data-tip-title="Принять заказ ✓" data-tip="Фиксирует заказ, автоматически списывает ингредиенты по техкарте и отправляет на кухню.">Принять заказ ✓</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="padding-bottom:0">
+          <div class="card-head"><div class="card-title">Активные заказы</div></div>
+          <div id="orders-active" class="scroll" style="max-height:280px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Все заказы за сегодня</div>
+        <button class="btn btn-sm btn-danger" onclick="resetOrdersWithPassword()">🗑 Обнулить</button>
+      </div>
+      <div class="scroll" style="max-height:220px">
+        <table><thead><tr><th>№</th><th>Время</th><th>Состав</th><th>Итого</th><th>Статус</th></tr></thead>
+        <tbody id="orders-all"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ СПИСАНИЯ ═══ -->
+  <div id="panel-deductions" class="panel">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title" data-tip-title="Журнал списаний" data-tip="Полная история всех операций со складом. + зелёный = приход на склад, − красный = расход. Автосписание — при каждом принятом заказе по техкарте.">Журнал списаний</div>
+        <button class="btn btn-sm btn-danger" onclick="data-tip-title="Очистить журнал" data-tip="Удаляет все записи журнала списаний. Требует пароль менеджера." onclick="openPwdModal('🗑 Очистить журнал','Журнал будет удалён.',()=>{setDeductions([]);renderDeductions();toast('✅ Журнал очищен')})">Очистить</button>
+      </div>
+      <div class="scroll" style="max-height:600px">
+        <table><thead><tr><th>Дата</th><th>Время</th><th>Позиция</th><th>Кол-во</th><th>Ед.</th><th>Причина</th><th>Сотрудник</th></tr></thead>
+        <tbody id="ded-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ПЕРЕМЕЩЕНИЯ ═══ -->
+  <div id="panel-transfers" class="panel">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="card-title">🏭 Цех → 🍳 Кухня</div></div>
+        <div class="fg" style="margin-bottom:10px"><label>Полуфабрикат (со склада цеха)</label><select id="tr-ws-from" data-tip-title="Полуфабрикат из цеха" data-tip="Что передаём с цеха на кухню: крылышки, котлеты, шампур, соусы. Остаток в цехе уменьшится."></select></div>
+        <div class="form-row">
+          <div class="fg" style="max-width:90px"><label>Количество</label><input type="number" id="tr-ws-qty" data-tip-title="Количество" data-tip="Сколько единиц передаём из цеха на кухню." value="10" min="0.1" step="0.1"></div>
+          <div class="fg"><label>Принять в ингредиент кухни</label><select id="tr-ws-to" data-tip-title="Принять в ингредиент кухни" data-tip="В какую позицию склада кухни зачислить полуфабрикат. Остаток кухни увеличится."></select></div>
+        </div>
+        <div class="fg" style="margin-bottom:12px"><label>Комментарий</label><input type="text" id="tr-ws-note" data-tip-title="Комментарий" data-tip="Укажите причину: Утренняя партия, Вечерний остаток и т.д. Сохранится в журнале." placeholder="Партия утром..."></div>
+        <button class="btn btn-teal" style="width:100%" onclick="doTransferWsToKs()" data-tip-title="Передать: Цех → Кухня" data-tip="Выполнить передачу. Полуфабрикат спишется из цеха и зачислится на кухню.">Передать: Цех → Кухня →</button>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">🍳 Кухня → 🏭 Цех</div></div>
+        <div class="fg" style="margin-bottom:10px"><label>Позиция (со склада кухни)</label><select id="tr-ks-from" data-tip-title="Позиция со склада кухни" data-tip="Что возвращаем с кухни обратно в цех. Остаток кухни уменьшится."></select></div>
+        <div class="form-row">
+          <div class="fg" style="max-width:90px"><label>Количество</label><input type="number" id="tr-ks-qty" data-tip-title="Количество" data-tip="Сколько единиц передаём с кухни обратно в цех." value="5" min="0.01" step="0.01"></div>
+          <div class="fg"><label>Принять в ингредиент цеха</label><select id="tr-ks-to" data-tip-title="Принять в ингредиент цеха" data-tip="В какую позицию склада цеха зачислить возвращённый ингредиент."></select></div>
+        </div>
+        <div class="fg" style="margin-bottom:12px"><label>Комментарий</label><input type="text" id="tr-ks-note" data-tip-title="Комментарий" data-tip="Укажите причину возврата." placeholder="Поставщик привёз на кухню..."></div>
+        <button class="btn btn-primary" style="width:100%" onclick="doTransferKsToWs()" data-tip-title="Передать: Кухня → Цех" data-tip="Выполнить возврат ингредиента с кухни обратно в цех.">← Передать: Кухня → Цех</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title" data-tip-title="Журнал перемещений" data-tip="История всех передач между цехом и кухней: дата, направление, что, куда, кол-во и кто выполнил.">Журнал перемещений</div><span style="font-size:12px;color:var(--muted)" id="tr-count"></span></div>
+      <div class="scroll" style="max-height:420px">
+        <table><thead><tr><th>Дата</th><th>Время</th><th>Направление</th><th>Что</th><th>Куда</th><th>Кол-во</th><th>Комментарий</th><th>Кто</th></tr></thead>
+        <tbody id="tr-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ОТЧЁТЫ ═══ -->
+  <div id="panel-reports" class="panel">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Выручка за день</div><div class="stat-val stat-ok" data-tip-title="Выручка за день" data-tip="Сумма всех не отменённых заказов за сегодня в тенге." id="r-rev">0 тг</div></div>
+      <div class="stat-card"><div class="stat-label">Всего заказов</div><div class="stat-val" data-tip-title="Всего заказов" data-tip="Количество принятых заказов за день (отменённые не считаются)." id="r-orders">0</div></div>
+      <div class="stat-card"><div class="stat-label">Средний чек</div><div class="stat-val" data-tip-title="Средний чек" data-tip="Выручка ÷ количество заказов. Средняя сумма одного заказа." id="r-avg">0 тг</div></div>
+      <div class="stat-card"><div class="stat-label">Списаний сегодня</div><div class="stat-val" data-tip-title="Списаний сегодня" data-tip="Количество операций со складом: автосписания по заказам + ручные корректировки." id="r-ded">0</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card"><div class="card-head"><div class="card-title" data-tip-title="Топ-10 позиций" data-tip="Самые продаваемые блюда за сегодня по количеству порций.">Топ-10 позиций за день</div></div><div id="r-top"></div></div>
+      <div class="card"><div class="card-head"><div class="card-title" data-tip-title="Критичные остатки" data-tip="Позиции склада у которых остаток ниже минимума. Нужно срочно закупить!">Критичные остатки</div></div><div id="r-critical"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title" data-tip-title="Закупки" data-tip="История приходов товара: дата, позиция, количество, цена, поставщик и фото чека.">Закупки</div><span style="font-size:12px;color:var(--muted)">приходы товара</span></div>
+      <table><thead><tr><th>Фото</th><th>Дата прихода</th><th>Дата закупки</th><th>Позиция</th><th>Склад</th><th>Кол-во</th><th>Цена/ед.</th><th>Сумма</th><th>Поставщик</th><th>Чек</th></tr></thead>
+      <tbody id="r-purchases"></tbody></table>
+    </div>
+  </div>
+
+  <!-- ═══ ТЕХКАРТЫ ═══ -->
+  <div id="panel-techcards" class="panel">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="card-title" data-tip-title="Редактор техкарты" data-tip="Здесь настраивается рецептура блюда — что и сколько списывается со склада при каждом заказе этого блюда.">Редактор техкарты</div></div>
+        <div class="fg" style="margin-bottom:10px"><label>Блюдо</label><select id="tc-dish" data-tip-title="Блюдо" data-tip="Выберите блюдо из меню для просмотра и редактирования его техкарты." data-tip-title="Блюдо" data-tip="Выберите блюдо для редактирования техкарты — рецептуры списания ингредиентов." onchange="renderTCCurrent()"></select></div>
+        <div id="tc-current" data-tip-title="Текущая техкарта" data-tip="Список ингредиентов которые списываются при каждом заказе этого блюда. Нажмите ✕ чтобы удалить строку." style="margin-bottom:10px;font-size:13px;color:var(--muted)">Нет техкарты</div>
+        <hr>
+        <div class="section-title" data-tip-title="Добавить ингредиент" data-tip="Выберите ингредиент из склада, укажите количество на 1 порцию и нажмите + Добавить.">Добавить ингредиент</div>
+        <div class="form-row">
+          <div class="fg"><label>Ингредиент</label><select id="tc-ing" data-tip-title="Ингредиент" data-tip="Выберите ингредиент который списывается при заказе этого блюда."></select></div>
+          <div class="fg" style="max-width:80px"><label>Кол-во</label><input type="number" id="tc-qty" data-tip-title="Кол-во на 1 порцию" data-tip="Сколько единиц этого ингредиента расходуется при заказе ОДНОЙ порции блюда. Умножается на количество в заказе." data-tip-title="Кол-во на 1 порцию" data-tip="Сколько единиц этого ингредиента тратится при заказе одной порции." value="0.1" step="0.001" min="0"></div>
+          <div class="fg" style="max-width:60px"><label>Ед.</label><input type="text" id="tc-unit" data-tip-title="Единица" data-tip="кг, шт., л — должна совпадать с единицей этого ингредиента на складе." value="кг"></div>
+          <button class="btn btn-primary btn-sm" onclick="addTCRow()" data-tip-title="+ Добавить" data-tip="Добавить ингредиент в техкарту выбранного блюда. Изменения вступают в силу сразу." style="align-self:flex-end">+ Добавить</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title" data-tip-title="Блюда без техкарты" data-tip="При заказе этих блюд ничего не списывается со склада! Нужно добавить техкарту.">Блюда без техкарты</div></div>
+        <div id="no-tc" data-tip-title="Список блюд" data-tip="Нажмите на блюдо в списке слева, затем добавьте ингредиенты через форму ниже. После добавления хотя бы одного ингредиента — блюдо исчезнет из этого списка." class="scroll" style="max-height:400px;font-size:13px;color:var(--muted)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ СТОП-ЛИСТ ═══ -->
+  <div id="panel-stoplist" class="panel">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="card-title" data-tip-title="Стоп-лист" data-tip="Список блюд которых нет сегодня. Позиции помечаются СТОП на экране кухни и выделяются при создании заказа.">Стоп-лист</div></div>
+        <div class="fg" style="margin-bottom:10px"><label>Добавить позицию</label><select id="sl-sel" data-tip-title="Добавить в стоп-лист" data-tip="Выберите позицию которой нет сегодня. После добавления — блюдо помечается СТОП на кухне."></select></div>
+        <button class="btn btn-danger" style="width:100%;margin-bottom:14px" onclick="addToStopList()" data-tip-title="Добавить в стоп-лист" data-tip="Блюдо попадёт в список — кухня увидит пометку СТОП, менеджер не сможет добавить его в заказ. Убрать — нажать ✕ рядом с позицией." data-tip-title="Добавить" data-tip="Блюдо станет недоступным. Кухня увидит метку СТОП. Убрать можно нажав ✕ рядом с позицией.">Добавить в стоп-лист</button>
+        <div id="sl-list" data-tip-title="Активный стоп-лист" data-tip="Позиции добавленные вручную на сегодня. Нажмите ✕ рядом с блюдом чтобы вернуть его в продажу."></div>
+      </div>
+      <div class="card">
+        <div class="card-title" data-tip-title="Как работает стоп-лист" data-tip="Стоп-лист — это механизм управления доступностью блюд. Два источника: ручное добавление менеджером и автоматическое при нехватке ингредиентов." style="margin-bottom:12px">Как работает стоп-лист</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.7">
+          <span data-tip-title="Отображение на кухне" data-tip="Повар видит пометку СТОП на карточке блюда. Это сигнал: данное блюдо сегодня не готовить и не принимать заказы.">Позиции в стоп-листе отображаются на кухне с пометкой <span class="badge badge-danger">СТОП</span>.</span><br><br>
+          <span data-tip-title="Автообновление" data-tip="Когда остаток ингредиента падает ниже минимума — все блюда использующие этот ингредиент автоматически попадают в стоп-лист.">Стоп-лист обновляется автоматически когда ингредиент заканчивается на складе.</span>
+        </div>
+        <hr>
+        <div class="section-title" data-tip-title="Автоматически в стоп-листе" data-tip="Блюда добавленные системой автоматически — у них закончился ключевой ингредиент на складе. Чтобы убрать — пополните остаток ингредиента.">Автоматически в стоп-листе</div>
+        <div data-tip-title="Автостоп-лист" data-tip="Блюда которые система добавила автоматически — ингредиент закончился на складе." id="sl-auto" style="font-size:13px;color:var(--muted)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ИНГРЕДИЕНТЫ ═══ -->
+  <div id="panel-ingredients" class="panel">
+    <!-- Склад-табы -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
+      <button id="ing-tab-kitchen" class="btn btn-primary" onclick="ingSetTab('kitchen')" data-tip-title="Склад кухни" data-tip="Ингредиенты кухни: булки, лаваш, фри, тесто, соусы — всё что используется напрямую при приготовлении." style="font-size:14px;font-weight:600;padding:9px 20px">🍳 Склад кухни</button>
+      <button id="ing-tab-workshop" class="btn" onclick="ingSetTab('workshop')" data-tip-title="Склад цеха" data-tip="Сырьё цеха для производства полуфабрикатов: мясо, специи, маринады." style="font-size:14px;font-weight:600;padding:9px 20px">🏭 Склад цеха</button>
+      <span id="ing-tab-label" style="font-size:12px;color:var(--muted);margin-left:4px"></span>
+      <button class="btn btn-sm btn-danger" style="margin-left:auto" data-tip-title="Сбросить склад" data-tip="Возвращает ВСЕ остатки к начальным значениям. Требует пароль менеджера. Использовать только при полной инвентаризации!" onclick="openPwdModal('⚠️ Сбросить склад','Склад вернётся к начальным значениям.',()=>{localStorage.removeItem('yaya_stock_v3');renderAll();toast('✅ Склад сброшен')})">Сбросить склад</button>
+    </div>
+
+    <!-- Кухня -->
+    <div id="ing-section-kitchen">
+      <div class="grid-2" style="margin-bottom:14px">
+        <!-- Добавить -->
+        <div class="card">
+          <div class="card-head"><div class="card-title" data-tip-title="Добавить позицию на кухню" data-tip="Создать новый ингредиент в списке склада кухни. Заполните все поля и нажмите Добавить.">➕ Добавить позицию на кухню</div></div>
+          <div class="form-row">
+            <div class="fg"><label>Название</label><input type="text" id="ni-name-k" data-tip-title="Название" data-tip="Как называется ингредиент на складе кухни." placeholder="Булка для бургера"></div>
+            <div class="fg" style="max-width:80px"><label>Остаток</label><input type="number" id="ni-qty-k" data-tip-title="Остаток" data-tip="Текущее количество этого ингредиента на кухне." value="10" step="0.1"></div>
+            <div class="fg" style="max-width:60px"><label>Ед.</label><input type="text" id="ni-unit-k" data-tip-title="Единица измерения" data-tip="шт. — штуки, кг — килограммы, л — литры, уп. — упаковки. Должна совпадать с техкартой." value="шт."></div>
+            <div class="fg" style="max-width:80px"><label>Мин.</label><input type="number" id="ni-min-k" data-tip-title="Минимум" data-tip="Пороговое значение. Ниже него — статус Критично и сигнал в статистике." value="10" step="0.1"></div>
+          </div>
+          <button class="btn btn-primary" onclick="addIngredientTo('kitchen')" data-tip-title="Добавить на кухню" data-tip="Сохранить новый ингредиент в список склада кухни.">Добавить на кухню</button>
+        </div>
+        <!-- Техкарты кухни -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title" data-tip-title="Техкарты кухни" data-tip="Рецептуры блюд: что и сколько списывается при каждом заказе. Красный ингредиент = нехватка на складе прямо сейчас.">📝 Техкарты кухни</div>
+            <span style="font-size:11px;color:var(--muted)">списание при заказе</span>
+          </div>
+          <div id="ing-tc-kitchen" class="scroll" style="max-height:200px;font-size:13px"></div>
+        </div>
+      </div>
+      <!-- Список ингредиентов кухни -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title" data-tip-title="Ингредиенты кухни" data-tip="Полный список всех позиций склада кухни с остатками, минимумом и статусами.">🍳 Ингредиенты кухни</div>
+          <input type="text" id="ing-q-kitchen" data-tip-title="Поиск" data-tip="Фильтрует список ингредиентов по названию в реальном времени." placeholder="Поиск…" oninput="renderIngredients()" style="width:160px;font-size:12px">
+        </div>
+        <table>
+          <thead><tr><th data-tip-title="Название" data-tip="Наименование ингредиента на складе кухни.">Название</th><th data-tip-title="Остаток" data-tip="Текущее количество. Зелёный = норма, жёлтый = мало, красный = критично.">Остаток</th><th data-tip-title="Мин." data-tip="Минимальный порог. Ниже него — статус Критично.">Мин.</th><th data-tip-title="Статус" data-tip="Норма / Мало / Критично — зависит от соотношения остатка и минимума.">Статус</th><th data-tip-title="Исп. в техкартах" data-tip="В скольких рецептурах блюд используется этот ингредиент.">Исп. в техкартах</th><th></th></tr></thead>
+          <tbody id="ing-tbody-kitchen" style="font-size:13px"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Цех -->
+    <div id="ing-section-workshop" style="display:none">
+      <div class="grid-2" style="margin-bottom:14px">
+        <!-- Добавить -->
+        <div class="card">
+          <div class="card-head"><div class="card-title" data-tip-title="Добавить позицию в цех" data-tip="Создать новый ингредиент в списке склада цеха (сырьё для производства).">➕ Добавить позицию в цех</div></div>
+          <div class="form-row">
+            <div class="fg"><label>Название</label><input type="text" id="ni-name-w" data-tip-title="Название" data-tip="Название сырья как оно будет отображаться в складе цеха и рецептурах." placeholder="Куриное мясо"></div>
+            <div class="fg" style="max-width:80px"><label>Остаток</label><input type="number" id="ni-qty-w" data-tip-title="Остаток" data-tip="Начальное количество сырья в цехе при добавлении." value="10" step="0.1"></div>
+            <div class="fg" style="max-width:60px"><label>Ед.</label><input type="text" id="ni-unit-w" data-tip-title="Единица измерения" data-tip="кг, шт., л — должна совпадать с рецептурой цеха." value="кг"></div>
+            <div class="fg" style="max-width:80px"><label>Мин.</label><input type="number" id="ni-min-w" data-tip-title="Минимальный порог" data-tip="При снижении ниже этого — красный статус Критично и сигнал в производстве." value="2" step="0.1"></div>
+          </div>
+          <button class="btn btn-primary" onclick="addIngredientTo('workshop')" data-tip-title="Добавить в цех" data-tip="Сохранить новое сырьё в список склада цеха.">Добавить в цех</button>
+        </div>
+        <!-- Техкарты цеха -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title" data-tip-title="Рецепты цеха" data-tip="Рецептуры производства полуфабрикатов: что и сколько сырья нужно на 1 единицу. Красный = нехватка сырья.">📝 Рецепты цеха</div>
+            <span style="font-size:11px;color:var(--muted)">производство полуфабрикатов</span>
+          </div>
+          <div id="ing-tc-workshop" class="scroll" style="max-height:200px;font-size:13px"></div>
+        </div>
+      </div>
+      <!-- Список ингредиентов цеха -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title" data-tip-title="Ингредиенты цеха" data-tip="Полный список сырья склада цеха с остатками, минимумом и статусами.">🏭 Ингредиенты цеха</div>
+          <input type="text" id="ing-q-workshop" data-tip-title="Поиск" data-tip="Фильтрует список сырья цеха по названию в реальном времени." placeholder="Поиск…" oninput="renderIngredients()" style="width:160px;font-size:12px">
+        </div>
+        <table>
+          <thead><tr><th data-tip-title="Название" data-tip="Наименование сырья на складе цеха.">Название</th><th data-tip-title="Остаток" data-tip="Текущее количество сырья. Зелёный = норма, жёлтый = мало, красный = критично.">Остаток</th><th data-tip-title="Мин." data-tip="Минимальный порог. Ниже него — статус Критично и производство под угрозой.">Мин.</th><th data-tip-title="Статус" data-tip="Норма / Мало / Критично — зависит от соотношения остатка и минимума.">Статус</th><th data-tip-title="Исп. в рецептах цеха" data-tip="В скольких рецептурах производства используется это сырьё.">Исп. в рецептах цеха</th><th></th></tr></thead>
+          <tbody id="ing-tbody-workshop" style="font-size:13px"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ IFRAME ПАНЕЛЬ ═══ -->
+  <div id="panel-frame" class="panel" style="position:absolute;inset:0;display:none;">
+    <iframe id="frame-iframe" src="" style="width:100%;height:100%;border:none;display:block;"></iframe>
+  </div>
+
+  </div>
+</div>
+</div>
+
+<div id="toast"></div>
+<div id="pwd-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;padding:28px;width:340px;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
+    <div style="font-size:16px;font-weight:700;margin-bottom:6px" id="pwd-title">Подтверждение</div>
+    <div style="font-size:13px;color:#6b6b66;margin-bottom:16px" id="pwd-desc"></div>
+    <input type="password" id="pwd-input" placeholder="Введите пароль..." style="margin-bottom:6px" onkeydown="if(event.key==='Enter')confirmPassword()">
+    <div id="pwd-error" style="font-size:12px;color:#E24B4A;margin-bottom:10px;display:none">❌ Неверный пароль</div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button onclick="closePwdModal()" style="flex:1;padding:10px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:13px;font-weight:600">Отмена</button>
+      <button onclick="confirmPassword()" style="flex:1;padding:10px;border-radius:8px;border:none;background:#D85A30;color:#fff;cursor:pointer;font-size:13px;font-weight:600">Подтвердить</button>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+let cart = [];
+const MANAGER_PASSWORD = '1234';
+let pwdCallback = null;
+
+// ── Nav ───────────────────────────────────────────────────────────────
+function nav(id, btn) {
+  // Скрыть iframe, вернуть topbar
+  document.getElementById('panel-frame').style.display = 'none';
+  document.getElementById('frame-iframe').src = '';
+  document.querySelector('.topbar').style.display = '';
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  btn.classList.add('active');
+  const titles = {'orders':'Заказы','deductions':'Списания','transfers':'Перемещения','reports':'Отчёты','techcards':'Техкарты','stoplist':'Стоп-лист','ingredients':'Ингредиенты'};
+  document.getElementById('panel-title').textContent = titles[id] || id;
+  if (id==='deductions')  renderDeductions();
+  if (id==='transfers')   renderTransfers();
+  if (id==='reports')     renderReports();
+  if (id==='techcards')   renderTechCards();
+  if (id==='stoplist')    renderStopList();
+  if (id==='ingredients') renderIngredients();
+}
+function toast(msg) { const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2500); }
+function updateClock() { document.getElementById('clock').textContent=new Date().toLocaleString('ru',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
+
+// ── Orders ────────────────────────────────────────────────────────────
+const STATUS_LABEL={new:'Новый',cook:'Готовится',done:'Готово',cancel:'Отменён'};
+const STATUS_CLASS={new:'badge-blue',cook:'badge-warn',done:'badge-ok',cancel:'badge-danger'};
+function populateOrderSel() {
+  const sl=getStopList(); const sel=document.getElementById('o-sel'); sel.innerHTML='';
+  MENU.forEach(m=>{ const opt=document.createElement('option'); opt.value=m.id; const stopped=sl.includes(m.id); opt.textContent=m.emoji+' '+m.name+' — '+fmt(m.price)+' тг'+(stopped?' 🚫':''); if(stopped) opt.style.color='var(--red)'; sel.appendChild(opt); });
+}
+function cartAdd() { const id=document.getElementById('o-sel').value; const qty=parseInt(document.getElementById('o-qty').value)||1; const item=findMenuItem(id); if(!item) return; const ex=cart.find(c=>c.id===id); if(ex) ex.qty+=qty; else cart.push({...item,qty}); renderCart(); }
+function cartRemove(id) { cart=cart.filter(c=>c.id!==id); renderCart(); }
+function cartClear() { cart=[]; renderCart(); }
+function renderCart() {
+  const el=document.getElementById('cart-list'); el.innerHTML=''; let total=0;
+  cart.forEach(c=>{ total+=c.price*c.qty; const div=document.createElement('div'); div.className='cart-line'; div.innerHTML=`<span class="cart-emoji">${c.emoji}</span><span class="cart-name">${c.name} <span style="color:var(--muted)">×${c.qty}</span></span><span class="cart-price">${fmt(c.price*c.qty)} тг</span><button class="btn btn-sm btn-danger btn-ghost" onclick="cartRemove('${c.id}')">✕</button>`; el.appendChild(div); });
+  document.getElementById('cart-sum').textContent=fmt(total)+' тг';
+}
+function orderPlace() {
+  if (!cart.length) { toast('❗ Корзина пуста'); return; }
+  const total=cart.reduce((s,c)=>s+c.price*c.qty,0);
+  const orders=getOrders();
+  const num=(orders.length?Math.max(...orders.map(o=>o.num||0)):0)+1;
+  const order={id:Date.now(),num,date:todayStr(),time:nowStr(),items:cart.map(c=>({id:c.id,name:c.name,qty:c.qty,price:c.price})),total,status:'new'};
+  orders.push(order); setOrders(orders); autoDeductForOrder(cart); cartClear(); renderOrders(); updateDashboard();
+  toast('✅ Заказ #'+num+' принят — '+fmt(total)+' тг');
+}
+function renderOrders() {
+  const orders=getOrders(); const active=orders.filter(o=>o.status==='new'||o.status==='cook');
+  const el=document.getElementById('orders-active');
+  if(el) el.innerHTML=active.length?[...active].reverse().map(o=>`<div class="order-card"><div class="order-head"><span class="order-num">#${o.num}</span><span class="badge ${STATUS_CLASS[o.status]}">${STATUS_LABEL[o.status]}</span><span class="order-time">${o.time}</span></div><div class="order-items">${o.items.map(i=>i.name+' ×'+i.qty).join(', ')}</div><div class="order-foot"><span class="order-total">${fmt(o.total)} тг</span><div style="display:flex;gap:4px"><button class="btn btn-sm" onclick="setOrderStatus(${o.id},'cook')">🍳</button><button class="btn btn-sm btn-primary" onclick="setOrderStatus(${o.id},'done')">✓ Готово</button><button class="btn btn-sm btn-ghost" onclick="setOrderStatus(${o.id},'cancel')">✕</button></div></div></div>`).join(''):'<div style="padding:16px;color:var(--muted);text-align:center;font-size:13px">Нет активных заказов</div>';
+  const tbody=document.getElementById('orders-all');
+  if(tbody) tbody.innerHTML=[...orders].reverse().map(o=>`<tr><td style="font-weight:700">#${o.num}</td><td>${o.time}</td><td style="color:var(--muted)">${o.items.map(i=>i.name+'×'+i.qty).join(', ')}</td><td style="font-weight:600;color:var(--orange)">${fmt(o.total)} тг</td><td><span class="badge ${STATUS_CLASS[o.status]}">${STATUS_LABEL[o.status]}</span></td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px">Нет заказов</td></tr>';
+  const nb=document.getElementById('nb-new'); if(nb){nb.textContent=active.length;nb.style.display=active.length?'':'none';}
+}
+function setOrderStatus(id,status) { const orders=getOrders(); const o=orders.find(o=>o.id===id); if(o) o.status=status; setOrders(orders); renderOrders(); updateDashboard(); }
+function updateDashboard() {
+  const orders=getOrders(); const today=todayStr();
+  const todayOrders=orders.filter(o=>o.date===today&&o.status!=='cancel');
+  const rev=todayOrders.reduce((s,o)=>s+o.total,0);
+  const active=orders.filter(o=>o.status==='new'||o.status==='cook').length;
+  const stock=getStock();
+  const lowK=stock.filter(i=>i.location==='kitchen'&&i.qty<i.min).length;
+  const lowW=stock.filter(i=>i.location==='workshop'&&i.qty<i.min).length;
+  document.getElementById('s-cnt').textContent=todayOrders.length;
+  document.getElementById('s-rev').textContent=fmt(rev)+' тг';
+  document.getElementById('s-active').textContent=active;
+  document.getElementById('s-low').textContent=(lowK+lowW)+(lowK+lowW?` (К:${lowK} Ц:${lowW})`:'');
+}
+
+// ── ПЕРЕМЕЩЕНИЯ ───────────────────────────────────────────────────────
+function renderTransfers() {
+  const wsStock=getWsStock(); const stock=getStock();
+  const fromWs=document.getElementById('tr-ws-from');
+  if(fromWs){const p=fromWs.value;fromWs.innerHTML='';wsStock.forEach(w=>fromWs.innerHTML+=`<option value="${w.id}">${w.name} (${w.qty} ${w.unit})</option>`);if(p&&fromWs.querySelector(`option[value="${p}"]`))fromWs.value=p;}
+  const toKs=document.getElementById('tr-ws-to');
+  if(toKs){const p=toKs.value;toKs.innerHTML='<option value="">— не добавлять —</option>';stock.filter(i=>i.location==='kitchen').forEach(i=>toKs.innerHTML+=`<option value="${i.id}">${i.name} (${i.qty.toFixed(1)} ${i.unit})</option>`);if(p&&toKs.querySelector(`option[value="${p}"]`))toKs.value=p;}
+  const fromKs=document.getElementById('tr-ks-from');
+  if(fromKs){const p=fromKs.value;fromKs.innerHTML='';stock.filter(i=>i.location==='kitchen').forEach(i=>fromKs.innerHTML+=`<option value="${i.id}">${i.name} (${i.qty.toFixed(1)} ${i.unit})</option>`);if(p&&fromKs.querySelector(`option[value="${p}"]`))fromKs.value=p;}
+  const toWs=document.getElementById('tr-ks-to');
+  if(toWs){const p=toWs.value;toWs.innerHTML='<option value="">— не добавлять —</option>';stock.filter(i=>i.location==='workshop').forEach(i=>toWs.innerHTML+=`<option value="${i.id}">${i.name} (${i.qty.toFixed(1)} ${i.unit})</option>`);if(p&&toWs.querySelector(`option[value="${p}"]`))toWs.value=p;}
+  const transfers=getTransfers(); const tbody=document.getElementById('tr-tbody'); const cnt=document.getElementById('tr-count');
+  if(cnt) cnt.textContent='Всего: '+transfers.length;
+  if(tbody) tbody.innerHTML=transfers.length?[...transfers].reverse().map(t=>`<tr><td style="color:var(--muted)">${t.date||''}</td><td style="color:var(--muted)">${t.time}</td><td><span class="badge ${t.dir==='ws-ks'?'badge-teal':'badge-blue'}">${t.dir==='ws-ks'?'🏭→🍳':'🍳→🏭'}</span></td><td style="font-weight:600">${t.from}</td><td style="color:var(--muted)">${t.to||'—'}</td><td style="font-weight:700;color:var(--teal)">+${t.qty} ${t.unit}</td><td style="color:var(--muted);font-size:12px">${t.note||''}</td><td style="color:var(--muted)">${t.emp}</td></tr>`).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Нет перемещений</td></tr>';
+}
+function doTransferWsToKs() {
+  const fromId=document.getElementById('tr-ws-from').value; const toId=document.getElementById('tr-ws-to').value;
+  const qty=parseFloat(document.getElementById('tr-ws-qty').value)||0; const note=document.getElementById('tr-ws-note').value.trim();
+  if(qty<=0){toast('❗ Введите количество');return;}
+  const wsStock=getWsStock(); const w=wsStock.find(i=>i.id===fromId); if(!w) return;
+  if(w.qty<qty){toast('❗ На складе цеха только '+w.qty+' '+w.unit);return;}
+  w.qty=Math.max(0,w.qty-qty); setWsStock(wsStock);
+  let toName='—';
+  if(toId){const stock=getStock();const ing=stock.find(i=>i.id===toId);if(ing){ing.qty+=qty;if(ing.qty>(ing.max||0))ing.max=ing.qty;setStock(stock);toName=ing.name;}}
+  const transfers=getTransfers(); transfers.push({date:todayStr(),time:nowStr(),dir:'ws-ks',from:w.name,to:toName,qty:qty.toFixed(2),unit:w.unit,note,emp:'Менеджер'}); setTransfers(transfers);
+  const ded=getDeductions(); ded.push({date:todayStr(),time:nowStr(),ing:'[ЦЕХ→КУХНЯ] '+w.name,qty:'+'+qty.toFixed(2),unit:w.unit,reason:'Передача: Цех → Кухня',emp:'Менеджер'}); setDeductions(ded);
+  document.getElementById('tr-ws-note').value=''; renderTransfers(); toast('✅ Передано Цех→Кухня: '+w.name+' +'+qty+' '+w.unit);
+}
+function doTransferKsToWs() {
+  const fromId=document.getElementById('tr-ks-from').value; const toId=document.getElementById('tr-ks-to').value;
+  const qty=parseFloat(document.getElementById('tr-ks-qty').value)||0; const note=document.getElementById('tr-ks-note').value.trim();
+  if(qty<=0){toast('❗ Введите количество');return;}
+  const stock=getStock(); const from=stock.find(i=>i.id===fromId); if(!from) return;
+  if(from.qty<qty){toast('❗ На складе кухни только '+from.qty.toFixed(2)+' '+from.unit);return;}
+  from.qty=Math.max(0,from.qty-qty); let toName='—';
+  if(toId){const to=stock.find(i=>i.id===toId);if(to){to.qty+=qty;if(to.qty>(to.max||0))to.max=to.qty;toName=to.name;}} setStock(stock);
+  const transfers=getTransfers(); transfers.push({date:todayStr(),time:nowStr(),dir:'ks-ws',from:from.name,to:toName,qty:qty.toFixed(2),unit:from.unit,note,emp:'Менеджер'}); setTransfers(transfers);
+  const ded=getDeductions(); ded.push({date:todayStr(),time:nowStr(),ing:'[КУХНЯ→ЦЕХ] '+from.name,qty:'+'+qty.toFixed(2),unit:from.unit,reason:'Передача: Кухня → Цех',emp:'Менеджер'}); setDeductions(ded);
+  document.getElementById('tr-ks-note').value=''; renderTransfers(); toast('✅ Передано Кухня→Цех: '+from.name+' +'+qty+' '+from.unit);
+}
+
+// ── СПИСАНИЯ ─────────────────────────────────────────────────────────
+function renderDeductions() {
+  const tbody=document.getElementById('ded-tbody'); const ded=getDeductions();
+  if(!ded.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Нет списаний</td></tr>';return;}
+  tbody.innerHTML=[...ded].reverse().map(d=>{const pos=String(d.qty).startsWith('+');return`<tr><td>${d.date||''}</td><td>${d.time}</td><td>${d.ing}</td><td style="font-weight:700;color:${pos?'var(--green)':'var(--red)'}">${d.qty}</td><td style="color:var(--muted)">${d.unit}</td><td>${d.reason}</td><td style="color:var(--muted)">${d.emp}</td></tr>`;}).join('');
+}
+
+// ── ОТЧЁТЫ ───────────────────────────────────────────────────────────
+function renderReports() {
+  const orders=getOrders(); const today=todayStr();
+  const todayOrders=orders.filter(o=>o.date===today&&o.status!=='cancel');
+  const rev=todayOrders.reduce((s,o)=>s+o.total,0); const avg=todayOrders.length?Math.round(rev/todayOrders.length):0;
+  document.getElementById('r-rev').textContent=fmt(rev)+' тг'; document.getElementById('r-orders').textContent=todayOrders.length; document.getElementById('r-avg').textContent=fmt(avg)+' тг'; document.getElementById('r-ded').textContent=getDeductions().filter(d=>d.date===today).length;
+  const cnt={};todayOrders.forEach(o=>o.items.forEach(it=>{cnt[it.name]=(cnt[it.name]||0)+it.qty;}));
+  const sorted=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  document.getElementById('r-top').innerHTML=sorted.length?sorted.map(([n,q],i)=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:13px"><span><span style="color:var(--muted);margin-right:6px">${i+1}.</span>${n}</span><span style="font-weight:600">${q} шт.</span></div>`).join(''):'<div style="color:var(--muted);font-size:13px">Нет данных</div>';
+  const stock=getStock(); const crit=stock.filter(i=>i.qty<i.min);
+  document.getElementById('r-critical').innerHTML=crit.length?crit.map(i=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:13px"><span>${i.location==='workshop'?'🏭':'🍳'} ${i.name}</span><span class="badge badge-danger">${i.qty.toFixed(1)} / ${i.min} ${i.unit}</span></div>`).join(''):'<div style="color:var(--green);font-size:13px">Всё в норме ✓</div>';
+  const purch=getPurchases();
+  document.getElementById('r-purchases').innerHTML=purch.length?purch.map(p=>{
+    const photoCell=p.productPhoto
+      ?`<img src="${p.productPhoto}" onclick="window.open('','_blank','width=600,height=600').document.write('<img src=\''+p.productPhoto+'\' style=\'max-width:100%\'>')" style="width:36px;height:36px;object-fit:cover;border-radius:4px;cursor:zoom-in;border:1px solid var(--border);vertical-align:middle">`
+      :`<span style="color:rgba(0,0,0,0.15);font-size:12px">—</span>`;
+    const recBtn=p.receiptPhoto
+      ?`<img src="${p.receiptPhoto}" onclick="window.open('','_blank','width=600,height=800').document.write('<img src=\''+p.receiptPhoto+'\' style=\'max-width:100%\'>')" style="width:28px;height:28px;object-fit:cover;border-radius:3px;cursor:zoom-in;border:1px solid var(--border);vertical-align:middle" title="Чек">`
+      :`<span style="color:rgba(0,0,0,0.15);font-size:12px">—</span>`;
+    const aiTag=p.note&&p.note.includes('AI')?`<span style="font-size:9px;background:rgba(216,90,48,0.1);color:var(--orange);padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:700">AI</span>`:'';
+    const rdCell = p.receipt_date ? `<span style="color:#1D9E75;font-weight:600;font-size:12px">${p.receipt_date}</span>` : `<span style="color:rgba(0,0,0,0.2);font-size:11px">—</span>`;
+    return `<tr><td style="text-align:center">${photoCell}</td><td style="font-size:12px;color:var(--muted)">${p.date} ${p.time}</td><td style="text-align:center">${rdCell}</td><td style="font-weight:600">${p.ing}${aiTag}</td><td><span class="badge badge-gray" style="font-size:10px">${p.location==='workshop'?'🏭 Цех':'🍳 Кухня'}</span></td><td>${p.qty} ${p.unit}</td><td style="color:var(--muted)">${p.price>0?fmt(p.price)+' тг/ед':'—'}</td><td style="font-weight:600;color:var(--green)">${fmt(p.cost||0)} тг</td><td style="color:var(--muted);font-size:12px">${p.supplier||'—'}</td><td style="text-align:center">${recBtn}</td></tr>`;
+  }).join(''):'<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:16px">Нет закупок</td></tr>';
+}
+
+// ── RECEIPTS FROM IFRAME (postMessage) ───────────────────────────────
+// Очищаем старый yaya_receipts — фото теперь в yaya_purchases
+try { localStorage.removeItem('yaya_receipts'); } catch(e) {}
+
+window.addEventListener('message', e => {
+  if (!e.data || e.data.type !== 'yaya_receipts_update') return;
+  // Фото теперь хранятся в yaya_purchases — этот канал больше не нужен
+});
+
+// ── ТЕХКАРТЫ ─────────────────────────────────────────────────────────
+function renderTechCards() {
+  const sel=document.getElementById('tc-dish'); const ingSel=document.getElementById('tc-ing');
+  sel.innerHTML=''; ingSel.innerHTML='';
+  MENU.forEach(m=>sel.innerHTML+=`<option value="${m.id}">${m.emoji} ${m.name}</option>`);
+  const allIng=[...getStock(),...getWsStock().map(w=>({...w,name:'[ПФ] '+w.name}))];
+  allIng.forEach(i=>ingSel.innerHTML+=`<option value="${i.id}">${i.name}</option>`);
+  renderTCCurrent();
+  const tc=getTechCards(); const noTC=MENU.filter(m=>!tc[m.id]||!tc[m.id].length);
+  document.getElementById('no-tc').innerHTML=noTC.length?noTC.map(m=>`<div style="padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.05)">${m.emoji} ${m.name}</div>`).join(''):'<div style="color:var(--green)">✓ Все блюда имеют техкарту</div>';
+}
+function renderTCCurrent() {
+  const id=document.getElementById('tc-dish')?.value; const tc=getTechCards(); const el=document.getElementById('tc-current'); if(!el) return;
+  const rows=tc[id]||[];
+  if(!rows.length){el.innerHTML='<div style="color:var(--muted)">Нет техкарты для этого блюда</div>';return;}
+  const allIng=[...getStock(),...getWsStock()];
+  el.innerHTML=rows.map((r,i)=>{const ing=allIng.find(x=>x.id===r.ingId);return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:13px"><span style="flex:1">${ing?ing.name:'?'}</span><span style="font-weight:600">${r.qty} ${r.unit}</span><button class="btn btn-sm btn-danger btn-ghost" onclick="removeTCRow('${id}',${i})">✕</button></div>`;}).join('');
+}
+function addTCRow() {
+  const dishId=document.getElementById('tc-dish').value; const ingId=document.getElementById('tc-ing').value;
+  const qty=parseFloat(document.getElementById('tc-qty').value)||0; const unit=document.getElementById('tc-unit').value;
+  if(!qty) return; const tc=getTechCards(); if(!tc[dishId]) tc[dishId]=[];
+  const ex=tc[dishId].find(r=>r.ingId===ingId); if(ex) ex.qty=qty; else tc[dishId].push({ingId,qty,unit});
+  setTechCards(tc); renderTCCurrent(); toast('✅ Техкарта обновлена');
+}
+function removeTCRow(dishId,idx) { const tc=getTechCards(); tc[dishId].splice(idx,1); setTechCards(tc); renderTCCurrent(); }
+
+// ── СТОП-ЛИСТ ────────────────────────────────────────────────────────
+function renderStopList() {
+  const sel=document.getElementById('sl-sel'); sel.innerHTML='';
+  MENU.forEach(m=>sel.innerHTML+=`<option value="${m.id}">${m.emoji} ${m.name}</option>`);
+  const sl=getStopList(); const el=document.getElementById('sl-list');
+  el.innerHTML=sl.length?sl.map(id=>{const item=findMenuItem(id);return item?`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:13px"><span style="flex:1">${item.emoji} ${item.name}</span><span class="badge badge-danger">СТОП</span><button class="btn btn-sm btn-ghost" onclick="removeFromStopList('${id}')">✕ Снять</button></div>`:''}).join(''):'<div style="color:var(--muted);font-size:13px;padding:8px 0">Стоп-лист пуст</div>';
+  const stock=getStock(); const tc=getTechCards();
+  const autoStop=MENU.filter(m=>{const recipe=tc[m.id];if(!recipe) return false;return recipe.some(r=>{const ing=stock.find(i=>i.id===r.ingId);return ing&&ing.qty<ing.min;});});
+  document.getElementById('sl-auto').innerHTML=autoStop.length?autoStop.map(m=>`<div style="padding:4px 0;font-size:13px">${m.emoji} ${m.name}</div>`).join(''):'<div style="color:var(--green)">Нет автоматических остановок</div>';
+}
+function addToStopList() { const id=document.getElementById('sl-sel').value; const sl=getStopList(); if(!sl.includes(id)){sl.push(id);setStopList(sl);} renderStopList();populateOrderSel();toast('🚫 Добавлено в стоп-лист'); }
+function removeFromStopList(id) { setStopList(getStopList().filter(i=>i!==id)); renderStopList();populateOrderSel();toast('✅ Снято со стоп-листа'); }
+
+// ── ИНГРЕДИЕНТЫ (по складам) ──────────────────────────────────────────
+let ingActiveTab = 'kitchen';
+
+function ingSetTab(tab) {
+  ingActiveTab = tab;
+  document.getElementById('ing-section-kitchen').style.display = tab==='kitchen'?'':'none';
+  document.getElementById('ing-section-workshop').style.display = tab==='workshop'?'':'none';
+  document.getElementById('ing-tab-kitchen').className = 'btn '+(tab==='kitchen'?'btn-primary':'');
+  document.getElementById('ing-tab-workshop').className = 'btn '+(tab==='workshop'?'btn-primary':'');
+  renderIngredients();
+}
+
+function addIngredientTo(location) {
+  const sfx = location==='kitchen'?'k':'w';
+  const name=document.getElementById('ni-name-'+sfx).value.trim();
+  const qty=parseFloat(document.getElementById('ni-qty-'+sfx).value)||0;
+  const unit=document.getElementById('ni-unit-'+sfx).value.trim()||'кг';
+  const min=parseFloat(document.getElementById('ni-min-'+sfx).value)||1;
+  if(!name){toast('❗ Введите название');return;}
+  const stock=getStock(); stock.push({id:'i'+Date.now(),name,qty,unit,min,location}); setStock(stock);
+  renderIngredients(); document.getElementById('ni-name-'+sfx).value='';
+  toast('✅ Добавлено: '+name+' → '+(location==='kitchen'?'🍳 Кухня':'🏭 Цех'));
+}
+
+// Обратная совместимость
+function addIngredient() { addIngredientTo(ingActiveTab); }
+
+function renderIngredients() {
+  _renderIngStock('kitchen');
+  _renderIngStock('workshop');
+  _renderIngTechCards('kitchen');
+  _renderIngTechCards('workshop');
+}
+
+function _renderIngStock(loc) {
+  const tbody = document.getElementById('ing-tbody-'+loc); if(!tbody) return;
+  const stock = getStock().filter(i=>i.location===loc);
+  const q = (document.getElementById('ing-q-'+loc)?.value||'').toLowerCase();
+  const tc = getTechCards();
+  const wsRecipes = DEFAULT_WORKSHOP_RECIPES || [];
+
+  // Посчитать в каких техкартах используется каждый ингредиент
+  const usageMap = {}; // ingId -> [blюдо1, блюдо2…]
+  if(loc==='kitchen') {
+    // техкарты кафе
+    Object.entries(tc).forEach(([dishId, rows])=>{
+      const dish = MENU.find(m=>m.id===dishId);
+      if(!dish) return;
+      rows.forEach(r=>{
+        if(!usageMap[r.ingId]) usageMap[r.ingId]=[];
+        usageMap[r.ingId].push(dish.emoji+' '+dish.name);
+      });
+    });
+  } else {
+    // рецепты цеха
+    wsRecipes.forEach(wr=>{
+      wr.items.forEach(item=>{
+        if(!usageMap[item.ingId]) usageMap[item.ingId]=[];
+        usageMap[item.ingId].push('🏭 '+wr.name);
+      });
+    });
+  }
+
+  const filtered = q ? stock.filter(i=>i.name.toLowerCase().includes(q)) : stock;
+  if(!filtered.length){ tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">Нет позиций</td></tr>`; return; }
+
+  tbody.innerHTML = filtered.map(i=>{
+    const cls = i.qty<i.min?'badge-danger':i.qty<i.min*1.5?'badge-warn':'badge-ok';
+    const uses = usageMap[i.id]||[];
+    const useTxt = uses.length
+      ? `<span style="color:var(--muted);font-size:11px" title="${uses.join('\n')}">${uses.length} техкарт${uses.length===1?'е':'ах'}</span>`
+      : `<span style="color:var(--border)">—</span>`;
+    const idx = getStock().indexOf(getStock().find(x=>x.id===i.id));
+    return `<tr>
+      <td style="font-weight:500">${i.name}</td>
+      <td><span class="badge ${cls}">${i.qty.toFixed(1)} ${i.unit}</span></td>
+      <td style="color:var(--muted)">${i.min} ${i.unit}</td>
+      <td>${i.qty<i.min?'<span class="badge badge-danger">Критично</span>':i.qty<i.min*1.5?'<span class="badge badge-warn">Мало</span>':'<span class="badge badge-ok">Норма</span>'}</td>
+      <td>${useTxt}</td>
+      <td><button class="btn btn-sm btn-danger btn-ghost" onclick="deleteIngById('${i.id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function _renderIngTechCards(loc) {
+  const el = document.getElementById('ing-tc-'+loc); if(!el) return;
+  const stock = getStock();
+  const wsStock = getWsStock();
+  const allIng = [...stock, ...wsStock];
+
+  if(loc==='kitchen') {
+    const tc = getTechCards();
+    const lines = [];
+    MENU.forEach(m=>{
+      const rows = tc[m.id]||[];
+      if(!rows.length) return;
+      const ingList = rows.map(r=>{
+        const ing = allIng.find(i=>i.id===r.ingId);
+        const low = ing && ing.qty<ing.min;
+        return `<span style="color:${low?'var(--red)':'var(--muted)'}">${ing?ing.name:'?'} ${r.qty}${r.unit}</span>`;
+      }).join(', ');
+      lines.push(`<div style="padding:5px 0;border-bottom:1px solid rgba(0,0,0,0.05)"><span style="font-weight:600">${m.emoji} ${m.name}</span><br><span style="font-size:11px">${ingList}</span></div>`);
+    });
+    el.innerHTML = lines.length ? lines.join('') : '<div style="color:var(--muted)">Нет техкарт</div>';
+  } else {
+    const wsRecipes = DEFAULT_WORKSHOP_RECIPES||[];
+    if(!wsRecipes.length){el.innerHTML='<div style="color:var(--muted)">Нет рецептов цеха</div>';return;}
+    el.innerHTML = wsRecipes.map(wr=>{
+      const ingList = wr.items.map(item=>{
+        const ing = allIng.find(i=>i.id===item.ingId);
+        const low = ing && ing.qty<ing.min;
+        return `<span style="color:${low?'var(--red)':'var(--muted)'}">${ing?ing.name:'?'} ${item.qty}${item.unit}</span>`;
+      }).join(', ');
+      const out = allIng.find(i=>i.id===wr.outputId);
+      return `<div style="padding:5px 0;border-bottom:1px solid rgba(0,0,0,0.05)"><span style="font-weight:600">🏭 ${wr.name}</span> → <span style="color:var(--teal)">${out?out.name:''} ${wr.outputQty}${wr.outputUnit}</span><br><span style="font-size:11px">${ingList}</span></div>`;
+    }).join('');
+  }
+}
+
+function deleteIngById(id) {
+  if(!confirm('Удалить позицию?')) return;
+  const stock=getStock().filter(i=>i.id!==id); setStock(stock); renderIngredients();
+}
+function deleteIng(idx) { if(!confirm('Удалить позицию?')) return; const stock=getStock(); stock.splice(idx,1); setStock(stock); renderIngredients(); }
+
+// ── ПАРОЛЬ ───────────────────────────────────────────────────────────
+function openPwdModal(title,desc,callback) {
+  document.getElementById('pwd-title').textContent=title; document.getElementById('pwd-desc').textContent=desc;
+  document.getElementById('pwd-input').value=''; document.getElementById('pwd-error').style.display='none';
+  document.getElementById('pwd-modal').style.display='flex'; setTimeout(()=>document.getElementById('pwd-input').focus(),150); pwdCallback=callback;
+}
+function closePwdModal() { document.getElementById('pwd-modal').style.display='none'; document.getElementById('pwd-input').value=''; pwdCallback=null; }
+function confirmPassword() {
+  if(document.getElementById('pwd-input').value===MANAGER_PASSWORD){
+    const cb=pwdCallback;pwdCallback=null;document.getElementById('pwd-modal').style.display='none';if(cb) cb();
+  } else { document.getElementById('pwd-error').style.display='block'; document.getElementById('pwd-input').value=''; document.getElementById('pwd-input').focus(); }
+}
+document.getElementById('pwd-modal').addEventListener('click',function(e){if(e.target===this)closePwdModal();});
+function resetOrdersWithPassword() { openPwdModal('🗑 Обнуление заказов','Все заказы будут удалены.',()=>{setOrders([]);setDeductions([]);renderOrders();updateDashboard();toast('✅ Заказы обнулены.');}); }
+
+// ── iframe панель ─────────────────────────────────────────────────────
+function navFrame(url, title, btn) {
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // Скрыть topbar менеджера — шапка iframe выровняется с верхом сайдбара
+  document.querySelector('.topbar').style.display = 'none';
+  const frame = document.getElementById('panel-frame');
+  frame.style.display = 'block';
+  document.getElementById('frame-iframe').src = url;
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────
+function renderAll() { populateOrderSel(); renderOrders(); updateDashboard(); }
+renderAll(); updateClock();
+setInterval(updateClock, 30000);
+setInterval(()=>{renderOrders();updateDashboard();}, 15000);
+</script>
+<div id="help-banner">💡 Режим подсказок — наводите на элементы с оранжевой рамкой</div>
+<button id="help-fab" onclick="toggleHelp()" title="Подсказки">?</button>
+<div id="htip-pop"></div>
+<script>
+(function(){
+  var hm=false,ht=document.getElementById('htip-pop'),fb=document.getElementById('help-fab');
+  window.toggleHelp=function(){
+    hm=!hm;
+    document.body.classList.toggle('help-mode',hm);
+    fb.classList.toggle('hactive',hm);
+    fb.textContent=hm?'✕':'?';
+    if(!hm)ht.classList.remove('vis');
+    // Синхронизировать режим с iframe (склад цеха / кухни)
+    var iframe = document.getElementById('frame-iframe');
+    if (iframe && iframe.contentWindow) {
+      try { iframe.contentWindow.postMessage('toggleHelp', '*'); } catch(e){}
+    }
+  };
+  // Слушать helpOff от iframe — пользователь кликнул внутри iframe и режим выключился
+  window.addEventListener('message', function(e){
+    if (e.data === 'helpOff' && hm) {
+      hm = false;
+      document.body.classList.remove('help-mode');
+      fb.classList.remove('hactive');
+      fb.textContent = '?';
+      ht.classList.remove('vis');
+    }
+  });
+  function show(e){
+    if(!hm)return;
+    var el=e.currentTarget;
+    ht.innerHTML='<b>'+el.getAttribute('data-tip-title')+'</b>'+el.getAttribute('data-tip');
+    pos(e);ht.classList.add('vis');
+  }
+  function pos(e){
+    var l=e.clientX+14,t=e.clientY+12;
+    if(l+260>window.innerWidth-6)l=e.clientX-266;
+    if(t+120>window.innerHeight-6)t=e.clientY-126;
+    ht.style.left=l+'px';ht.style.top=t+'px';
+  }
+  document.querySelectorAll('[data-tip]').forEach(function(el){
+    el.addEventListener('mouseenter',show);
+    el.addEventListener('mousemove',function(e){if(hm&&ht.classList.contains('vis'))pos(e);});
+    el.addEventListener('mouseleave',function(){ht.classList.remove('vis');});
+    el.addEventListener('click',function(e){if(hm)e.stopPropagation();});
+  });
+  document.addEventListener('click',function(e){
+    if(hm&&!e.target.closest('[data-tip]')&&e.target.id!=='help-fab')toggleHelp();
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&hm)toggleHelp();});
+})();
+</script>
+<script>window.YAYA_API = 'https://yaya-db-production.up.railway.app';</script>
+<script src="yaya-sync.js"></script>
+</body>
+</html>
