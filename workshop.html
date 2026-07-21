@@ -1,0 +1,2229 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YaYa Chicken · Цех</title>
+<style>
+:root {
+  --orange: #D85A30;
+  --orange-dark: #993C1D;
+  --orange-light: #FAECE7;
+  --green: #639922;
+  --green-light: #EAF3DE;
+  --amber: #EF9F27;
+  --amber-light: #FAEEDA;
+  --red: #E24B4A;
+  --red-light: #FCEBEB;
+  --blue: #378ADD;
+  --blue-light: #E6F1FB;
+  --teal: #1D9E75;
+  --teal-light: #E1F5EE;
+  --bg: #F4F2EC;
+  --surface: #FFFFFF;
+  --border: rgba(0,0,0,0.09);
+  --text: #1a1a18;
+  --muted: #6b6b66;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+/* ── Header ── */
+.header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 0 24px; display: flex; align-items: stretch; gap: 0;
+}
+.header-logo { padding: 14px 20px 14px 0; border-right: 1px solid var(--border); margin-right: 20px; }
+.logo { font-size: 17px; font-weight: 700; }
+.logo span { color: var(--orange); }
+.logo-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.nav { display: flex; gap: 0; }
+.nav-btn {
+  padding: 14px 18px; font-size: 13px; font-weight: 500; cursor: pointer;
+  border: none; background: none; color: var(--muted); border-bottom: 3px solid transparent;
+  transition: all 0.15s; white-space: nowrap; border-radius: 0;
+}
+.nav-btn:hover { color: var(--text); background: rgba(216,90,48,0.05); }
+.nav-btn.active {
+  color: var(--orange); border-bottom-color: var(--orange);
+  background: var(--orange-light); font-weight: 600;
+}
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; padding: 14px 0; }
+.clock { font-size: 15px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ── Layout ── */
+.content { padding: 20px 24px; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Stats ── */
+.stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
+.stat-card {
+  background: var(--surface); border-radius: var(--radius); padding: 14px;
+  border: 1px solid var(--border);
+}
+.stat-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+.stat-val { font-size: 22px; font-weight: 700; }
+.stat-ok  { color: var(--green); }
+.stat-warn{ color: var(--amber); }
+.stat-red { color: var(--red); }
+.stat-teal{ color: var(--teal); }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border);
+  padding: 16px; margin-bottom: 14px;
+}
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.card-title { font-size: 14px; font-weight: 700; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+/* ── Tables ── */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 7px 10px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+td { padding: 8px 10px; border-bottom: 1px solid rgba(0,0,0,0.04); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg); }
+
+/* ── Forms ── */
+.form-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 10px; }
+.fg { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 100px; }
+.fg label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+input, select, textarea {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 7px 10px; font-size: 13px; background: var(--surface); color: var(--text); width: 100%;
+}
+input:focus, select:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(216,90,48,0.1); }
+
+/* ── Buttons ── */
+.btn {
+  padding: 8px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  cursor: pointer; font-size: 13px; font-weight: 600; background: var(--surface); color: var(--text);
+  white-space: nowrap; transition: all 0.15s;
+}
+.btn:hover { background: var(--bg); }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--orange); color: #fff; border-color: var(--orange); }
+.btn-primary:hover { background: var(--orange-dark); }
+.btn-teal { background: var(--teal); color: #fff; border-color: var(--teal); }
+.btn-teal:hover { background: #0F6E56; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-danger { border-color: var(--red); color: var(--red); background: transparent; }
+.btn-danger:hover { background: var(--red-light); }
+
+/* ── Badges ── */
+.badge {
+  display: inline-block; font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 99px;
+}
+.badge-ok     { background: var(--green-light); color: #27500A; }
+.badge-warn   { background: var(--amber-light); color: #633806; }
+.badge-danger { background: var(--red-light);   color: #791F1F; }
+.badge-teal   { background: var(--teal-light);  color: #085041; }
+.badge-blue   { background: var(--blue-light);  color: #0C447C; }
+
+/* ── Stock bar ── */
+.sbar { background: var(--bg); border-radius: 3px; height: 5px; flex:1; overflow:hidden; min-width:40px; }
+.sbar-fill { height:100%; border-radius:3px; transition: width 0.4s; }
+
+/* ── Recipe card ── */
+.recipe-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px; margin-bottom: 10px;
+}
+.recipe-name { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.recipe-body { display: flex; gap: 12px; align-items: flex-start; }
+.recipe-inputs { flex: 1; }
+.recipe-output {
+  background: var(--teal-light); border: 1px solid rgba(29,158,117,0.2);
+  border-radius: var(--radius-sm); padding: 10px 14px; text-align: center; white-space: nowrap;
+}
+.recipe-output-num { font-size: 22px; font-weight: 800; color: var(--teal); }
+.recipe-output-unit { font-size: 12px; color: #085041; }
+.recipe-ing { font-size: 12px; color: var(--muted); padding: 3px 0; border-bottom: 1px solid rgba(0,0,0,0.04); }
+.recipe-ing:last-child { border-bottom: none; }
+
+/* ── Log entry ── */
+.log-entry { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 13px; }
+.log-entry:last-child { border-bottom: none; }
+
+/* ── Purchase form ── */
+.purchase-form { background: var(--bg); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 14px; }
+
+/* ── Toast ── */
+#toast {
+  position: fixed; bottom: 20px; right: 20px;
+  background: #1C1B18; color: #fff; padding: 10px 18px;
+  border-radius: var(--radius); font-size: 13px; font-weight: 500;
+  transform: translateY(20px); opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 999;
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+
+/* ── Scroll ── */
+.scroll { overflow-y: auto; }
+.scroll::-webkit-scrollbar { width: 4px; }
+.scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.section-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 14px 0 10px; }
+hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+/* ── AI Recognition Cards ── */
+.ai-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: 16px; overflow: hidden; transition: all 0.3s;
+}
+.ai-card.accepted { border-color: var(--teal); opacity: 0.7; }
+.ai-card.rejected { border-color: var(--red); opacity: 0.5; }
+
+.ai-card-inner { display: grid; grid-template-columns: 200px 1fr; gap: 0; }
+@media(max-width:700px){ .ai-card-inner { grid-template-columns: 1fr; } }
+
+.ai-photos { padding: 14px; display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.02); border-right: 1px solid var(--border); }
+.ai-photo-thumb { width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border); cursor: pointer; object-fit: cover; height: 110px; transition: transform 0.15s; }
+.ai-photo-thumb:hover { transform: scale(1.02); }
+
+.ai-form { padding: 16px; }
+.ai-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.ai-field { display: flex; flex-direction: column; gap: 3px; }
+.ai-field label { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.ai-field input, .ai-field select {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 6px 9px; font-size: 13px; background: var(--surface); color: var(--text); width: 100%;
+}
+.ai-field input:focus, .ai-field select:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(216,90,48,0.12); }
+
+/* Confidence colouring */
+.ai-field.ai-filled input, .ai-field.ai-filled select { background: rgba(239,159,39,0.08); border-color: rgba(239,159,39,0.3); }
+.ai-field.ai-cross input, .ai-field.ai-cross select { background: rgba(29,158,117,0.08); border-color: rgba(29,158,117,0.35); }
+.ai-field.ai-warn input, .ai-field.ai-warn select { border-color: var(--amber) !important; box-shadow: 0 0 0 2px rgba(239,159,39,0.2); }
+
+.ai-warn-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: var(--amber); margin-top: 2px; }
+.ai-cross-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: var(--teal); margin-top: 2px; background: rgba(29,158,117,0.1); padding: 2px 7px; border-radius: 4px; }
+
+.ai-comment-box { margin: 10px 0; padding: 10px 12px; background: rgba(0,0,0,0.03); border-left: 3px solid var(--amber); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.ai-comment-box strong { color: var(--text); }
+
+.ai-card-actions { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.01); }
+.ai-btn-accept { flex:1; padding:10px; background:var(--teal); color:#fff; border:none; border-radius:var(--radius-sm); font-size:13px; font-weight:700; cursor:pointer; transition:all .15s; }
+.ai-btn-accept:hover { background: #178a66; }
+.ai-btn-reject { padding:10px 16px; background:rgba(226,75,74,.1); color:var(--red); border:1px solid rgba(226,75,74,.3); border-radius:var(--radius-sm); font-size:13px; font-weight:600; cursor:pointer; transition:all .15s; }
+.ai-btn-reject:hover { background:rgba(226,75,74,.18); }
+.ai-status-label { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700; }
+
+.ai-preview-thumb { width: 70px; height: 70px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
+.ai-preview-thumb:hover { border-color: var(--orange); }
+.ai-preview-item { position: relative; }
+.ai-preview-remove { position: absolute; top: -5px; right: -5px; background: var(--red); color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+/* ── Purchase sub-tabs ── */
+.ptab-btn {
+  padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+  border: none; background: none; color: var(--muted);
+  border-bottom: 3px solid transparent; transition: all 0.15s;
+}
+.ptab-btn:hover { color: var(--text); }
+.ptab-btn.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+/* ── Receipt card ── */
+.receipt-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; cursor: pointer; transition: box-shadow 0.15s;
+}
+.receipt-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.receipt-card img { width:100%; height:140px; object-fit:cover; display:block; }
+.receipt-card-body { padding: 10px 12px; }
+.receipt-card-title { font-weight:600; font-size:13px; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.receipt-card-meta { font-size:11px; color:var(--muted); }
+
+/* ── Receipt modal ── */
+#receipt-modal {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75);
+  z-index:9999; align-items:center; justify-content:center;
+}
+#receipt-modal.open { display:flex; }
+#receipt-modal-inner {
+  background:var(--surface); border-radius:var(--radius); max-width:90vw; max-height:90vh;
+  overflow:auto; padding:20px; position:relative; min-width:320px;
+}
+
+/* ═══ HELP MODE ═══ */
+#help-fab{position:fixed;top:12px;right:16px;z-index:8000;width:32px;height:32px;border-radius:50%;background:#fff;border:2px solid #D85A30;color:#D85A30;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(216,90,48,0.3);transition:all 0.2s;line-height:1;user-select:none;font-family:inherit;}
+#help-fab:hover{background:#D85A30;color:#fff;}
+#help-fab.hactive{background:#D85A30;color:#fff;}
+#help-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:7999;background:linear-gradient(90deg,#D85A30,#E8744E);color:#fff;font-size:12px;font-weight:600;padding:6px 50px;text-align:center;pointer-events:none;}
+body.help-mode #help-banner{display:block;}
+body.help-mode{padding-top:28px;}
+body.help-mode [data-tip]{outline:2px dashed rgba(216,90,48,0.6)!important;outline-offset:3px;cursor:help!important;border-radius:4px;}
+body.help-mode [data-tip]:hover{outline-color:#D85A30!important;background:rgba(216,90,48,0.07)!important;}
+#htip-pop{display:none;position:fixed;z-index:9999;background:#1C1B18;color:#F0EDE6;border-radius:8px;padding:10px 13px;max-width:250px;font-size:12px;line-height:1.6;box-shadow:0 4px 24px rgba(0,0,0,0.45);pointer-events:none;}
+#htip-pop.vis{display:block;}
+#htip-pop b{color:#FFD9CC;font-weight:700;display:block;margin-bottom:3px;font-size:12.5px;}
+
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">
+    <div class="logo">YaYa <span>Chicken</span></div>
+    <div class="logo-sub">🏭 Производственный цех</div>
+  </div>
+  <nav class="nav">
+    <button class="nav-btn active" onclick="nav('production', this)" data-tip-title="Производство" data-tip="Запуск производства полуфабрикатов. Сырьё списывается, склад кафе пополняется.">⚙️ Производство</button>
+    <button class="nav-btn" onclick="nav('ws-stock', this)" data-tip-title="Склад цеха" data-tip="Остатки сырья. Зелёный = норма, жёлтый = мало, красный = критично — нужно закупить.">📦 Склад цеха</button>
+    <button class="nav-btn" onclick="nav('purchases', this)" data-tip-title="Закупки" data-tip="Оприходование сырья: ввод вручную или AI-распознавание фото чека.">🛒 Закупки</button>
+    <button class="nav-btn" onclick="nav('recipes', this)" data-tip-title="Рецептуры" data-tip="Инструкции производства: сколько сырья нужно на 1 единицу полуфабриката.">📝 Рецептуры</button>
+    <button class="nav-btn" onclick="nav('ws-reports', this)" data-tip-title="Отчёты" data-tip="Статистика цеха: выпуск, расход сырья, топ продуктов, критичные остатки.">📊 Отчёты</button>
+    <button class="nav-btn" onclick="nav('ws-ingredients', this)" data-tip-title="Ингредиенты" data-tip="Справочник сырья: добавить позицию, установить минимальный порог.">⚙️ Ингредиенты</button>
+  </nav>
+  <div class="header-right">
+    <div class="clock" id="clock">--:--</div>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ═══ ПРОИЗВОДСТВО ═══ -->
+<div id="panel-production" class="panel active">
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">Произведено сегодня</div><div class="stat-val stat-teal" data-tip-title="Произведено сегодня" data-tip="Суммарный выпуск единиц полуфабрикатов за смену." id="ws-total">0 ед.</div></div>
+    <div class="stat-card"><div class="stat-label">Партий сегодня</div><div class="stat-val" data-tip-title="Партий сегодня" data-tip="Количество производственных запусков за смену." id="ws-batches">0</div></div>
+    <div class="stat-card"><div class="stat-label">Потрачено сырья</div><div class="stat-val stat-warn" data-tip-title="Потрачено сырья" data-tip="Суммарный расход сырья в кг и л за сегодня." id="ws-spent">0 кг</div></div>
+    <div class="stat-card"><div class="stat-label">Закупок сегодня</div><div class="stat-val" data-tip-title="Закупок сегодня" data-tip="Количество приходов сырья оформленных сегодня." id="ws-purch-cnt">0</div></div>
+    <div class="stat-card"><div class="stat-label">Критично на складе</div><div class="stat-val stat-red" data-tip-title="Критично на складе" data-tip="Позиции сырья ниже минимума. Производство может остановиться — срочно закупить!" id="ws-crit">0</div></div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Начать производство партии</div></div>
+        <div class="form-row">
+          <div class="fg"><label>Полуфабрикат</label><select id="prod-recipe" data-tip-title="Полуфабрикат" data-tip="Что производим: крылышки, котлета куриная/говяжья, шампур, соус и т.д."></select></div>
+          <div class="fg" style="max-width:90px"><label>Партий (×)</label><input type="number" id="prod-batches" data-tip-title="Партий (×)" data-tip="Сколько единиц производим. Расход сырья умножается на это число." value="1" min="1"></div>
+        </div>
+        <div id="prod-preview" style="background:var(--bg);border-radius:var(--radius-sm);padding:10px;margin-bottom:12px;font-size:13px;color:var(--muted)">
+          Выберите рецептуру
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="produce()" data-tip-title="Произвести партию" data-tip="Спишет сырьё со склада цеха и добавит готовый полуфабрикат на склад кафе.">🏭 Произвести партию</button>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div class="card-title">Журнал производства</div></div>
+        <div id="prod-log" data-tip-title="Журнал производства" data-tip="История всех запусков: время, продукт, количество." class="scroll" style="max-height:260px"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Остатки цехового склада</div></div>
+        <div id="ws-stock-inline" data-tip-title="Остатки цехового склада" data-tip="Текущие остатки всех полуфабрикатов готовых к передаче на кухню."></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div class="card-title">Журнал списания сырья</div></div>
+        <div id="ws-ded-log" data-tip-title="Журнал списания сырья" data-tip="Что и сколько сырья было списано при производстве." class="scroll" style="max-height:200px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ СКЛАД ЦЕХА ═══ -->
+<div id="panel-ws-stock" class="panel">
+  <div class="grid-2">
+    <div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title" data-tip-title="Остатки склада цеха" data-tip="Список всего сырья цеха: мясо, специи, масло, маринады. Зелёный = норма, жёлтый = мало, красный = критично — нужна закупка.">Остатки склада цеха</div>
+          <input type="text" id="ws-stock-q" data-tip-title="Поиск по складу" data-tip="Фильтрует таблицу сырья по названию в реальном времени." placeholder="Поиск…" style="width:160px" oninput="renderWsStockPanel()">
+        </div>
+        <div class="scroll" style="max-height:500px">
+          <table>
+            <thead><tr>
+              <th data-tip-title="Ингредиент" data-tip="Название сырья на складе цеха.">Ингредиент</th>
+              <th data-tip-title="Остаток" data-tip="Текущее количество сырья. Обновляется при закупке, производстве и корректировке.">Остаток</th>
+              <th data-tip-title="Минимум" data-tip="Пороговое значение. Ниже него — статус Критично, нужна срочная закупка.">Мин.</th>
+              <th style="width:100px" data-tip-title="Уровень заполненности" data-tip="Полоса относительно максимального зафиксированного остатка.">Уровень</th>
+              <th data-tip-title="Статус" data-tip="Норма / Мало (менее 1.5× минимума) / Критично (ниже минимума).">Статус</th>
+            </tr></thead>
+            <tbody id="ws-stock-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-head"><div class="card-title" data-tip-title="Ручная корректировка" data-tip="Изменить остаток сырья вручную: списать брак, исправить по инвентаризации или добавить без закупки.">Ручная корректировка</div></div>
+        <div class="fg" style="margin-bottom:10px"><label>Ингредиент</label><select id="wsa-item" data-tip-title="Выбор ингредиента" data-tip="Сырьё цеха для которого нужно изменить остаток."></select></div>
+        <div class="fg" style="margin-bottom:10px">
+          <label>Тип операции</label>
+          <select id="wsa-reason" data-tip-title="Тип операции" data-tip="Брак/Списание = уменьшить. Пересчёт = установить точно (инвентаризация). Приход = добавить без закупки." onchange="onWsAdjChange()">
+            <option value="Брак">📤 Брак — списать</option>
+            <option value="Списание">📤 Ручное списание</option>
+            <option value="Пересчёт">🔄 Пересчёт (установить точно)</option>
+            <option value="Внутренний приход">📥 Внутренний приход — добавить</option>
+            <option value="Другое списание">📤 Другое — списать</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-bottom:12px">
+          <label id="wsa-adj-qty-label">Количество для списания</label>
+          <input type="number" id="wsa-qty" data-tip-title="Количество" data-tip="Сколько единиц списать, добавить или установить точно — зависит от выбранного типа операции." value="0" step="0.01" min="0">
+          <div id="wsa-adj-hint" style="font-size:11px;color:#A32D2D;margin-top:3px">Спишется со склада цеха</div>
+        </div>
+        <button class="btn btn-primary" data-tip-title="Применить корректировку" data-tip="Выполнить выбранную операцию. Изменение запишется в журнал с пометкой 'Цех'." style="width:100%" onclick="applyWsStockAdj()">Применить</button>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div class="card-title" data-tip-title="Полуфабрикаты цеха" data-tip="Готовые продукты произведённые цехом: крылышки, котлеты, соусы — ожидают передачи на кухню.">Полуфабрикаты цеха</div></div>
+        <div id="ws-pf-list" class="scroll" style="max-height:150px"></div>
+        <hr style="margin:10px 0">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Передача в кафе</div>
+        <div class="form-row">
+          <div class="fg"><label>Полуфабрикат (цех)</label><select id="transfer-item" data-tip-title="Полуфабрикат для передачи" data-tip="Выберите готовый продукт цеха который нужно передать на склад кухни."></select></div>
+          <div class="fg" style="max-width:80px"><label>Количество</label><input type="number" id="transfer-qty" data-tip-title="Количество" data-tip="Сколько единиц передать. Спишется с полуфабрикатов цеха." value="10" min="1" step="0.1"></div>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label>Ингредиент кафе (куда)</label><select id="transfer-main-ing" data-tip-title="Получатель на кухне" data-tip="Ингредиент склада кухни которому добавится переданное количество. Если не выбрать — спишется из цеха без зачисления на кухню."></select></div>
+          <button class="btn btn-teal" data-tip-title="Передать в кафе" data-tip="Спишет с полуфабрикатов цеха и зачислит на склад кухни. Операция запишется в журнал." onclick="transferToKitchen()" style="align-self:flex-end">Передать →</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div class="card-title" data-tip-title="Последние операции" data-tip="История недавних изменений склада цеха: закупки, производство, корректировки, передачи на кухню.">Последние операции</div></div>
+        <div id="ws-stock-ops" class="scroll" style="max-height:200px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ ЗАКУПКИ ═══ -->
+<div id="panel-purchases" class="panel">
+
+  <!-- Суб-навигация -->
+  <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border)">
+    <button class="ptab-btn active" onclick="wsPTabSet('form',this)" data-tip-title="Оформить приход" data-tip="Ввести закупку сырья вручную: ингредиент, количество, цена, поставщик.">🛒 Оформить приход</button>
+    <button class="ptab-btn" onclick="wsPTabSet('ai',this)" id="ptab-ai-btn" data-tip-title="AI-распознавание" data-tip="Сфотографируйте чек или накладную — AI распознает все позиции автоматически.">🤖 AI-распознавание</button>
+    <button class="ptab-btn" onclick="wsPTabSet('receipts',this)" data-tip-title="Чеки" data-tip="Галерея прикреплённых фото чеков и накладных для архива.">🧾 Чеки</button>
+  </div>
+
+  <!-- ── Форма ── -->
+  <div id="ws-ptab-form">
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <div class="card-head"><div class="card-title" data-tip-title="Оформить приход товара" data-tip="Зафиксировать поступление сырья: остаток ингредиента увеличится, запись попадёт в журнал.">Оформить приход товара</div></div>
+          <div class="form-row">
+            <div class="fg"><label>Ингредиент</label><select id="purch-ing" data-tip-title="Ингредиент" data-tip="Выберите что пришло на склад цеха из справочника сырья."></select></div>
+          </div>
+          <div class="form-row">
+            <div class="fg" style="max-width:100px"><label>Количество</label><input type="number" id="purch-qty" data-tip-title="Количество" data-tip="Сколько пришло. Остаток увеличится на это значение." value="10" step="0.01" min="0.01"></div>
+            <div class="fg" style="max-width:60px"><label>Ед.</label><input type="text" id="purch-unit" data-tip-title="Единица" data-tip="кг, шт., л — должна совпадать с единицей на складе." value="кг"></div>
+            <div class="fg" style="max-width:110px"><label>Цена за ед., тг</label><input type="number" id="purch-price" data-tip-title="Цена за единицу" data-tip="Цена одной единицы для финансового учёта и отчётов." value="0"></div>
+            <div class="fg"><label>Поставщик</label><input type="text" id="purch-supplier" data-tip-title="Поставщик" data-tip="Название магазина или поставщика. Используется в отчётах и при поиске чеков." placeholder="ТОО Альфа"></div>
+          </div>
+          <div class="form-row">
+            <div class="fg"><label>Примечание</label><input type="text" id="purch-note" data-tip-title="Примечание" data-tip="Номер накладной, партия или любой комментарий к закупке." placeholder="Накладная №123"></div>
+          </div>
+          <!-- Чек -->
+          <div style="margin-bottom:12px">
+            <label style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">🧾 Прикрепить чек (фото/скан)</label>
+            <div id="receipt-drop-w" data-tip-title="Прикрепить чек" data-tip="Загрузите фото или скан чека. Документ сохранится в архиве и будет привязан к этой закупке." onclick="document.getElementById('receipt-file-w').click()"
+              style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:16px;text-align:center;cursor:pointer;transition:border-color 0.15s;font-size:13px;color:var(--muted)">
+              📎 Нажмите или перетащите файл сюда
+            </div>
+            <input type="file" id="receipt-file-w" accept="image/*,application/pdf" style="display:none" onchange="receiptPreviewW(event)">
+            <div id="receipt-preview-w" style="margin-top:8px;display:none">
+              <img id="receipt-img-w" style="max-width:100%;max-height:200px;border-radius:var(--radius-sm);border:1px solid var(--border)">
+              <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+                <span id="receipt-name-w" style="font-size:12px;color:var(--muted);flex:1"></span>
+                <button class="btn btn-sm btn-danger" onclick="receiptClearW()" style="border:none;background:transparent">✕ Убрать</button>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-primary" style="width:100%" onclick="addPurchase()">Принять приход</button>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Итого закупок</div></div>
+          <div class="stats-row" style="grid-template-columns:1fr 1fr;margin-bottom:0">
+            <div class="stat-card"><div class="stat-label">Сегодня</div><div class="stat-val stat-ok" id="purch-today">0 тг</div></div>
+            <div class="stat-card"><div class="stat-label">Всего приходов</div><div class="stat-val" id="purch-cnt">0</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Журнал закупок</div></div>
+      <div class="scroll" style="max-height:360px">
+        <table><thead><tr><th style="width:44px">Фото</th><th>Дата прихода</th><th>Дата закупки</th><th>Ингредиент</th><th>Количество</th><th>Цена/ед.</th><th>Сумма</th><th>Поставщик</th><th>Чек</th></tr></thead>
+        <tbody id="purch-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── AI-распознавание ── -->
+  <div id="ws-ptab-ai" style="display:none">
+
+    <!-- API key input -->
+    <div id="ai-apikey-row" class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-size:13px;font-weight:600;white-space:nowrap">🔑 Anthropic API Key:</span>
+      <input type="password" id="ai-apikey" placeholder="sk-ant-api03-..." style="flex:1;min-width:220px;font-size:12px;font-family:monospace"
+        onchange="lsSet('yaya_ai_apikey', this.value)" value="">
+      <span style="font-size:11px;color:var(--muted)">Хранится локально в браузере</span>
+    </div>
+
+    <!-- Drop zone -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head"><div class="card-title">📸 Загрузить фото чека / накладной / весов</div></div>
+      <div id="ai-drop-zone"
+        style="border:2px dashed var(--border);border-radius:var(--radius);padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative"
+        onclick="document.getElementById('ai-file-input').click()"
+        ondrop="aiHandleDrop(event)" ondragover="event.preventDefault();this.style.borderColor='var(--orange)'" ondragleave="this.style.borderColor=''">
+        <div style="font-size:40px;margin-bottom:10px">📷</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">Нажмите или перетащите фото сюда</div>
+        <div style="font-size:12px;color:var(--muted)">Поддерживаются: JPG, PNG, WEBP · Можно загрузить несколько фото сразу</div>
+      </div>
+      <input type="file" id="ai-file-input" accept="image/*" multiple style="display:none" onchange="aiLoadFiles(event)">
+
+      <!-- Previews -->
+      <div id="ai-previews" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"></div>
+
+      <!-- Caption -->
+      <div style="margin-top:10px">
+        <label style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px">Подпись к фото (необязательно)</label>
+        <input type="text" id="ai-caption" placeholder='Например: "Мука Цесна 25кг — 8700 тг, Лук 2 мешка по 35кг"' style="font-size:13px">
+      </div>
+
+      <button id="ai-recognize-btn" onclick="aiRecognize()"
+        style="margin-top:14px;width:100%;padding:12px;background:var(--orange);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px">
+        <span id="ai-btn-icon">🤖</span>
+        <span id="ai-btn-text">Распознать через Claude AI</span>
+      </button>
+    </div>
+
+    <!-- Results -->
+    <div id="ai-results" style="display:none">
+
+      <!-- Баннер уверенности -->
+      <div id="ai-conf-banner" style="display:flex;align-items:center;gap:14px;border-radius:var(--radius);padding:12px 18px;margin-bottom:14px;border:1px solid rgba(29,158,117,0.25);background:rgba(29,158,117,0.07)">
+        <div style="font-size:26px" id="ai-banner-icon">🤖</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;color:#085041" id="ai-banner-title">Распознавание завершено</div>
+          <div style="font-size:12px;color:#0F7A5E;margin-top:2px" id="ai-banner-sub"></div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--teal);background:rgba(29,158,117,0.12);padding:4px 12px;border-radius:99px" id="ai-banner-badge"></div>
+      </div>
+
+      <!-- Главная карточка -->
+      <div style="background:var(--surface);border-radius:var(--radius);border:2px solid var(--amber);overflow:hidden">
+
+        <!-- Шапка -->
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--border)">
+          <div style="font-size:13px;font-weight:700;flex:1" id="ai-card-title">Закупка</div>
+          <span id="ai-pending-count" style="font-size:12px;color:var(--muted)"></span>
+          <button onclick="aiAcceptAll()" id="ai-accept-all-btn"
+            style="padding:8px 18px;background:var(--teal);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer">
+            ✓ Оприходовать всё
+          </button>
+          <button onclick="aiResetAll()"
+            style="padding:8px 14px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer">
+            ✕ Отменить
+          </button>
+        </div>
+
+        <!-- Тело: фото + таблица -->
+        <div style="display:grid;grid-template-columns:180px 1fr;min-height:200px">
+
+          <!-- Фото -->
+          <div id="ai-photos-col" style="padding:14px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:8px;background:rgba(0,0,0,0.01)">
+            <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Исходные фото</div>
+          </div>
+
+          <!-- Таблица позиций -->
+          <div style="overflow-x:auto">
+            <div id="ai-cards-container"></div>
+          </div>
+        </div>
+
+        <!-- Комментарий Claude -->
+        <div id="ai-global-comment" style="padding:10px 16px;background:#FFFAF5;border-top:1px solid rgba(216,90,48,0.15);font-size:12px;color:#7A3010;line-height:1.5;display:none">
+          <strong>💡 Claude: </strong><span id="ai-global-comment-text"></span>
+        </div>
+
+        <!-- Итог после оприходования -->
+        <div id="ai-done-bar" style="display:none;padding:12px 18px;background:rgba(29,158,117,0.1);border-top:1px solid rgba(29,158,117,0.2);font-size:13px;font-weight:600;color:#085041"></div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Чеки ── -->
+  <div id="ws-ptab-receipts" style="display:none">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">🧾 Все чеки закупок цеха</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="receipt-q-w" placeholder="Поиск по поставщику…" oninput="renderReceiptsW()" style="width:200px;font-size:12px">
+          <span id="receipt-count-w" style="font-size:12px;color:var(--muted)"></span>
+        </div>
+      </div>
+      <div id="receipts-grid-w" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;padding:4px 0"></div>
+      <div id="receipts-empty-w" style="text-align:center;color:var(--muted);padding:40px;font-size:13px;display:none">Нет прикреплённых чеков</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ РЕЦЕПТУРЫ ═══ -->
+<div id="panel-recipes" class="panel">
+  <div class="grid-2">
+    <div>
+      <div class="card">
+        <div class="card-head"><div class="card-title" data-tip-title="Рецептуры полуфабрикатов" data-tip="Список всех производственных рецептур. Показывает состав, выход и достаточность сырья для производства.">Рецептуры полуфабрикатов</div></div>
+        <div id="recipes-list"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-head"><div class="card-title" data-tip-title="Добавить рецептуру" data-tip="Создать новую производственную рецептуру. Укажите название, выход и все ингредиенты с количествами.">Добавить рецептуру</div></div>
+        <div class="form-row">
+          <div class="fg"><label>Название</label><input type="text" id="nr-name" data-tip-title="Название рецептуры" data-tip="Как называется этот вид производства. Будет отображаться в меню производства и журналах." placeholder="Маринованные крылья"></div>
+          <div class="fg" style="max-width:80px"><label>Выход</label><input type="number" id="nr-output" data-tip-title="Выход (на порцию)" data-tip="Сколько единиц полуфабриката получается за одну производственную партию." value="20" min="1"></div>
+          <div class="fg" style="max-width:70px"><label>Ед. выхода</label><input type="text" id="nr-unit" data-tip-title="Единица выхода" data-tip="шт., кг, л — в чём измеряется готовый продукт." value="шт."></div>
+        </div>
+        <div class="fg" style="margin-bottom:10px"><label>Полуфабрикат (результат)</label><select id="nr-ws-item" data-tip-title="Полуфабрикат-результат" data-tip="На какой полуфабрикат из склада кафе будет зачисляться выход этой рецептуры при производстве."></select></div>
+        <div class="section-title" data-tip-title="Ингредиенты рецептуры" data-tip="Список сырья которое будет списываться при каждом запуске этой рецептуры. Добавьте все компоненты.">Ингредиенты рецептуры</div>
+        <div id="nr-ings" style="margin-bottom:10px"></div>
+        <div class="form-row">
+          <div class="fg"><label>Ингредиент</label><select id="nr-ing" data-tip-title="Ингредиент рецептуры" data-tip="Выберите сырьё из справочника склада цеха которое нужно добавить в состав."></select></div>
+          <div class="fg" style="max-width:80px"><label>Кол-во</label><input type="number" id="nr-qty" data-tip-title="Количество ингредиента" data-tip="Сколько этого сырья используется на одну производственную партию." value="1" step="0.001"></div>
+          <div class="fg" style="max-width:60px"><label>Ед.</label><input type="text" id="nr-qunit" data-tip-title="Единица" data-tip="кг, л, шт. — должна совпадать с единицей сырья на складе." value="кг"></div>
+          <button class="btn btn-sm" data-tip-title="Добавить ингредиент" data-tip="Добавить выбранный ингредиент в состав рецептуры." onclick="addNRIng()" style="align-self:flex-end">+</button>
+        </div>
+        <button class="btn btn-teal" data-tip-title="Сохранить рецептуру" data-tip="Сохранить новую рецептуру. После сохранения её можно будет выбрать в меню Производство." style="width:100%;margin-top:8px" onclick="saveRecipe()">Сохранить рецептуру</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ОТЧЁТЫ ═══ -->
+<div id="panel-ws-reports" class="panel">
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">Произведено (всего)</div><div class="stat-val stat-teal" id="rep-total">0 ед.</div></div>
+    <div class="stat-card"><div class="stat-label">Закупок (всего)</div><div class="stat-val" id="rep-purch">0 тг</div></div>
+    <div class="stat-card"><div class="stat-label">Партий (всего)</div><div class="stat-val" id="rep-batches">0</div></div>
+    <div class="stat-card"><div class="stat-label">Ингредиентов в норме</div><div class="stat-val stat-ok" id="rep-ok">0</div></div>
+    <div class="stat-card"><div class="stat-label">Критично</div><div class="stat-val stat-red" id="rep-crit">0</div></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Производство по видам</div></div>
+      <div id="rep-by-type"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Расход сырья (из производства)</div></div>
+      <div id="rep-by-raw"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="card-title">Все списания цеха</div></div>
+    <div class="scroll" style="max-height:300px">
+      <table><thead><tr><th>Дата</th><th>Время</th><th>Ингредиент</th><th>Кол-во</th><th>Причина</th></tr></thead>
+      <tbody id="rep-ded-tbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ИНГРЕДИЕНТЫ ЦЕХА ═══ -->
+<div id="panel-ws-ingredients" class="panel">
+
+  <div class="grid-2" style="margin-bottom:14px">
+    <!-- Добавить в цех -->
+    <div class="card">
+      <div class="card-head"><div class="card-title" data-tip-title="Добавить позицию в цех" data-tip="Создать новую позицию сырья в справочнике склада цеха. Заполните все поля и нажмите Добавить.">➕ Добавить позицию в цех</div></div>
+      <div class="form-row">
+        <div class="fg"><label>Название</label><input type="text" id="wsi-name" data-tip-title="Название сырья" data-tip="Как называется это сырьё. Будет отображаться на складе и в рецептурах." placeholder="Куриное мясо"></div>
+        <div class="fg" style="max-width:80px"><label>Остаток</label><input type="number" id="wsi-qty" data-tip-title="Начальный остаток" data-tip="Сколько единиц сырья есть прямо сейчас при добавлении позиции." value="10" step="0.1"></div>
+        <div class="fg" style="max-width:60px"><label>Ед.</label><input type="text" id="wsi-unit" data-tip-title="Единица измерения" data-tip="кг — килограммы, л — литры, шт. — штуки. Должна совпадать с рецептурой." value="кг"></div>
+        <div class="fg" style="max-width:80px"><label>Мин.</label><input type="number" id="wsi-min" data-tip-title="Минимальный порог" data-tip="При снижении ниже этого значения — статус Критично и производство под угрозой." value="2" step="0.1"></div>
+      </div>
+      <button class="btn btn-primary" data-tip-title="Добавить в цех" data-tip="Сохранить новое сырьё в справочник склада цеха. После этого его можно использовать в рецептурах и закупках." onclick="wsIAddIng()">Добавить в цех</button>
+    </div>
+    <!-- Рецепты цеха -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title" data-tip-title="Рецепты цеха" data-tip="Рецептуры производства полуфабрикатов: что и сколько сырья нужно на 1 единицу. Красный ингредиент = нехватка на складе.">🏭 Рецепты цеха</div>
+        <span style="font-size:11px;color:var(--muted)">производство полуфабрикатов</span>
+      </div>
+      <div id="wsi-recipes" class="scroll" style="max-height:220px;font-size:13px"></div>
+    </div>
+  </div>
+
+  <!-- Таблица ингредиентов цеха -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title" data-tip-title="Ингредиенты склада цеха" data-tip="Полный список сырья с остатками, минимумами, уровнями и статусами. Видно в каких рецептурах используется каждая позиция.">🏭 Ингредиенты склада цеха</div>
+      <input type="text" id="wsi-q" data-tip-title="Поиск" data-tip="Фильтрует список сырья по названию в реальном времени." placeholder="Поиск…" oninput="wsIRenderStock()" style="width:160px">
+    </div>
+    <div class="scroll" style="max-height:500px">
+      <table>
+        <thead><tr>
+          <th data-tip-title="Название" data-tip="Наименование сырья на складе цеха.">Название</th>
+          <th data-tip-title="Остаток" data-tip="Текущее количество сырья. Зелёный = норма, жёлтый = мало, красный = критично.">Остаток</th>
+          <th data-tip-title="Минимум" data-tip="Пороговое значение. Ниже него — Критично и производство под угрозой.">Мин.</th>
+          <th style="width:90px" data-tip-title="Уровень заполненности" data-tip="Полоса относительно максимального зафиксированного значения остатка.">Уровень</th>
+          <th data-tip-title="Статус" data-tip="Норма / Мало / Критично — по соотношению остатка и минимума.">Статус</th>
+          <th data-tip-title="В рецептах цеха" data-tip="В скольких рецептурах производства используется это сырьё. Наведите на число — увидите список.">В рецептах цеха</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="wsi-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- /content -->
+
+<div id="receipt-modal" onclick="if(event.target===this)closeReceiptModal()">
+  <div id="receipt-modal-inner">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div>
+        <div id="rmod-title" style="font-size:15px;font-weight:700"></div>
+        <div id="rmod-meta" style="font-size:12px;color:var(--muted);margin-top:2px"></div>
+      </div>
+      <button onclick="closeReceiptModal()" style="border:none;background:none;font-size:20px;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <img id="rmod-img" style="max-width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);display:block;margin-bottom:12px">
+    <a id="rmod-dl" download style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--teal);color:#fff;border-radius:var(--radius-sm);font-size:13px;font-weight:600;text-decoration:none">⬇ Скачать</a>
+    <button onclick="deleteReceipt()" style="margin-left:8px;padding:8px 14px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer">🗑 Удалить</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="data.js"></script>
+<script>
+// ─── Workshop-local state (supplement shared stock) ───────────────────
+// wsLog and purchases are shared via data.js helpers
+let newRecipeIngs = [];
+
+// ─── Nav ─────────────────────────────────────────────────────────────
+function nav(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'ws-ingredients') wsIRefresh();
+  else refreshAll();
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function updateClock() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('ru', {hour:'2-digit', minute:'2-digit'});
+}
+
+// ─── Production ───────────────────────────────────────────────────────
+function populateProdRecipes() {
+  const sel = document.getElementById('prod-recipe');
+  if (!sel) return;
+  const recipes = getWsRecipes();
+  const prevVal = sel.value; // запомнить текущий выбор
+  sel.innerHTML = '';
+  recipes.forEach(r => sel.innerHTML += `<option value="${r.id}">${r.name}</option>`);
+  // восстановить выбор если он был
+  if (prevVal && sel.querySelector(`option[value="${prevVal}"]`)) {
+    sel.value = prevVal;
+  }
+  sel.onchange = updateProdPreview;
+  updateProdPreview();
+}
+
+function updateProdPreview() {
+  const recipes = getWsRecipes();
+  const id = document.getElementById('prod-recipe')?.value;
+  const batches = parseInt(document.getElementById('prod-batches')?.value) || 1;
+  const recipe = recipes.find(r => r.id === id);
+  const el = document.getElementById('prod-preview');
+  if (!recipe || !el) return;
+  const stock = getStock();
+  let html = `<div style="margin-bottom:6px;font-weight:600;font-size:12px;color:var(--muted)">ПОТРЕБУЕТСЯ СЫРЬЯ (на ${batches} партий):</div>`;
+  let canProduce = true;
+  recipe.items.forEach(it => {
+    const ing = stock.find(i => i.id === it.ingId);
+    const need = it.qty * batches;
+    const ok = ing && ing.qty >= need;
+    if (!ok) canProduce = false;
+    html += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:${ok?'var(--text)':'var(--red)'}">
+      <span>${ing ? ing.name : it.ingId}</span>
+      <span style="font-weight:600">${need.toFixed(2)} ${it.unit} ${ok?'✓':'⚠️ мало!'}</span>
+    </div>`;
+  });
+  html += `<div style="margin-top:8px;font-weight:700;font-size:12px;color:var(--teal)">ВЫХОД: ${recipe.outputQty * batches} ${recipe.outputUnit}</div>`;
+  el.innerHTML = html;
+  el.style.borderLeft = `3px solid ${canProduce ? 'var(--green)' : 'var(--red)'}`;
+}
+
+function produce() {
+  const recipes = getWsRecipes();
+  const id = document.getElementById('prod-recipe').value;
+  const batches = parseInt(document.getElementById('prod-batches').value) || 1;
+  const recipe = recipes.find(r => r.id === id);
+  if (!recipe) return;
+
+  const stock = getStock();
+  const ded = getDeductions();
+  let spentKg = 0;
+
+  // Check availability
+  for (const it of recipe.items) {
+    const ing = stock.find(i => i.id === it.ingId);
+    if (!ing || ing.qty < it.qty * batches) {
+      toast('❗ Недостаточно: ' + (ing?.name || it.ingId));
+      return;
+    }
+  }
+
+  // Deduct
+  recipe.items.forEach(it => {
+    const ing = stock.find(i => i.id === it.ingId);
+    const amount = it.qty * batches;
+    ing.qty = Math.max(0, ing.qty - amount);
+    if (it.unit === 'кг' || it.unit === 'л') spentKg += amount;
+    ded.push({date:todayStr(), time:nowStr(), ing:ing.name,
+      qty:amount.toFixed(2), unit:it.unit, reason:'Производство: '+recipe.name, emp:'Цех'});
+  });
+  setStock(stock);
+  setDeductions(ded);
+
+  // Add to ws stock
+  const wsStock = getWsStock();
+  const ws = wsStock.find(w => w.id === recipe.outputId);
+  if (ws) ws.qty += recipe.outputQty * batches;
+  setWsStock(wsStock);
+
+  // Log
+  const wsLog = getWsLog();
+  wsLog.unshift({
+    date:todayStr(), time:nowStr(),
+    name:recipe.name, batches,
+    qty:recipe.outputQty * batches, unit:recipe.outputUnit, spentKg
+  });
+  setWsLog(wsLog);
+
+  updateProdPreview();
+  refreshAll();
+  toast('✅ Произведено: ' + recipe.name + ' ' + recipe.outputQty * batches + ' ' + recipe.outputUnit);
+}
+
+function renderProdLog() {
+  const el = document.getElementById('prod-log');
+  if (!el) return;
+  const log = getWsLog();
+  if (!log.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px">Нет производства</div>'; return; }
+  el.innerHTML = log.map(l =>
+    `<div class="log-entry">
+      <span><span style="color:var(--muted)">${l.time}</span> · ${l.name}</span>
+      <span class="badge badge-teal">+${l.qty} ${l.unit}</span>
+    </div>`
+  ).join('');
+}
+
+function renderWsStockInline() {
+  const el = document.getElementById('ws-stock-inline');
+  if (!el) return;
+  const wsStock = getWsStock();
+  el.innerHTML = wsStock.map(w =>
+    `<div class="log-entry">
+      <span>${w.name}</span>
+      <span style="font-weight:700;color:var(--teal)">${parseFloat(w.qty.toFixed(3))} <span style="color:var(--muted);font-weight:400">${w.unit}</span></span>
+    </div>`
+  ).join('');
+}
+
+function renderWsDedLog() {
+  const el = document.getElementById('ws-ded-log');
+  if (!el) return;
+  const ded = getDeductions().filter(d => d.reason && d.reason.includes('Производство')).slice(0, 20);
+  if (!ded.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px">Нет списаний</div>'; return; }
+  el.innerHTML = ded.map(d =>
+    `<div class="log-entry">
+      <span><span style="color:var(--muted)">${d.time}</span> · ${d.ing}</span>
+      <span style="font-weight:600;color:var(--red)">−${d.qty} ${d.unit}</span>
+    </div>`
+  ).join('');
+}
+
+function renderProdStats() {
+  const log = getWsLog();
+  const purch = getPurchases();
+  const stock = getStock();
+  const today = todayStr();
+  const todayLog = log.filter(l => l.date === today);
+  const todayUnits = todayLog.reduce((s, l) => s + l.qty, 0);
+  const todayKg = todayLog.reduce((s, l) => s + (l.spentKg || 0), 0);
+
+  document.getElementById('ws-total').textContent = todayUnits + ' ед.';
+  document.getElementById('ws-batches').textContent = todayLog.length;
+  document.getElementById('ws-spent').textContent = todayKg.toFixed(1) + ' кг';
+  document.getElementById('ws-purch-cnt').textContent = purch.filter(p => p.date === today).length;
+  document.getElementById('ws-crit').textContent = stock.filter(i => (!i.location || i.location === 'workshop') && i.qty < i.min).length;
+}
+
+// ─── WS Stock ─────────────────────────────────────────────────────────
+function stockRowHTML(i) {
+  const maxVal = i.max || Math.max(i.qty, i.min * 3, 1);
+  const pct   = Math.min(100, Math.round(i.qty / maxVal * 100));
+  const color = i.qty < i.min ? 'var(--red)' : i.qty < i.min * 1.5 ? 'var(--amber)' : 'var(--green)';
+  const cls   = i.qty < i.min ? 'badge-danger' : i.qty < i.min * 1.5 ? 'badge-warn' : 'badge-ok';
+  const lbl   = i.qty < i.min ? 'Критично' : i.qty < i.min * 1.5 ? 'Мало' : 'Норма';
+  return `<tr>
+    <td>${i.name}</td>
+    <td style="font-weight:700">${i.qty.toFixed(2)} <span style="color:var(--muted);font-weight:400">${i.unit}</span></td>
+    <td style="color:var(--muted)">${i.min} ${i.unit}</td>
+    <td><div style="display:flex;align-items:center;gap:6px">
+      <div class="sbar"><div class="sbar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <span style="font-size:11px;font-weight:600;color:${color};min-width:32px">${pct}%</span>
+    </div></td>
+    <td><span class="badge ${cls}">${lbl}</span></td>
+  </tr>`;
+}
+
+function renderWsStockPanel() {
+  const q = (document.getElementById('ws-stock-q')?.value || '').toLowerCase();
+  const rawStock = getStock().filter(i => !i.location || i.location === 'workshop');
+  const filtered = rawStock.filter(i => i.name.toLowerCase().includes(q));
+  const tbody = document.getElementById('ws-stock-tbody');
+  if (tbody) {
+    tbody.innerHTML = filtered.map(stockRowHTML).join('') ||
+      '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px">Нет позиций</td></tr>';
+  }
+  // Корректировка — сырьё цеха
+  const adjSel = document.getElementById('wsa-item');
+  if (adjSel) {
+    const prev = adjSel.value;
+    adjSel.innerHTML = '';
+    rawStock.forEach(i => adjSel.innerHTML += `<option value="${i.id}">${i.name} (${i.qty.toFixed(1)} ${i.unit})</option>`);
+    if (prev && adjSel.querySelector(`option[value="${prev}"]`)) adjSel.value = prev;
+  }
+  // Полуфабрикаты
+  renderWsPf();
+  // Передача — полуфабрикаты
+  const trSel = document.getElementById('transfer-item');
+  if (trSel) {
+    const wsStock = getWsStock();
+    trSel.innerHTML = '';
+    wsStock.forEach(w => trSel.innerHTML += `<option value="${w.id}">${w.name} (${parseFloat(w.qty.toFixed(2))} ${w.unit})</option>`);
+  }
+  // Целевой ингредиент кафе (только кухня)
+  const mainSel = document.getElementById('transfer-main-ing');
+  if (mainSel) {
+    const prev = mainSel.value;
+    const stock = getStock().filter(i => i.location === 'kitchen');
+    mainSel.innerHTML = '<option value="">— не добавлять на склад —</option>';
+    stock.forEach(i => mainSel.innerHTML += `<option value="${i.id}">${i.name} (${i.qty.toFixed(1)} ${i.unit})</option>`);
+    if (prev && mainSel.querySelector(`option[value="${prev}"]`)) mainSel.value = prev;
+  }
+  renderWsStockOps();
+}
+
+function renderWsPf() {
+  const el = document.getElementById('ws-pf-list');
+  if (!el) return;
+  const wsStock = getWsStock();
+  if (!wsStock.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px">Нет полуфабрикатов</div>'; return; }
+  el.innerHTML = wsStock.map(w => {
+    const col = w.qty <= 0 ? 'var(--red)' : w.qty < 10 ? 'var(--amber)' : 'var(--teal)';
+    return `<div class="log-entry">
+      <span>${w.name}</span>
+      <span style="font-weight:700;color:${col}">${parseFloat(w.qty.toFixed(3))} <span style="color:var(--muted);font-weight:400;font-size:12px">${w.unit}</span></span>
+    </div>`;
+  }).join('');
+}
+
+function renderWsStockOps() {
+  const el = document.getElementById('ws-stock-ops');
+  if (!el) return;
+  const ded = getDeductions().filter(d => d.emp === 'Цех').slice(0, 20);
+  if (!ded.length) { el.innerHTML = '<div style="padding:8px;color:var(--muted);font-size:13px">Нет операций</div>'; return; }
+  el.innerHTML = ded.map(d => {
+    const pos = String(d.qty).startsWith('+');
+    return `<div class="log-entry">
+      <span style="color:var(--muted)">${d.time} · ${d.ing}</span>
+      <span style="font-weight:600;color:${pos?'var(--green)':'var(--red)'}">${d.qty} ${d.unit}</span>
+    </div>`;
+  }).join('');
+}
+
+function onWsAdjChange() {
+  const r = document.getElementById('wsa-reason').value;
+  const l = document.getElementById('wsa-adj-qty-label');
+  const h = document.getElementById('wsa-adj-hint');
+  if (r === 'Внутренний приход') {
+    l.textContent = 'Количество для добавления'; h.textContent = 'Добавится на склад цеха'; h.style.color = 'var(--green)';
+  } else if (r === 'Пересчёт') {
+    l.textContent = 'Новое точное количество'; h.textContent = 'Установит точный остаток'; h.style.color = 'var(--blue)';
+  } else {
+    l.textContent = 'Количество для списания'; h.textContent = 'Спишется со склада цеха'; h.style.color = '#A32D2D';
+  }
+}
+
+function applyWsStockAdj() {
+  const id     = document.getElementById('wsa-item').value;
+  const qty    = parseFloat(document.getElementById('wsa-qty').value) || 0;
+  const reason = document.getElementById('wsa-reason').value;
+  if (qty === 0) { toast('❗ Введите количество'); return; }
+  const stock = getStock();
+  const ing = stock.find(i => i.id === id);
+  if (!ing) return;
+  const isAdd = reason === 'Внутренний приход', isRec = reason === 'Пересчёт';
+  let delta;
+  if (isRec)      { delta = qty - ing.qty; ing.qty = qty; if (qty > (ing.max||0)) ing.max = qty; }
+  else if (isAdd) { delta = qty; ing.qty += qty; if (ing.qty > (ing.max||0)) ing.max = ing.qty; }
+  else            { delta = -qty; ing.qty = Math.max(0, ing.qty - qty); }
+  setStock(stock);
+  const ded = getDeductions();
+  ded.push({date:todayStr(), time:nowStr(), ing:ing.name, qty:(delta>0?'+':'')+delta.toFixed(2), unit:ing.unit, reason, emp:'Цех'});
+  setDeductions(ded);
+  document.getElementById('wsa-qty').value = '0';
+  renderWsStockPanel();
+  toast((delta>0?'📥':'📤')+' '+reason+': '+ing.name+' '+(delta>0?'+':'')+delta.toFixed(2)+' '+ing.unit);
+}
+
+function transferToKitchen() {
+  const id = document.getElementById('transfer-item').value;
+  const qty = parseFloat(document.getElementById('transfer-qty').value) || 0;
+  const mainIngId = document.getElementById('transfer-main-ing').value;
+  const wsStock = getWsStock();
+  const w = wsStock.find(i => i.id === id);
+  if (!w || qty <= 0) { toast('❗ Введите количество'); return; }
+  if (w.qty < qty) { toast('❗ Недостаточно на складе цеха (есть ' + parseFloat(w.qty.toFixed(3)) + ' ' + w.unit + ')'); return; }
+
+  // Списать со склада цеха
+  w.qty = Math.max(0, w.qty - qty);
+  setWsStock(wsStock);
+
+  // Найти ингредиент основного склада — выбранный или автоподбор по названию
+  const stock = getStock();
+  let targetIng = mainIngId ? stock.find(i => i.id === mainIngId) : null;
+
+  // Автоподбор если не выбран — ищем по первому слову названия
+  if (!targetIng) {
+    const firstWord = w.name.split(' ')[0].toLowerCase();
+    targetIng = stock.find(i => i.name.toLowerCase().includes(firstWord));
+  }
+
+  const ded = getDeductions();
+  ded.push({date:todayStr(), time:nowStr(), ing:'[ЦЕХ] '+w.name,
+    qty:'-'+qty.toFixed(1), unit:w.unit, reason:'Передача в кафе — списано из цеха', emp:'Цех'});
+
+  if (targetIng) {
+    targetIng.qty += qty;
+    if (!targetIng.max || targetIng.qty > targetIng.max) targetIng.max = targetIng.qty;
+    setStock(stock);
+    ded.push({date:todayStr(), time:nowStr(), ing:'[КАФЕ] '+targetIng.name,
+      qty:'+'+qty.toFixed(1), unit:w.unit, reason:'Передача из цеха — добавлено на склад', emp:'Цех'});
+    toast('✅ Передано: ' + w.name + ' → ' + targetIng.name + ' +' + qty + ' ' + w.unit);
+  } else {
+    toast('⚠️ Передано из цеха, но ингредиент на складе кафе не найден — выберите вручную');
+  }
+
+  setDeductions(ded);
+  renderWsStockPanel();
+}
+
+// ─── Purchases ────────────────────────────────────────────────────────
+let _wReceiptData = null;
+
+function wsPTabSet(tab, btn) {
+  document.getElementById('ws-ptab-form').style.display     = tab === 'form'     ? '' : 'none';
+  document.getElementById('ws-ptab-ai').style.display       = tab === 'ai'       ? '' : 'none';
+  document.getElementById('ws-ptab-receipts').style.display = tab === 'receipts' ? '' : 'none';
+  document.querySelectorAll('#panel-purchases .ptab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (tab === 'receipts') renderReceiptsW();
+  if (tab === 'ai') {
+    const keyEl = document.getElementById('ai-apikey');
+    if (keyEl && !keyEl.value) keyEl.value = lsGet('yaya_ai_apikey', '') || '';
+  }
+}
+
+function receiptPreviewW(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    _wReceiptData = { data: ev.target.result, name: file.name, type: file.type };
+    document.getElementById('receipt-img-w').src = ev.target.result;
+    document.getElementById('receipt-name-w').textContent = file.name;
+    document.getElementById('receipt-preview-w').style.display = '';
+    document.getElementById('receipt-drop-w').style.borderColor = 'var(--teal)';
+  };
+  reader.readAsDataURL(file);
+}
+
+function receiptClearW() {
+  _wReceiptData = null;
+  document.getElementById('receipt-file-w').value = '';
+  document.getElementById('receipt-preview-w').style.display = 'none';
+  document.getElementById('receipt-drop-w').style.borderColor = '';
+}
+
+function populatePurchaseIng() {
+  const sel = document.getElementById('purch-ing');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '';
+  getStock().filter(i => i.location === 'workshop').forEach(i =>
+    sel.innerHTML += `<option value="${i.id}">${i.name}</option>`);
+  if (prev && sel.querySelector(`option[value="${prev}"]`)) sel.value = prev;
+}
+
+function addPurchase() {
+  const id       = document.getElementById('purch-ing').value;
+  const qty      = parseFloat(document.getElementById('purch-qty').value) || 0;
+  const unit     = document.getElementById('purch-unit').value;
+  const price    = parseFloat(document.getElementById('purch-price').value) || 0;
+  const supplier = document.getElementById('purch-supplier').value;
+  const note     = document.getElementById('purch-note').value;
+  if (!id || qty <= 0) { toast('❗ Заполните поля'); return; }
+  const stock = getStock();
+  const ing = stock.find(i => i.id === id);
+  if (!ing) return;
+  ing.qty += qty;
+  if (!ing.max || ing.qty > ing.max) ing.max = ing.qty;
+  setStock(stock);
+  const pid = 'p' + Date.now();
+  const purch = getPurchases();
+  purch.unshift({id:pid, date:todayStr(), time:nowStr(), ing:ing.name, location:'workshop', qty:qty.toFixed(2), unit, price, total:price*qty, supplier, note, hasReceipt:!!_wReceiptData});
+  setPurchases(purch);
+  if (_wReceiptData) {
+    const receipts = getReceipts();
+    receipts.push({ id:'r'+Date.now(), purchaseId:pid, date:todayStr(), time:nowStr(),
+      supplier, ing:ing.name, location:'workshop', data:_wReceiptData.data, name:_wReceiptData.name, type:_wReceiptData.type });
+    setReceipts(receipts);
+  }
+  const ded = getDeductions();
+  ded.push({date:todayStr(), time:nowStr(), ing:ing.name, qty:'+'+qty.toFixed(2), unit, reason:'Закупка цеха', emp:'Цех'});
+  setDeductions(ded);
+  receiptClearW();
+  renderPurchases();
+  renderWsStockPanel();
+  toast('✅ Закупка: ' + ing.name + ' +' + qty + ' ' + unit + (_wReceiptData ? ' 🧾' : ''));
+}
+
+function renderPurchases() {
+  const tbody = document.getElementById('purch-tbody');
+  if (!tbody) return;
+  const purch = getPurchases().filter(p => p.location === 'workshop');
+  const today = todayStr();
+  const todayTotal = purch.filter(p=>p.date===today).reduce((s,p)=>s+(parseFloat(p.total)||0),0);
+  const cnt = document.getElementById('purch-today');
+  const cntAll = document.getElementById('purch-cnt');
+  if (cnt) cnt.textContent = fmt(todayTotal) + ' тг';
+  if (cntAll) cntAll.textContent = purch.length;
+  const receipts = getReceipts();
+  tbody.innerHTML = purch.map(p => {
+    const price = parseFloat(p.price) || 0;
+    const total = parseFloat(p.total) || 0;
+    // Все чеки/фото этой закупки
+    const photoCell = p.productPhoto
+      ? `<img src="${p.productPhoto}" onclick="aiOpenPhoto('${p.productPhoto}')"
+          style="width:36px;height:36px;object-fit:cover;border-radius:4px;cursor:zoom-in;border:1px solid var(--border);vertical-align:middle">`
+      : `<span style="color:rgba(0,0,0,0.15);font-size:12px">—</span>`;
+    const recBtn = p.receiptPhoto
+      ? `<img src="${p.receiptPhoto}" onclick="aiOpenPhoto('${p.receiptPhoto}')" style="width:28px;height:28px;object-fit:cover;border-radius:3px;cursor:zoom-in;border:1px solid var(--border);vertical-align:middle" title="Чек">`
+      : `<span style="color:rgba(0,0,0,0.15);font-size:12px">—</span>`;
+    const aiTag = p.note && p.note.includes('AI')
+      ? `<span style="font-size:9px;background:rgba(216,90,48,0.1);color:var(--orange);padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:700">AI</span>` : '';
+    const receiptDateCell = p.receipt_date
+      ? `<span style="color:var(--teal);font-weight:600">${p.receipt_date}</span>`
+      : `<span style="color:rgba(0,0,0,0.2);font-size:11px">—</span>`;
+    return `<tr>
+      <td style="text-align:center">${photoCell}</td>
+      <td style="font-size:12px;color:var(--muted)">${p.date} ${p.time}</td>
+      <td style="font-size:12px;text-align:center">${receiptDateCell}</td>
+      <td style="font-weight:600">${p.ing}${aiTag}</td>
+      <td>${p.qty} ${p.unit}</td>
+      <td>${price > 0 ? fmt(price)+' тг' : '—'}</td>
+      <td style="font-weight:600;color:var(--green)">${total > 0 ? fmt(total)+' тг' : '—'}</td>
+      <td style="color:var(--muted);font-size:12px">${p.supplier||'—'}</td>
+      <td style="text-align:center">${recBtn}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">Нет закупок</td></tr>';
+}
+
+function renderReceiptsW() {
+  const q = (document.getElementById('receipt-q-w')?.value || '').toLowerCase();
+  const all = getReceipts().filter(r => r.location === 'workshop' && (!q || (r.supplier||'').toLowerCase().includes(q) || r.ing.toLowerCase().includes(q)));
+  const grid = document.getElementById('receipts-grid-w');
+  const empty = document.getElementById('receipts-empty-w');
+  const cnt = document.getElementById('receipt-count-w');
+  if (cnt) cnt.textContent = all.length + ' чек' + (all.length===1?'':'ов');
+  if (!all.length) { grid.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = all.map(r => `
+    <div class="receipt-card" onclick="openReceiptModal('${r.id}')">
+      <img src="${r.data}" alt="чек" onerror="this.style.display='none'">
+      <div class="receipt-card-body">
+        <div class="receipt-card-title">🧾 ${r.ing}</div>
+        <div class="receipt-card-meta">${r.date} · ${r.time}</div>
+        <div class="receipt-card-meta">${r.supplier || '—'}</div>
+      </div>
+    </div>`).join('');
+}
+
+let _openReceiptId = null;
+function openReceiptModal(id) {
+  const rec = getReceipts().find(r => r.id === id);
+  if (!rec) return;
+  _openReceiptId = id;
+  document.getElementById('rmod-title').textContent = '🧾 ' + rec.ing;
+  document.getElementById('rmod-meta').textContent  = rec.date + ' · ' + rec.time + (rec.supplier ? ' · ' + rec.supplier : '');
+  document.getElementById('rmod-img').src = rec.data;
+  const dl = document.getElementById('rmod-dl');
+  dl.href = rec.data; dl.download = rec.name || 'чек.jpg';
+  document.getElementById('receipt-modal').classList.add('open');
+}
+function closeReceiptModal() { document.getElementById('receipt-modal').classList.remove('open'); _openReceiptId=null; }
+function deleteReceipt() {
+  if (!_openReceiptId || !confirm('Удалить чек?')) return;
+  setReceipts(getReceipts().filter(r => r.id !== _openReceiptId));
+  closeReceiptModal(); renderReceiptsW(); renderPurchases();
+  toast('🗑 Чек удалён');
+}
+
+// ─── Recipes ──────────────────────────────────────────────────────────
+function renderRecipes() {
+  const el = document.getElementById('recipes-list');
+  if (!el) return;
+  const recipes = getWsRecipes();
+  const wsStock = getWsStock();
+  const stock = getStock();
+  el.innerHTML = recipes.map(r => {
+    const ingHtml = r.items.map(it => {
+      const ing = stock.find(i => i.id === it.ingId);
+      return `<div class="recipe-ing">${ing?ing.name:'?'}: <strong>${it.qty} ${it.unit}</strong></div>`;
+    }).join('');
+    return `<div class="recipe-card">
+      <div class="recipe-name">${r.name}</div>
+      <div class="recipe-body">
+        <div class="recipe-inputs">${ingHtml}</div>
+        <div class="recipe-output">
+          <div class="recipe-output-num">${r.outputQty}</div>
+          <div class="recipe-output-unit">${r.outputUnit} / партия</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Populate selects
+  const wsItemSel = document.getElementById('nr-ws-item');
+  const nrIng = document.getElementById('nr-ing');
+  if (wsItemSel) { wsItemSel.innerHTML=''; wsStock.forEach(w => wsItemSel.innerHTML+=`<option value="${w.id}">${w.name}</option>`); }
+  if (nrIng) { nrIng.innerHTML=''; stock.forEach(i => nrIng.innerHTML+=`<option value="${i.id}">${i.name}</option>`); }
+}
+
+function addNRIng() {
+  const ingId = document.getElementById('nr-ing').value;
+  const qty = parseFloat(document.getElementById('nr-qty').value) || 0;
+  const unit = document.getElementById('nr-qunit').value;
+  const ing = getStock().find(i => i.id === ingId);
+  if (!qty || !ing) return;
+  newRecipeIngs.push({ingId, qty, unit, name: ing.name});
+  renderNRIngs();
+}
+
+function renderNRIngs() {
+  const el = document.getElementById('nr-ings');
+  if (!el) return;
+  el.innerHTML = newRecipeIngs.map((it, i) =>
+    `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px">
+      <span style="flex:1">${it.name}: <strong>${it.qty} ${it.unit}</strong></span>
+      <button class="btn btn-sm btn-danger" onclick="newRecipeIngs.splice(${i},1);renderNRIngs()">✕</button>
+    </div>`
+  ).join('');
+}
+
+function saveRecipe() {
+  const name = document.getElementById('nr-name').value.trim();
+  const outputQty = parseFloat(document.getElementById('nr-output').value) || 1;
+  const outputUnit = document.getElementById('nr-unit').value;
+  const outputId = document.getElementById('nr-ws-item').value;
+  if (!name || !newRecipeIngs.length) { toast('❗ Заполните название и ингредиенты'); return; }
+  const recipes = getWsRecipes();
+  recipes.push({id:'wr'+Date.now(), name, items:newRecipeIngs.map(r=>({ingId:r.ingId,qty:r.qty,unit:r.unit})), outputId, outputQty, outputUnit});
+  setWsRecipes(recipes);
+  newRecipeIngs = [];
+  renderRecipes();
+  populateProdRecipes();
+  toast('✅ Рецептура сохранена: ' + name);
+}
+
+// ─── Reports ──────────────────────────────────────────────────────────
+function renderWsReports() {
+  const log = getWsLog();
+  const purch = getPurchases();
+  const stock = getStock();
+
+  document.getElementById('rep-total').textContent = log.reduce((s,l)=>s+l.qty,0) + ' ед.';
+  document.getElementById('rep-purch').textContent = fmt(purch.reduce((s,p)=>s+(parseFloat(p.total)||0),0)) + ' тг';
+  document.getElementById('rep-batches').textContent = log.length;
+  document.getElementById('rep-ok').textContent = stock.filter(i=>i.qty>=i.min).length;
+  document.getElementById('rep-crit').textContent = stock.filter(i=>i.qty<i.min).length;
+
+  // By type
+  const byType = {};
+  log.forEach(l => { byType[l.name]=(byType[l.name]||0)+l.qty; });
+  const byTypeEl = document.getElementById('rep-by-type');
+  if (byTypeEl) {
+    const sorted = Object.entries(byType).sort((a,b)=>b[1]-a[1]);
+    byTypeEl.innerHTML = sorted.length ? sorted.map(([n,q])=>
+      `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:13px">
+        <span>${n}</span><span style="font-weight:700;color:var(--teal)">${q} ед.</span>
+      </div>`).join('') : '<div style="color:var(--muted);font-size:13px">Нет данных</div>';
+  }
+
+  // By raw
+  const byRaw = {};
+  getDeductions().filter(d=>d.reason&&d.reason.includes('Производство')).forEach(d=>{
+    byRaw[d.ing]=(byRaw[d.ing]||0)+parseFloat(d.qty);
+  });
+  const byRawEl = document.getElementById('rep-by-raw');
+  if (byRawEl) {
+    const sorted = Object.entries(byRaw).sort((a,b)=>b[1]-a[1]);
+    byRawEl.innerHTML = sorted.length ? sorted.map(([n,q])=>
+      `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:13px">
+        <span>${n}</span><span style="font-weight:700;color:var(--red)">${q.toFixed(2)} ед.</span>
+      </div>`).join('') : '<div style="color:var(--muted);font-size:13px">Нет данных</div>';
+  }
+
+  // All deductions
+  const tbody = document.getElementById('rep-ded-tbody');
+  if (tbody) {
+    const ded = getDeductions();
+    tbody.innerHTML = [...ded].reverse().map(d=>
+      `<tr>
+        <td>${d.date||''}</td><td>${d.time}</td><td>${d.ing}</td>
+        <td style="font-weight:600;color:${String(d.qty).startsWith('+')?'var(--green)':'var(--red)'}">${d.qty} ${d.unit}</td>
+        <td style="color:var(--muted)">${d.reason}</td>
+      </tr>`
+    ).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px">Нет данных</td></tr>';
+  }
+}
+
+// ─── ИНГРЕДИЕНТЫ ЦЕХА ────────────────────────────────────────────────
+function wsIAddIng() {
+  const name = document.getElementById('wsi-name').value.trim();
+  const qty  = parseFloat(document.getElementById('wsi-qty').value) || 0;
+  const unit = document.getElementById('wsi-unit').value.trim() || 'кг';
+  const min  = parseFloat(document.getElementById('wsi-min').value) || 1;
+  if (!name) { toast('❗ Введите название'); return; }
+  const stock = getStock();
+  stock.push({ id: 'i' + Date.now(), name, qty, unit, min, location: 'workshop' });
+  setStock(stock);
+  document.getElementById('wsi-name').value = '';
+  wsIRefresh();
+  toast('✅ Добавлено: ' + name + ' → 🏭 Цех');
+}
+
+function wsIRenderStock() {
+  const tbody = document.getElementById('wsi-tbody');
+  if (!tbody) return;
+  const q = (document.getElementById('wsi-q')?.value || '').toLowerCase();
+  const stock = getStock().filter(i => i.location === 'workshop' && (!q || i.name.toLowerCase().includes(q)));
+
+  // Использование в рецептах цеха
+  const recipes = getWsRecipes();
+  const usageMap = {};
+  recipes.forEach(r => {
+    r.items.forEach(item => {
+      if (!usageMap[item.ingId]) usageMap[item.ingId] = [];
+      usageMap[item.ingId].push('🏭 ' + r.name);
+    });
+  });
+
+  if (!stock.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:16px">Нет позиций</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = stock.map(i => {
+    const maxVal = i.max || Math.max(i.qty, i.min * 3) || 1;
+    const pct    = Math.min(100, Math.round(i.qty / maxVal * 100));
+    const color  = i.qty < i.min ? 'var(--red)' : i.qty < i.min * 1.5 ? 'var(--amber)' : 'var(--green)';
+    const cls    = i.qty < i.min ? 'badge-danger' : i.qty < i.min * 1.5 ? 'badge-warn' : 'badge-ok';
+    const lbl    = i.qty < i.min ? 'Критично' : i.qty < i.min * 1.5 ? 'Мало' : 'Норма';
+    const uses   = usageMap[i.id] || [];
+    const useTxt = uses.length
+      ? `<span title="${uses.join('\n')}" style="cursor:help;color:var(--blue);font-size:12px">${uses.length} рецепт${uses.length > 1 ? 'а' : ''}</span>`
+      : `<span style="color:rgba(0,0,0,0.15)">—</span>`;
+    return `<tr>
+      <td style="font-weight:500">${i.name}</td>
+      <td style="font-weight:700">${i.qty.toFixed(2)} <span style="color:var(--muted);font-weight:400">${i.unit}</span></td>
+      <td style="color:var(--muted)">${i.min} ${i.unit}</td>
+      <td><div style="display:flex;align-items:center;gap:6px">
+        <div class="sbar"><div class="sbar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <span style="font-size:11px;font-weight:600;color:${color};min-width:28px">${pct}%</span>
+      </div></td>
+      <td><span class="badge ${cls}">${lbl}</span></td>
+      <td>${useTxt}</td>
+      <td><button class="btn btn-sm btn-danger" style="border:none;background:transparent;color:var(--red)" onclick="wsIDelIng('${i.id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function wsIRenderRecipes() {
+  const el = document.getElementById('wsi-recipes');
+  if (!el) return;
+  const recipes = getWsRecipes();
+  const allIng  = [...getStock(), ...getWsStock()];
+  if (!recipes.length) { el.innerHTML = '<div style="color:var(--muted)">Нет рецептов</div>'; return; }
+  el.innerHTML = recipes.map(r => {
+    const ingHtml = r.items.map(item => {
+      const ing = allIng.find(i => i.id === item.ingId);
+      const low = ing && ing.qty < ing.min;
+      return `<span style="color:${low ? 'var(--red)' : 'var(--muted)'};font-size:11px">${ing ? ing.name : '?'} ${item.qty}${item.unit}</span>`;
+    }).join(', ');
+    const out = allIng.find(i => i.id === r.outputId);
+    return `<div style="padding:5px 0;border-bottom:1px solid rgba(0,0,0,0.05)">
+      <span style="font-weight:600">🏭 ${r.name}</span>
+      <span style="color:var(--teal);font-size:11px"> → ${out ? out.name : ''} ${r.outputQty}${r.outputUnit}</span>
+      <br>${ingHtml}</div>`;
+  }).join('');
+}
+
+function wsIDelIng(id) {
+  if (!confirm('Удалить позицию?')) return;
+  setStock(getStock().filter(i => i.id !== id));
+  wsIRefresh();
+}
+
+function wsIRefresh() {
+  wsIRenderStock();
+  wsIRenderRecipes();
+}
+
+// ─── Refresh all visible ──────────────────────────────────────────────
+function refreshAll() {
+  const saves = {};
+  ['prod-recipe','prod-batches','wsa-item','wsa-qty','wsa-reason',
+   'transfer-item','transfer-qty','transfer-main-ing',
+   'purch-ing','purch-qty','purch-unit','purch-price','purch-supplier','purch-note',
+   'nr-name','nr-output','nr-unit','nr-ws-item','nr-ing','nr-qty','nr-qunit',
+   'ws-stock-q'
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) saves[id] = el.value;
+  });
+
+  populateProdRecipes();
+  renderProdLog();
+  renderWsStockInline();
+  renderWsDedLog();
+  renderProdStats();
+  renderWsStockPanel();
+  renderPurchases();
+  populatePurchaseIng();
+  renderRecipes();
+  renderWsReports();
+
+  Object.entries(saves).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el && val !== undefined) el.value = val;
+  });
+  updateProdPreview();
+}
+
+refreshAll();
+updateClock();
+setInterval(updateClock, 30000);
+setInterval(refreshAll, 30000); // увеличил с 15 до 30 секунд
+
+// Update preview on batch count change
+document.getElementById('prod-batches').addEventListener('input', updateProdPreview);
+
+// ─── AI ЗАКУПКИ MODULE ────────────────────────────────────────────────────
+
+let _aiImages = []; // [{base64, mime, dataUrl}]
+let _aiCards  = []; // parsed recognition results
+
+function aiHandleDrop(e) {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = '';
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  if (files.length) aiAddFiles(files);
+}
+
+function aiLoadFiles(e) {
+  const files = Array.from(e.target.files);
+  if (files.length) aiAddFiles(files);
+  e.target.value = '';
+}
+
+// Сжимает dataUrl до maxW x maxH, качество q (0..1), возвращает {dataUrl, base64, mime}
+function compressImage(dataUrl, maxW, maxH, q) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxW || h > maxH) {
+        const ratio = Math.min(maxW / w, maxH / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const out = canvas.toDataURL('image/jpeg', q);
+      resolve({ dataUrl: out, base64: out.split(',')[1], mime: 'image/jpeg' });
+    };
+    img.src = dataUrl;
+  });
+}
+
+function aiAddFiles(files) {
+  let pending = files.length;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      const raw = ev.target.result;
+      const forApi     = await compressImage(raw, 1280, 1280, 0.85);
+      const forStorage = await compressImage(raw, 200,  200,  0.50);
+      _aiImages.push({
+        base64:  forApi.base64,
+        mime:    forApi.mime,
+        dataUrl: forApi.dataUrl,
+        dataUrlSmall: forStorage.dataUrl,
+        name: file.name
+      });
+      pending--;
+      // Рендерим превью только когда все файлы готовы
+      if (pending === 0) aiRenderPreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function aiRenderPreviews() {
+  const el = document.getElementById('ai-previews');
+  const typeLabels = {товар:'📦 Товар', чек:'🧾 Чек', kaspi:'💳 Kaspi', халык:'🏦 Халык', форте:'🏦 Форте', весы:'⚖️ Весы', накладная:'📋 Накладная'};
+  const typeOrder  = ['товар','чек','накладная','kaspi','халык','форте','весы'];
+  const typeColors = {товар:'#2D9E5F', чек:'#1877B8', kaspi:'#E8A020', халык:'#C0392B', форте:'#8E44AD', весы:'#1D9E75', накладная:'#7B4FBF'};
+  el.innerHTML = _aiImages.map((img, i) => {
+    const t = img.photoType || 'товар';
+    const color = typeColors[t] || '#6b6b66';
+    return `<div class="ai-preview-item" style="position:relative">
+      <img class="ai-preview-thumb" src="${img.dataUrl}" style="width:70px;height:70px;object-fit:cover;border-radius:var(--radius-sm);border:2px solid ${color};cursor:pointer;display:block;${t==='чек'||t==='kaspi'||t==='халык'||t==='форте'||t==='накладная'?'opacity:0.45':''}" onclick="aiOpenPhoto('${img.dataUrl}')">
+      <button onclick="aiCycleType(${i})" style="position:absolute;bottom:0;left:0;right:0;background:${color};color:#fff;border:none;font-size:9px;font-weight:700;padding:2px 3px;cursor:pointer;text-align:center;border-radius:0 0 var(--radius-sm) var(--radius-sm);white-space:nowrap;overflow:hidden">${typeLabels[t]||t}</button>
+      <button class="ai-preview-remove" onclick="aiRemovePhoto(${i})" style="position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>`;
+  }).join('');
+  // Счётчик на кнопке
+  const productCount = _aiImages.filter(img => img.photoType !== 'чек' && img.photoType !== 'kaspi' && img.photoType !== 'халык' && img.photoType !== 'форте').length;
+  const btnText = document.getElementById('ai-btn-text');
+  if (btnText) btnText.textContent = productCount > 0
+    ? `Распознать через Claude AI (${productCount} фото товаров)`
+    : 'Распознать через Claude AI';
+}
+
+function aiCycleType(i) {
+  const types = ['товар','чек','накладная','kaspi','халык','форте','весы'];
+  const cur = _aiImages[i].photoType || 'товар';
+  _aiImages[i].photoType = types[(types.indexOf(cur)+1) % types.length];
+  aiRenderPreviews();
+}
+
+function aiRemovePhoto(i) {
+  _aiImages.splice(i, 1);
+  aiRenderPreviews();
+}
+
+function aiOpenPhoto(src) {
+  const w = window.open('', '_blank', 'width=800,height=700,scrollbars=yes');
+  if (!w) return;
+  w.document.write('<body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="' + src + '" style="max-width:100%;max-height:100vh;object-fit:contain"></body>');
+  w.document.close();
+}
+
+// ── Вспомогательная функция: отправить один батч фото ──
+async function _aiSendBatch(apiKey, systemPrompt, batchItems, batchNum, totalBatches) {
+  const content = [];
+  const hasReceipt = batchItems.some(i => i.type === 'чек' || i.type === 'накладная');
+  batchItems.forEach(({ img, localIdx, type }) => {
+    content.push({ type: 'image', source: { type: 'base64', media_type: img.mime, data: img.base64 } });
+    let label;
+    if (type === 'чек') {
+      label = `Фото ${localIdx} [ЧЕК] — ОБЯЗАТЕЛЬНО извлеки КАЖДУЮ товарную строку как отдельную позицию`;
+    } else if (type === 'накладная') {
+      label = `Фото ${localIdx} [НАКЛАДНАЯ] — ОБЯЗАТЕЛЬНО извлеки КАЖДУЮ строку таблицы как отдельную позицию`;
+    } else {
+      label = `Фото ${localIdx} [${type.toUpperCase()}]`;
+    }
+    content.push({ type: 'text', text: label });
+  });
+  if (hasReceipt) {
+    content.push({ type: 'text', text: 'ВАЖНО: каждая строка в чеке/накладной = отдельный объект в JSON массиве. Не объединяй позиции.' });
+  }
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 8000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content }]
+    })
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `HTTP ${resp.status}`);
+  }
+
+  const data = await resp.json();
+  const raw  = data.content?.[0]?.text || '';
+
+  // ── Извлекаем JSON из ответа ──
+  let cleaned;
+
+  // 1. Попробуем вытащить из markdown-блока (закрытого или незакрытого)
+  const mdMatch = raw.match(/```(?:json)?\s*([\s\S]*?)(?:```|$)/);
+  if (mdMatch) {
+    cleaned = mdMatch[1].trim();
+  } else {
+    // 2. Найдём начало JSON — первый [ или {
+    const start = Math.min(
+      raw.indexOf('[') !== -1 ? raw.indexOf('[') : Infinity,
+      raw.indexOf('{') !== -1 ? raw.indexOf('{') : Infinity
+    );
+    cleaned = start !== Infinity ? raw.slice(start).trim() : raw.trim();
+  }
+
+  // ── Попытка починить обрезанный JSON ──
+  function repairJson(s) {
+    // Удаляем незакрытую строку в конце
+    s = s.replace(/,?\s*"[^"]*$/, '');
+    // Удаляем незакрытый объект-ключ в конце
+    s = s.replace(/,?\s*\{[^}]*$/, '');
+    // Закрываем массив если не закрыт
+    const opens  = (s.match(/\[/g) || []).length;
+    const closes = (s.match(/\]/g) || []).length;
+    for (let k = 0; k < opens - closes; k++) s += ']';
+    return s;
+  }
+
+  let items;
+  try {
+    items = JSON.parse(cleaned);
+  } catch {
+    // Попробуем починить
+    try {
+      items = JSON.parse(repairJson(cleaned));
+      console.warn(`[AI] Батч ${batchNum}: JSON был обрезан, починен автоматически`);
+    } catch {
+      throw new Error(`Батч ${batchNum}/${totalBatches}: невалидный JSON — ${raw.slice(0, 300)}`);
+    }
+  }
+  if (!Array.isArray(items)) items = [items];
+  return items;
+}
+
+async function aiRecognize() {
+  const apiKey = document.getElementById('ai-apikey').value.trim();
+  if (!apiKey) { toast('❗ Введите API ключ Anthropic'); return; }
+  if (!_aiImages.length) { toast('❗ Загрузите хотя бы одно фото'); return; }
+
+  const btn     = document.getElementById('ai-recognize-btn');
+  const btnText = document.getElementById('ai-btn-text');
+  const btnIcon = document.getElementById('ai-btn-icon');
+  btn.disabled  = true;
+  btn.style.opacity = '0.7';
+  btnIcon.textContent = '⏳';
+  btnText.textContent = 'Анализирую через Claude…';
+
+  lsSet('yaya_ai_apikey', apiKey);
+
+  const loc = 'workshop';
+  const caption = document.getElementById('ai-caption').value.trim();
+
+  // Build catalogue with IDs for exact matching
+  const stock = getStock().filter(i => !i.location || i.location === loc);
+  const catalogueList = stock.map(i => `  - id:"${i.id}" | "${i.name}"`).join('\n');
+
+  const systemPrompt = `Ты — система распознавания закупок для казахстанского ресторана YaYa Chicken (г. Экибастуз). Склад: ЦЕХ.
+
+КАТАЛОГ ИНГРЕДИЕНТОВ СКЛАДА:
+${catalogueList}
+
+ЗАДАЧА: Из фото извлечь позиции закупки. Каждое фото помечено пользователем: [ТОВАР], [ВЕСЫ] или [ЧЕК].
+
+═══ ПРАВИЛА ПО ТИПАМ ФОТО ═══
+
+[ЧЕК] — фото кассового чека (ВЫСШИЙ ПРИОРИТЕТ):
+- Читай КАЖДУЮ строку товара в чеке отдельно — каждая позиция = отдельная запись
+- Из чека берём: название, цена/ед, количество, итого
+- photo_index = номер этого фото чека для всех позиций из него
+- Поставщик = название магазина из шапки чека если есть
+
+
+[НАКЛАДНАЯ] — фото накладной (расходная, товарная, жүккұжат, НАКЛАДНАЯ НА ОТПУСК):
+- Читай КАЖДУЮ строку таблицы товаров — каждая строка = отдельная запись
+- Берём: наименование, кол-во, ед.изм, цена за ед, сумма
+- Поставщик = грузоотправитель / отправитель / название организации из шапки
+- receipt_date = дата документа из шапки
+- Рукописные накладные: читай внимательно, название × кол-во × цена = сумма
+
+[KASPI/ХАЛЫК/ФОРТЕ] — банковский терминал об оплате (не содержит товаров):
+- НЕ создавай позиций — это только подтверждение платежа
+- Тип kaspi в интерфейсе покрывает Kaspi, Halyk, Forte терминалы
+
+[ТОВАР] — фото упаковки или продукта:
+- Читай название с упаковки/этикетки
+- Количество = сколько штук/упаковок видно на фото
+- Цену ищи на ценнике или этикетке если есть
+
+[ВЕСЫ] — фото весового дисплея:
+- На дисплее три числа: МАССА кг | ЦЕНА тг/кг | ИТОГО тг
+- qty = первое число (масса), price_per_unit = второе, total = третье
+- Название = ЧТО ФИЗИЧЕСКИ ЛЕЖИТ НА ВЕСАХ на этом же фото
+- НЕ бери название от других фото — только что видно на весах рядом с дисплеем
+- Каждое фото весов = отдельная позиция
+
+ОБЩИЕ ПРАВИЛА:
+- matched_id и matched_name только из каталога, ищи по смыслу
+- Единицы: весовые → "кг", штучные → "шт.", жидкости → "л"
+- Уверенность: всегда "high", если не читается → "warn"
+- ВАЖНО: photo_index должен точно соответствовать номеру фото в ЭТОМ запросе
+
+ДОПОЛНИТЕЛЬНЫЕ ПОЛЯ ДЛЯ ЧЕКОВ:
+- supplier = название магазина/организации из шапки чека (например "Женский рай", "ТОО Скиф Трейд")
+- receipt_date = дата из чека в формате ДД.ММ.ГГГГ (например "02.05.2026"), null если нет
+
+ФОРМАТ — только JSON без markdown:
+[{"name":"название товара","matched_id":"id или null","matched_name":"из каталога или null","qty":число_или_null,"unit":"кг/шт./л","price_per_unit":число_или_null,"total":число_или_null,"supplier":"поставщик или null","receipt_date":"ДД.ММ.ГГГГ или null","confidence":"high|warn","photo_index":номер_фото,"comment":"что видно на фото"}]`;
+
+  // ── Типы фото уже выставлены пользователем на превью ──
+  _aiImages.forEach(img => { if (!img.photoType) img.photoType = 'товар'; });
+  aiRenderPhotos();
+
+  // ── Собираем товарные фото + чеки (только kaspi игнорируем) ──
+  const productPhotos = []; // [{img, origIdx, type}]
+  _aiImages.forEach((img, origIdx) => {
+    const type = img.photoType || 'товар';
+    if (type === 'kaspi' || type === 'халык' || type === 'форте') return; // только оплата, данных нет
+    productPhotos.push({ img, origIdx, type });
+  });
+
+  if (productPhotos.length === 0) {
+    toast('⚠️ Нет фото товаров — пометьте хотя бы одно фото как Товар, Весы или Чек');
+    btn.disabled = false; btn.style.opacity = '';
+    btnIcon.textContent = '🤖'; btnText.textContent = 'Распознать через Claude AI';
+    return;
+  }
+
+  // ── Батчинг: максимум 6 фото за один запрос ──
+  const BATCH_SIZE = 6;
+  const batches = [];
+  for (let i = 0; i < productPhotos.length; i += BATCH_SIZE) {
+    batches.push(productPhotos.slice(i, i + BATCH_SIZE));
+  }
+
+  const totalBatches = batches.length;
+  let allItems = [];
+  // Карта: (batchIdx, localPhotoIndex) → origIdx в _aiImages
+  const batchOrigMap = batches.map(batch =>
+    batch.reduce((m, item, li) => { m[li + 1] = item.origIdx; return m; }, {})
+  );
+
+  try {
+    for (let b = 0; b < totalBatches; b++) {
+      if (totalBatches > 1) {
+        btnText.textContent = `Батч ${b + 1} из ${totalBatches}…`;
+      } else {
+        btnText.textContent = 'Распознаю позиции…';
+      }
+
+      const batchItems = batches[b].map((item, li) => ({
+        img: item.img,
+        localIdx: li + 1,
+        type: item.type
+      }));
+
+      // Добавляем подпись только к последнему батчу
+      const batchCaption = (b === totalBatches - 1 && caption) ? caption : null;
+      const items = await _aiSendBatch(apiKey, systemPrompt, batchItems, b + 1, totalBatches);
+
+      // Привязываем photo_index к оригинальным индексам через batchOrigMap
+      items.forEach(item => {
+        item._batchOrigMap = batchOrigMap[b];
+      });
+
+      allItems = allItems.concat(items);
+
+      // Небольшая пауза между батчами чтобы не получить rate limit
+      if (b < totalBatches - 1) await new Promise(r => setTimeout(r, 600));
+    }
+
+    _aiCards = allItems.map((item, i) => {
+      const isKaspiName = (item.name || '').toLowerCase().includes('kaspi') || (item.name || '').toLowerCase().includes('оплата');
+      const hasGoods = item.qty !== null || (item.matched_id && item.matched_id !== null);
+      const sentIdx  = item.photo_index || 1;
+      const origMap  = item._batchOrigMap || {};
+      let origIdx = origMap[sentIdx];
+      if (origIdx === undefined) {
+        const keys = Object.keys(origMap).map(Number);
+        if (keys.length) origIdx = origMap[keys.reduce((a, b) => Math.abs(b - sentIdx) < Math.abs(a - sentIdx) ? b : a)];
+        else origIdx = 0;
+      }
+      const mainImg = _aiImages[origIdx];
+      const mainType = mainImg?.photoType || 'товар';
+      // Чек теперь валидный источник данных — не отклоняем позиции из чека
+      const isKaspiPhoto = mainType === 'kaspi' || mainType === 'халык' || mainType === 'форте';
+      const sortedImgs = mainImg ? [mainImg] : [];
+      const shouldReject = isKaspiPhoto || (isKaspiName && !hasGoods);
+      return { ...item, _id: 'aic_' + Date.now() + '_' + i, _status: shouldReject ? 'rejected' : 'pending', _images: sortedImgs };
+    });
+
+    aiRenderCards();
+    document.getElementById('ai-results').style.display = '';
+    document.getElementById('ai-drop-zone').style.borderColor = '';
+    const suffix = _aiCards.length === 1 ? 'ия' : _aiCards.length < 5 ? 'ии' : 'ий';
+    const batchNote = totalBatches > 1 ? ` (${totalBatches} запроса)` : '';
+    toast(`✅ Распознано ${_aiCards.length} позиц${suffix}${batchNote}`);
+
+  } catch(e) {
+    toast('❌ Ошибка: ' + e.message);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btnIcon.textContent = '🤖';
+    btnText.textContent = 'Распознать через Claude AI';
+  }
+}
+
+function aiRenderBanner() {
+  const cross = _aiCards.filter(c => c.confidence === 'cross').length;
+  const warn  = _aiCards.filter(c => c.confidence === 'warn').length;
+  const total = _aiCards.length;
+  const supplier = _aiCards.find(c => c.supplier)?.supplier || '';
+  const banner = document.getElementById('ai-conf-banner');
+  const icon   = document.getElementById('ai-banner-icon');
+  const title  = document.getElementById('ai-banner-title');
+  const sub    = document.getElementById('ai-banner-sub');
+  const badge  = document.getElementById('ai-banner-badge');
+  const cardTitle = document.getElementById('ai-card-title');
+  if (cross > 0) {
+    banner.style.background = 'rgba(29,158,117,0.07)'; banner.style.borderColor = 'rgba(29,158,117,0.25)';
+    icon.textContent = '⚖️'; title.textContent = 'Перекрёстная проверка пройдена'; title.style.color = '#085041';
+    sub.textContent = cross + ' позиц' + (cross===1?'ия':'ий') + ' подтверждены двумя источниками'; sub.style.color = '#0F7A5E';
+    badge.textContent = '99%'; badge.style.color = 'var(--teal)'; badge.style.background = 'rgba(29,158,117,0.12)';
+  } else if (warn > 0) {
+    banner.style.background = 'rgba(232,160,32,0.07)'; banner.style.borderColor = 'rgba(232,160,32,0.3)';
+    icon.textContent = '⚠️'; title.textContent = warn + ' позиц' + (warn===1?'ия':'ий') + ' требуют уточнения'; title.style.color = '#7A4F00';
+    sub.textContent = 'Проверьте количество и ингредиент'; sub.style.color = '#7A4F00';
+    badge.textContent = '~85%'; badge.style.color = 'var(--amber)'; badge.style.background = 'rgba(232,160,32,0.12)';
+  } else {
+    banner.style.background = 'rgba(29,158,117,0.07)'; banner.style.borderColor = 'rgba(29,158,117,0.25)';
+    icon.textContent = '🤖'; title.textContent = 'Распознавание завершено'; title.style.color = '#085041';
+    sub.textContent = total + ' позиц' + (total===1?'ия':'ий') + ' готовы к оприходованию'; sub.style.color = '#0F7A5E';
+    badge.textContent = '~95%'; badge.style.color = 'var(--teal)'; badge.style.background = 'rgba(29,158,117,0.12)';
+  }
+  if (cardTitle) cardTitle.textContent = 'Закупка · ' + total + ' позиц' + (total===1?'ия':'ий') + (supplier?' · '+supplier:'');
+}
+
+function aiRenderPhotos() {
+  const col = document.getElementById('ai-photos-col');
+  if (!col) return;
+  while (col.children.length > 1) col.removeChild(col.lastChild);
+  _aiImages.forEach((img, i) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);position:relative;cursor:zoom-in';
+    const typeColors = {товар:'#2D9E5F',весы:'#1D9E75',чек:'#1877B8',kaspi:'#E8A020',халык:'#C0392B',форте:'#8E44AD',накладная:'#7B4FBF',другое:'#6b6b66'};
+    const typeLabel = img.photoType
+      ? `<div style="position:absolute;top:0;left:0;right:0;background:${typeColors[img.photoType]||'#6b6b66'};color:#fff;font-size:9px;font-weight:700;padding:2px 5px;text-transform:uppercase;letter-spacing:.05em">${img.photoType}</div>`
+      : '';
+    wrap.innerHTML = `<img src="${img.dataUrl}" style="width:100%;display:block;object-fit:cover;max-height:120px">${typeLabel}<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.5);color:#fff;font-size:10px;font-weight:600;padding:3px 6px">Фото ${i+1}</div>`;
+    wrap.onclick = () => aiOpenPhoto(img.dataUrl);
+    col.appendChild(wrap);
+  });
+}
+
+function aiSyncFromDOM() {
+  _aiCards.forEach(card => {
+    if (card._status !== 'pending') return;
+    const id = card._id;
+    const ingEl  = document.getElementById(`sel_ing_${id}`);
+    const qtyEl  = document.getElementById(`inp_qty_${id}`);
+    const unitEl = document.getElementById(`sel_unit_${id}`);
+    const priceEl= document.getElementById(`inp_price_${id}`);
+    const totalEl= document.getElementById(`inp_total_${id}`);
+    const supEl  = document.getElementById(`inp_supplier_${id}`);
+    if (ingEl)   { card.matched_id = ingEl.value || null; const ing = getStock().find(i=>i.id===ingEl.value); if(ing) card.matched_name=ing.name; }
+    if (qtyEl && qtyEl.value)   card.qty = parseFloat(qtyEl.value) || card.qty;
+    if (unitEl)  card.unit = unitEl.value || card.unit;
+    if (priceEl && priceEl.value) card.price_per_unit = parseFloat(priceEl.value) || card.price_per_unit;
+    if (totalEl && totalEl.value) card.total = parseFloat(totalEl.value) || card.total;
+    if (supEl && supEl.value)  card.supplier = supEl.value;
+  });
+}
+
+function aiRenderCards() {
+  aiSyncFromDOM();
+
+  // Авто-пропуск Kaspi без товарного фото
+  _aiCards.forEach(card => {
+    if (card._status === 'pending' && card.name && card.name.toLowerCase().includes('kaspi') && !card.matched_id) {
+      card._status = 'rejected';
+    }
+  });
+
+  const stock = getStock().filter(i => !i.location || i.location === 'workshop');
+  const units = ['кг','г','шт.','л','мл','уп.','мешок','бут.','пачка'];
+  const pending = _aiCards.filter(c => c._status === 'pending').length;
+  const skipped = _aiCards.filter(c => c._status === 'rejected').length;
+  const countEl = document.getElementById('ai-pending-count');
+  if (countEl) countEl.textContent = _aiCards.length + ' позиц' + (_aiCards.length===1?'ия':'ий') + (skipped?' · пропущено: '+skipped:'');
+  const btn = document.getElementById('ai-accept-all-btn');
+  if (btn) btn.style.display = pending > 0 ? '' : 'none';
+  aiRenderBanner();
+  aiRenderPhotos();
+
+  const rowsHTML = _aiCards.map((card, idx) => {
+    const id = card._id;
+    const conf = card.confidence;
+    // Приоритет: matched_id из модели → поиск по matched_name → поиск по name
+    const matchedById  = card.matched_id ? stock.find(i => i.id === card.matched_id) : null;
+    const matchedByName = stock.find(i => i.name === (card.matched_name || card.name || ''));
+    const matched = matchedById || matchedByName;
+    const selectedId = matched ? matched.id : '';
+
+    const stockOpts = '<option value="">— выбрать —</option>' + stock.map(i =>
+      '<option value="' + i.id + '"' + (i.id===selectedId?' selected':'') + '>' + i.name + '</option>').join('');
+    const unitOpts = units.map(u =>
+      '<option value="' + u + '"' + ((card.unit||'шт.')===u?' selected':'') + '>' + u + '</option>').join('');
+    const rowBg = card._status==='accepted' ? 'rgba(29,158,117,0.07)' : card._status==='rejected' ? 'rgba(226,75,74,0.05)' : '';
+    const confIcon = conf==='cross' ? '<span title="Перекрёстная проверка" style="color:var(--teal);font-size:13px">✅</span>'
+                   : conf==='warn'  ? '<span title="Требует уточнения" style="color:var(--amber);font-size:13px">⚠️</span>'
+                   : '<span style="color:var(--muted);font-size:11px">🤖</span>';
+    const skipBtn = card._status==='accepted'
+      ? '<span style="color:var(--teal);font-size:11px;font-weight:700">✓</span>'
+      : card._status==='rejected'
+      ? '<span style="color:var(--red);font-size:11px;font-weight:700;cursor:pointer" onclick="aiUnSkip(\'' + id + '\')" title="Восстановить">↩</span>'
+      : '<span style="color:var(--muted);cursor:pointer;font-size:14px" onclick="aiToggleSkip(\'' + id + '\')" title="Пропустить">✕</span>';
+    const dis = card._status !== 'pending' ? 'disabled' : '';
+    const bgI = card._status!=='pending' ? 'var(--bg)' : matched ? '#F0FBF5' : conf==='warn' ? '#FFF8F0' : '#FFFAF5';
+    const borderI = matched ? 'rgba(29,158,117,0.4)' : 'rgba(239,159,39,0.4)';
+    const is = 'border:1px solid var(--border);border-radius:4px;padding:5px 7px;font-size:12px;background:' + bgI + ';width:100%;font-family:inherit;';
+    const selIs = 'border:1px solid ' + borderI + ';border-radius:4px;padding:5px 7px;font-size:12px;background:' + bgI + ';width:100%;font-family:inherit;';
+
+    // Привязка к фото — берём уже пересчитанный origIdx из _batchOrigMap
+    const origMap = card._batchOrigMap || {};
+    const sentIdx = card.photo_index || 1;
+    let resolvedIdx = origMap[sentIdx];
+    if (resolvedIdx === undefined) {
+      const keys = Object.keys(origMap).map(Number);
+      if (keys.length) resolvedIdx = origMap[keys.reduce((a, b) => Math.abs(b - sentIdx) < Math.abs(a - sentIdx) ? b : a)];
+      else resolvedIdx = 0;
+    }
+    const linkedImg = _aiImages[resolvedIdx] || _aiImages[0];
+    const photoThumb = linkedImg
+      ? '<img src="' + linkedImg.dataUrl + '" onclick="aiOpenPhoto(\'' + linkedImg.dataUrl + '\')" style="width:32px;height:32px;object-fit:cover;border-radius:3px;border:1px solid var(--border);cursor:zoom-in;flex-shrink:0" title="Фото ' + (resolvedIdx+1) + '">'
+      : '';
+
+    // Кнопка создать новый ингредиент
+    const createBtn = !matched && card._status==='pending'
+      ? '<button onclick="aiCreateIngredient(\'' + id + '\')" style="margin-top:3px;border:none;background:none;cursor:pointer;font-size:10px;color:var(--orange);font-weight:700;padding:0;text-decoration:underline">+ создать ингредиент</button>'
+      : '';
+
+    // Подсказка
+    const nameHint = !matched && card._status==='pending'
+      ? '<div style="font-size:10px;color:var(--amber);margin-top:2px;line-height:1.3">«' + (card.matched_name || card.name) + '»</div>' + createBtn
+      : matched && card._status==='pending'
+      ? '<div style="font-size:10px;color:var(--teal);margin-top:2px">✓ ' + (card.name !== matched.name ? '«'+card.name+'» → ' : '') + matched.name + '</div>'
+      : '';
+    const commentRow = card.comment && card._status==='pending'
+      ? '<tr style="background:' + rowBg + '"><td colspan="9" style="padding:2px 8px 6px 40px;font-size:10px;color:var(--muted);line-height:1.4">💬 ' + card.comment + '</td></tr>' : '';
+    return '<tr style="background:' + rowBg + ';border-bottom:1px solid var(--border)">'
+      + '<td style="padding:6px 4px;text-align:center;width:22px">' + confIcon + '</td>'
+      + '<td style="padding:6px 4px;width:22px;color:var(--muted);font-size:11px;text-align:center">' + (idx+1) + '</td>'
+      + '<td style="padding:6px 4px;width:36px">' + photoThumb + '</td>'
+      + '<td style="padding:6px 6px;min-width:150px"><select id="sel_ing_' + id + '" style="' + selIs + '" ' + dis + '>' + stockOpts + '</select>' + nameHint + '</td>'
+      + '<td style="padding:6px 4px;width:75px"><input type="number" id="inp_qty_' + id + '" value="' + (card.qty!==null?card.qty:'') + '" step="0.01" min="0" placeholder="?" style="' + is + '" ' + dis + ' oninput="aiRecalc(\'' + id + '\',\'qty\')"></td>'
+      + '<td style="padding:6px 4px;width:65px"><select id="sel_unit_' + id + '" style="' + is + '" ' + dis + '>' + unitOpts + '</select></td>'
+      + '<td style="padding:6px 4px;width:85px"><input type="number" id="inp_price_' + id + '" value="' + (card.price_per_unit||'') + '" step="1" min="0" placeholder="0" style="' + is + '" ' + dis + ' oninput="aiRecalc(\'' + id + '\',\'price\')"></td>'
+      + '<td style="padding:6px 4px;width:85px"><input type="number" id="inp_total_' + id + '" value="' + (card.total||'') + '" step="1" min="0" placeholder="0" style="' + is + 'font-weight:600;" ' + dis + ' oninput="aiRecalc(\'' + id + '\',\'total\')"></td>'
+      + '<td style="padding:6px 4px;width:24px;text-align:center">' + skipBtn + '</td>'
+      + '</tr>'
+      + '<input type="hidden" id="inp_supplier_' + id + '" value="' + (card.supplier||'').replace(/"/g,'&quot;') + '">'
+      + commentRow;
+  }).join('');
+
+  document.getElementById('ai-cards-container').innerHTML =
+    '<table style="width:100%;border-collapse:collapse;font-size:13px">'
+    + '<thead><tr style="background:var(--bg);border-bottom:2px solid var(--border)">'
+    + '<th style="padding:7px 4px;width:22px"></th>'
+    + '<th style="padding:7px 4px;width:22px;font-size:10px;color:var(--muted);font-weight:600">#</th>'
+    + '<th style="padding:7px 4px;width:36px"></th>'
+    + '<th style="padding:7px 6px;font-size:10px;color:var(--muted);font-weight:600;text-align:left;text-transform:uppercase;letter-spacing:.05em">Ингредиент</th>'
+    + '<th style="padding:7px 4px;font-size:10px;color:var(--muted);font-weight:600;text-align:left;text-transform:uppercase;letter-spacing:.05em">Кол-во</th>'
+    + '<th style="padding:7px 4px;font-size:10px;color:var(--muted);font-weight:600;text-align:left;text-transform:uppercase;letter-spacing:.05em">Ед.</th>'
+    + '<th style="padding:7px 4px;font-size:10px;color:var(--muted);font-weight:600;text-align:left;text-transform:uppercase;letter-spacing:.05em">Цена/ед.</th>'
+    + '<th style="padding:7px 4px;font-size:10px;color:var(--muted);font-weight:600;text-align:left;text-transform:uppercase;letter-spacing:.05em">Итого</th>'
+    + '<th style="padding:7px 4px;width:24px"></th>'
+    + '</tr></thead>'
+    + '<tbody>' + rowsHTML + '</tbody></table>';
+}
+
+function aiToggleSkip(id) {
+  const card = _aiCards.find(c => c._id === id);
+  if (card && card._status === 'pending') { card._status = 'rejected'; aiRenderCards(); }
+}
+
+function aiUnSkip(id) {
+  const card = _aiCards.find(c => c._id === id);
+  if (card && card._status === 'rejected') { card._status = 'pending'; aiRenderCards(); }
+}
+
+function aiResetAll() {
+  _aiCards = []; _aiImages = [];
+  aiRenderPreviews();
+  document.getElementById('ai-results').style.display = 'none';
+}
+
+
+function aiCreateIngredient(cardId) {
+  const card = _aiCards.find(c => c._id === cardId);
+  const suggestName = card ? (card.matched_name || card.name || '') : '';
+  const name = prompt('Название нового ингредиента:', suggestName);
+  if (!name || !name.trim()) return;
+  const unit = prompt('Единица измерения (кг/шт./л/уп.):', card?.unit || 'кг');
+  if (!unit) return;
+  const stock = getStock();
+  const newIng = {
+    id: 'ing_' + Date.now(),
+    name: name.trim(),
+    unit: unit.trim(),
+    qty: 0,
+    min: 0,
+    max: 0,
+    location: 'workshop'
+  };
+  stock.push(newIng);
+  setStock(stock);
+  // Обновить matched_id в карточке
+  if (card) {
+    card.matched_id = newIng.id;
+    card.matched_name = newIng.name;
+  }
+  aiRenderCards();
+  toast('✅ Создан ингредиент: ' + newIng.name);
+}
+
+
+function aiRecalc(id, changed) {
+  const qtyEl   = document.getElementById('inp_qty_'   + id);
+  const priceEl = document.getElementById('inp_price_' + id);
+  const totalEl = document.getElementById('inp_total_' + id);
+  if (!qtyEl || !priceEl || !totalEl) return;
+  const qty   = parseFloat(qtyEl.value)   || 0;
+  const price = parseFloat(priceEl.value) || 0;
+  const total = parseFloat(totalEl.value) || 0;
+  if (changed === 'qty' || changed === 'price') {
+    // КОЛ-ВО или ЦЕНА/ЕД изменились → пересчитать ИТОГО
+    if (qty > 0 && price > 0) totalEl.value = Math.round(qty * price);
+  } else if (changed === 'total') {
+    // ИТОГО изменилось → пересчитать ЦЕНА/ЕД
+    if (qty > 0 && total > 0) priceEl.value = Math.round(total / qty);
+    else if (price > 0 && total > 0) qtyEl.value = Math.round(total / price * 100) / 100;
+  }
+}
+
+function aiGetCardData(id) {
+  return {
+    ingId:    document.getElementById(`sel_ing_${id}`)?.value,
+    qty:      parseFloat(document.getElementById(`inp_qty_${id}`)?.value) || 0,
+    unit:     document.getElementById(`sel_unit_${id}`)?.value || 'кг',
+    price:    parseFloat(document.getElementById(`inp_price_${id}`)?.value) || 0,
+    total:    parseFloat(document.getElementById(`inp_total_${id}`)?.value) || 0,
+    supplier: document.getElementById(`inp_supplier_${id}`)?.value || ''
+  };
+}
+
+function aiCommitCard(id) {
+  const data = aiGetCardData(id);
+  if (!data.ingId) return false;
+  const stock = getStock();
+  const ing = stock.find(i => i.id === data.ingId);
+  if (!ing) return false;
+  if (data.qty > 0) {
+    ing.qty += data.qty;
+    if (!ing.max || ing.qty > ing.max) ing.max = ing.qty;
+    setStock(stock);
+  }
+  const pid = 'p' + Date.now();
+  const card = _aiCards.find(c => c._id === id);
+  const purch = getPurchases();
+  // Резолвим фото напрямую из _aiImages в момент оприходования
+  const origMap = card._batchOrigMap || {};
+  const sentIdx = card.photo_index || 1;
+  let resolvedIdx = origMap[sentIdx];
+  if (resolvedIdx === undefined) {
+    const keys = Object.keys(origMap).map(Number);
+    if (keys.length) resolvedIdx = origMap[keys.reduce((a,b) => Math.abs(b-sentIdx)<Math.abs(a-sentIdx)?b:a)];
+    else resolvedIdx = 0;
+  }
+  const mainImg = _aiImages[resolvedIdx];
+  const allReceiptImgs = _aiImages.filter(img => img.photoType === 'чек' || img.photoType === 'kaspi' || img.photoType === 'халык' || img.photoType === 'форте' || img.photoType === 'накладная');
+  const allImgs = mainImg ? [mainImg, ...allReceiptImgs] : allReceiptImgs;
+  console.log('[COMMIT] card:', id, 'resolvedIdx:', resolvedIdx, 'mainImg:', !!mainImg, 'dataUrlSmall:', !!(mainImg?.dataUrlSmall), 'allImgs:', allImgs.length, '_aiImages:', _aiImages.length);
+  if (allImgs.length > 0) {
+    try {
+      const testSave = JSON.stringify(allImgs.map(i => i.dataUrlSmall || i.dataUrl));
+      console.log('[COMMIT] total save size KB:', Math.round(testSave.length / 1024));
+    } catch(e) { console.error('[COMMIT] size check error:', e); }
+  }
+
+  // Если mainImg — чек, то он идёт как receiptPhoto, товарное фото ищем отдельно
+  const mainImgType = mainImg?.photoType || 'товар';
+  let productPhotoData = null;
+  let receiptPhotoData = null;
+  if (mainImgType === 'чек' || mainImgType === 'kaspi' || mainImgType === 'халык' || mainImgType === 'форте' || mainImgType === 'накладная') {
+    receiptPhotoData = mainImg?.dataUrlSmall || null;
+    // Ищем ближайшее товарное фото из того же батча
+    const batchIdxs = Object.values(card._batchOrigMap || {});
+    const nearbyProduct = batchIdxs.map(i => _aiImages[i]).find(img => img && img.photoType !== 'чек' && img.photoType !== 'kaspi' && img.photoType !== 'халык' && img.photoType !== 'форте' && img.photoType !== 'накладная');
+    productPhotoData = nearbyProduct?.dataUrlSmall || null;
+  } else {
+    productPhotoData = mainImg?.dataUrlSmall || null;
+    receiptPhotoData = _aiImages.find(img => img.photoType === 'чек')?.dataUrlSmall || null;
+  }
+  purch.unshift({ id:pid, date:todayStr(), time:nowStr(), ing:ing.name, location:'workshop',
+    qty: data.qty > 0 ? data.qty.toFixed(2) : '0', unit:data.unit, price:data.price, total:data.total,
+    supplier:data.supplier, receipt_date: card.receipt_date || null,
+    note:'🤖 AI-распознавание', hasReceipt:allImgs.length>0,
+    productPhoto: productPhotoData, receiptPhoto: receiptPhotoData });
+  // Храним фото только для последних 100 закупок чтобы не переполнять localStorage
+  purch.forEach((p, i) => { if (i >= 100) { delete p.productPhoto; delete p.receiptPhoto; } });
+  setPurchases(purch);
+  if (allImgs.length > 0) {
+    const receipts = getReceipts();
+    allImgs.forEach((img, idx) => {
+      receipts.push({ id:'r'+(Date.now()+idx*100+(Math.random()*10|0)), purchaseId:pid, date:todayStr(), time:nowStr(),
+        supplier:data.supplier, ing:ing.name, location:'workshop',
+        data:img.dataUrlSmall || img.dataUrl, name:img.name || ('фото'+(idx+1)+'.jpg'), type:'image/jpeg',
+        photoType: img.photoType || (idx === 0 ? 'товар' : 'чек'), isProductPhoto: idx === 0 });
+    });
+    console.log('[COMMIT] saving receipts count:', receipts.length);
+    try {
+      setReceipts(receipts);
+      console.log('[COMMIT] setReceipts OK');
+    } catch(e) {
+      console.error('[COMMIT] setReceipts FAILED:', e);
+    }
+
+  }
+  if (data.qty > 0) {
+    const ded = getDeductions();
+    ded.push({ date:todayStr(), time:nowStr(), ing:ing.name, qty:'+'+data.qty.toFixed(2), unit:data.unit, reason:'Закупка цеха (AI)', emp:'Цех' });
+    setDeductions(ded);
+  }
+  card._status = 'accepted';
+  return true;
+}
+
+function aiAcceptAll() {
+  aiSyncFromDOM();
+  const pending = _aiCards.filter(c => c._status === 'pending');
+  if (!pending.length) { toast('Нет позиций для оприходования'); return; }
+  let ok = 0, noIng = 0;
+  pending.forEach(c => {
+    const data = aiGetCardData(c._id);
+    if (data.ingId) { aiCommitCard(c._id); ok++; }
+    else { c._status = 'rejected'; noIng++; }
+  });
+  aiRenderCards();
+  renderPurchases();
+  renderWsStockPanel();
+  toast(`✅ Оприходовано: ${ok} позиц${ok===1?'ия':'ий'}${noIng?' · пропущено (нет ингредиента): '+noIng:''}`);
+}
+
+</script>
+<div id="help-banner">💡 Режим подсказок — наводите на элементы с оранжевой рамкой</div>
+<button id="help-fab" onclick="toggleHelp()" title="Подсказки">?</button>
+<div id="htip-pop"></div>
+<script>
+(function(){
+  // Если страница открыта в iframe менеджера — скрыть собственную кнопку и баннер,
+  // подсказки активируются командой от родительского окна
+  var inIframe = window.self !== window.top;
+  // В iframe — полностью убрать кнопку ? и баннер (управление из manager.html)
+  var _fab = document.getElementById('help-fab');
+  var _ban = document.getElementById('help-banner');
+  if (inIframe) {
+    if (_fab) _fab.remove();
+    if (_ban) _ban.remove();
+  }
+  var hm=false,ht=document.getElementById('htip-pop');
+  var fb = inIframe ? null : _fab;
+  window.toggleHelp=function(fromParent){
+    hm=!hm;
+    document.body.classList.toggle('help-mode',hm);
+    if(fb){fb.classList.toggle('hactive',hm);fb.textContent=hm?'✕':'?';}
+    if(!hm) ht.classList.remove('vis');
+    // Если выключили внутри iframe — сообщить менеджеру чтобы он вернул ? на кнопке
+    if(!hm && !fromParent && window.parent !== window){
+      try { window.parent.postMessage('helpOff','*'); } catch(e){}
+    }
+  };
+  // Принимать команду toggleHelp от родительского окна (manager.html)
+  window.addEventListener('message', function(e){
+    if (e.data === 'toggleHelp') window.toggleHelp(true);
+  });
+  function show(e){
+    if(!hm)return;
+    var el=e.currentTarget;
+    ht.innerHTML='<b>'+el.getAttribute('data-tip-title')+'</b>'+el.getAttribute('data-tip');
+    pos(e);ht.classList.add('vis');
+  }
+  function pos(e){
+    var l=e.clientX+14,t=e.clientY+12;
+    if(l+260>window.innerWidth-6)l=e.clientX-266;
+    if(t+120>window.innerHeight-6)t=e.clientY-126;
+    ht.style.left=l+'px';ht.style.top=t+'px';
+  }
+  document.querySelectorAll('[data-tip]').forEach(function(el){
+    el.addEventListener('mouseenter',show);
+    el.addEventListener('mousemove',function(e){if(hm&&ht.classList.contains('vis'))pos(e);});
+    el.addEventListener('mouseleave',function(){ht.classList.remove('vis');});
+    el.addEventListener('click',function(e){if(hm)e.stopPropagation();});
+  });
+  document.addEventListener('click',function(e){
+    if(hm&&!e.target.closest('[data-tip]')&&e.target.id!=='help-fab')toggleHelp();
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&hm)toggleHelp();});
+})();
+</script>
+<script>window.YAYA_API = 'https://yaya-db-production.up.railway.app';</script>
+<script src="yaya-sync.js"></script>
+</body>
+</html>
