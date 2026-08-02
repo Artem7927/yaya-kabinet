@@ -1,0 +1,15 @@
+{
+  "id": "yaya-buyer",
+  "name": "YaYa Закупщик",
+  "short_name": "Закупщик",
+  "start_url": "./buyer-mobile.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0A0B",
+  "theme_color": "#0A0A0B",
+  "icons": [
+    {"src":"icon-buyer-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"icon-buyer-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}

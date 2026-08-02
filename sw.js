@@ -1,4 +1,5 @@
 const CACHE = 'yaya-v1';
+const API_HOST = 'yaya-db-production.up.railway.app';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil((async () => {
   const keys = await caches.keys();
@@ -8,6 +9,8 @@ self.addEventListener('activate', e => e.waitUntil((async () => {
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.hostname === API_HOST) return;   // данные API всегда из сети, не кэшируем
   e.respondWith((async () => {
     try {
       const fresh = await fetch(req);

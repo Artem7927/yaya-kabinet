@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manager.webmanifest">
+<link rel="apple-touch-icon" href="icon-manager-192.png">
+<title>YaYa Chicken · Кабинет менеджера</title>
+<style>
+:root{
+  --bg:#0A0A0B; --card:#161519; --card2:#1F1E23; --line:rgba(255,255,255,.07);
+  --text:#F2EFE9; --muted:#87868C; --muted2:#5C5B61;
+  --orange:#F15A29; --orange-soft:rgba(241,90,41,.16);
+  --green:#34D07F; --green-soft:rgba(52,208,127,.14);
+  --amber:#FFA92E; --amber-soft:rgba(255,169,46,.14);
+  --red:#FF4D4A;   --red-soft:rgba(255,77,74,.14);
+  --blue:#3A8AF0;  --blue-soft:rgba(58,138,240,.14);
+  --purple:#7C6BFF;--purple-soft:rgba(124,107,255,.14);
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif;
+  background:#000;color:var(--text);font-size:14px;line-height:1.4;display:flex;justify-content:center;overflow:hidden}
+.app{width:100%;max-width:440px;height:100dvh;background:var(--bg);position:relative;display:flex;flex-direction:column;overflow:hidden}
+
+/* app header (☰ / ← title bell) */
+.appbar{display:flex;align-items:center;gap:12px;padding:calc(6px + var(--safe-t)) 16px 12px;flex-shrink:0}
+.appbar .ib{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:none;background:none;
+  color:var(--text);cursor:pointer;border-radius:9px}
+.appbar .ib:active{background:var(--card2)}
+.appbar h1{flex:1;text-align:center;font-size:18px;font-weight:700;letter-spacing:-.3px}
+.appbar .bell{position:relative}
+.appbar .bell .dot{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;background:var(--red);
+  border-radius:9px;font-size:10px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
+
+/* screens */
+.screens{flex:1;position:relative;overflow:hidden}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;overflow:hidden}
+.screen.active{display:flex}
+.scroll{flex:1;overflow-y:auto;padding:0 16px 16px;-webkit-overflow-scrolling:touch}
+.scroll::-webkit-scrollbar{width:0}
+
+/* cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.card+.card{margin-top:12px}
+.between{display:flex;align-items:center;justify-content:space-between}
+.ttl{font-size:15px;font-weight:700;letter-spacing:-.2px}
+.link{font-size:12px;font-weight:600;color:var(--orange);cursor:pointer}
+.muted{color:var(--muted)}
+
+/* stat cards (2x2) */
+.stats2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:13px;min-width:0}
+.stat .ic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.stat .val{font-size:22px;font-weight:800;letter-spacing:-.6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat .lab{font-size:11px;color:var(--muted);margin-top:2px}
+.stat .tr{font-size:11px;font-weight:700;margin-top:5px}
+.ic-orange{background:var(--orange-soft);color:var(--orange);box-shadow:0 0 18px -5px var(--orange)}
+.ic-green{background:var(--green-soft);color:var(--green);box-shadow:0 0 18px -5px var(--green)}
+.ic-amber{background:var(--amber-soft);color:var(--amber);box-shadow:0 0 18px -5px var(--amber)}
+.ic-red{background:var(--red-soft);color:var(--red);box-shadow:0 0 18px -5px var(--red)}
+.ic-blue{background:var(--blue-soft);color:var(--blue)}
+.ic-purple{background:var(--purple-soft);color:var(--purple)}
+.up{color:var(--green)} .down{color:var(--red)}
+
+/* segmented */
+.seg{display:flex;background:var(--card2);border-radius:11px;padding:3px;margin-bottom:12px}
+.seg button{flex:1;border:none;background:none;color:var(--muted);font-size:12px;font-weight:600;
+  padding:8px 4px;border-radius:8px;cursor:pointer;font-family:inherit;transition:.15s}
+.seg button.on{background:var(--orange);color:#fff}
+.seg.green button.on{background:var(--green);color:#08170E}
+
+/* cart */
+.cart{min-height:26px}
+.cline{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.cline:last-child{border-bottom:none}
+.cthumb{width:36px;height:36px;border-radius:9px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.cinfo{flex:1;min-width:0}
+.cname{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.csub{font-size:11px;color:var(--muted);margin-top:1px}
+.cprice{font-size:13px;color:var(--orange);font-weight:700;white-space:nowrap}
+.step{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.step button{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);background:var(--card2);color:var(--text);
+  font-size:17px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.step .q{font-size:14px;font-weight:700;min-width:16px;text-align:center}
+
+.total-row{display:flex;align-items:center;justify-content:space-between;margin:12px 0}
+.total-row .t{font-size:13px;color:var(--muted)}
+.total-row .v{font-size:19px;font-weight:800;color:var(--orange);letter-spacing:-.4px}
+
+.btn{border:none;border-radius:11px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;
+  padding:12px 14px;transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--orange);color:#fff}
+.btn-green{background:var(--green);color:#08170E}
+.btn-ghost{background:var(--card2);color:var(--text)}
+.btn-line{background:transparent;border:1px solid var(--line);color:var(--text)}
+.btn-red{background:var(--red-soft);color:var(--red)}
+.btn-block{width:100%}
+
+/* order cards */
+.olist{display:flex;flex-direction:column;gap:10px}
+.ocard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 13px}
+.ocard.new{border-color:rgba(58,138,240,.35)}
+.ocard.cook{border-color:rgba(255,169,46,.4)}
+.ohead{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.onum{font-size:15px;font-weight:800}
+.otime{margin-left:auto;font-size:11px;color:var(--muted2)}
+.oname{font-size:13px;font-weight:600}
+.ophone{font-size:12px;color:var(--muted);margin-left:6px}
+.ometa{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:5px 0 10px}
+.sepdot{width:3px;height:3px;border-radius:50%;background:var(--muted2)}
+.oacts{display:grid;grid-template-columns:1fr 1fr auto;gap:7px}
+.oacts .btn{padding:9px 6px;font-size:12px}
+.xbtn{width:38px;padding:0;background:var(--card2);border:1px solid var(--line);color:var(--muted)}
+
+.badge{font-size:9.5px;font-weight:800;padding:3px 8px;border-radius:99px;letter-spacing:.4px;text-transform:uppercase}
+.b-new{background:var(--blue-soft);color:var(--blue)}
+.b-cook{background:var(--amber-soft);color:var(--amber)}
+.b-done{background:var(--green-soft);color:var(--green)}
+.b-cancel{background:rgba(255,255,255,.06);color:var(--muted)}
+
+/* page title (sub-screens use appbar; main tabs use appbar too) */
+.chips{display:flex;gap:8px;padding:0 16px 12px;flex-wrap:wrap;flex-shrink:0}
+.chip{background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:12px;font-weight:600;
+  padding:7px 14px;border-radius:99px;cursor:pointer}
+.chip.on{background:var(--orange);color:#fff;border-color:var(--orange)}
+
+/* deduction / journal rows */
+.jrow{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+.jrow:last-child{border-bottom:none}
+.jdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.jinfo{flex:1;min-width:0}
+.jname{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jtime{font-size:11px;color:var(--muted);margin-top:1px}
+.jval{font-size:13px;font-weight:800;text-align:right;flex-shrink:0}
+.jval .jt{display:block;font-size:10px;color:var(--muted2);font-weight:500}
+
+/* filter row */
+.frow{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.frow select{flex:1;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none}
+.frow .ic-btn{width:40px;height:40px;border-radius:11px;background:var(--card2);border:1px solid var(--line);color:var(--muted);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* transfers */
+.tr-forms{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.tr-card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:13px}
+.tr-card .th{font-size:13px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:5px;justify-content:center}
+.tr-card label{font-size:10px;color:var(--muted);font-weight:600;display:block;margin:8px 0 5px}
+.tr-card select{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 10px;color:var(--text);font-size:12px;font-family:inherit;outline:none}
+.arw{color:var(--orange)}
+.arw.g{color:var(--green)}
+
+/* ingredient table */
+.itbl-head{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:0 4px 8px;font-size:10px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.irow{padding:11px 12px;background:var(--card);border:1px solid var(--line);border-radius:13px;margin-bottom:8px}
+.irow .top{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center}
+.irow .inm{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.irow .iq{font-size:13px;font-weight:800;text-align:right}
+.irow .ist{font-size:10px;font-weight:800;text-align:right;text-transform:uppercase;letter-spacing:.3px}
+.ibar{height:5px;border-radius:3px;background:var(--card2);margin-top:9px;overflow:hidden}
+.ibar i{display:block;height:100%;border-radius:3px}
+.search{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:11px 14px 11px 38px;
+  color:var(--text);font-size:14px;font-family:inherit;outline:none;margin-bottom:12px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2387868C' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4-4'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:13px center}
+.search:focus{border-color:var(--orange)}
+
+/* report top-10 with bars */
+.rstats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.rstat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.rstat .l{font-size:11px;color:var(--muted)}
+.rstat .v{font-size:21px;font-weight:800;letter-spacing:-.5px;margin-top:4px}
+.rstat .d{font-size:11px;font-weight:700;margin-top:4px}
+.top{padding:10px 0;border-bottom:1px solid var(--line)}
+.top:last-child{border-bottom:none}
+.top .r1{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.top .rn{width:22px;height:22px;border-radius:7px;background:var(--card2);color:var(--muted);font-size:11px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.top .tn{flex:1;font-size:13px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .tq{font-size:12px;color:var(--muted);flex-shrink:0}
+.top .ts{font-size:13px;font-weight:800;color:var(--orange);flex-shrink:0}
+.top .tbar{height:6px;border-radius:3px;background:var(--card2);overflow:hidden}
+.top .tbar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--orange),var(--amber))}
+
+/* techcard detail */
+.tc-h{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px;margin-bottom:12px}
+.tc-h b{font-size:19px;font-weight:800;letter-spacing:-.4px}
+.tc-h span{font-size:12px;color:var(--muted);display:block;margin-top:3px}
+.tc-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tc-tbl th{text-align:right;font-size:10px;color:var(--muted2);font-weight:700;text-transform:uppercase;padding:0 0 8px;letter-spacing:.05em}
+.tc-tbl th:first-child{text-align:left}
+.tc-tbl td{padding:9px 0;border-bottom:1px solid var(--line);text-align:right}
+.tc-tbl td:first-child{text-align:left;font-weight:600}
+.tc-tbl tr:last-child td{border-bottom:none;font-weight:800;color:var(--orange)}
+.tech-step{display:flex;gap:10px;padding:9px 0}
+.tech-step .n{width:22px;height:22px;border-radius:7px;background:var(--orange-soft);color:var(--orange);font-size:12px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tech-step p{font-size:13px;line-height:1.5;padding-top:1px}
+
+/* more list */
+.mrow{display:flex;align-items:center;gap:14px;padding:15px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.mrow:active{background:var(--card2);border-radius:10px}
+.mrow .mic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mrow b{flex:1;font-size:15px;font-weight:600}
+.mrow .chev{color:var(--muted2)}
+.mfoot{text-align:center;padding:26px 0 10px;color:var(--muted2)}
+.mfoot .l1{font-size:22px;font-weight:800;color:var(--orange);font-style:italic}
+.mfoot .l2{font-size:8px;font-weight:700;letter-spacing:3px;margin-top:1px}
+.mfoot .v{font-size:11px;color:var(--muted);margin-top:6px}
+
+/* empty state */
+.empty-full{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 30px;gap:6px}
+.empty-full svg{margin-bottom:12px;opacity:.85}
+.empty-full b{font-size:20px;font-weight:800}
+.empty-full p{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:14px}
+.empty-mini{padding:22px 10px;text-align:center;color:var(--muted2);font-size:13px}
+
+/* tabbar */
+.tabbar{display:flex;flex-shrink:0;background:rgba(16,15,18,.94);backdrop-filter:blur(20px);border-top:1px solid var(--line);
+  padding:8px 4px calc(8px + var(--safe-b))}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;border:none;background:none;color:var(--muted2);
+  cursor:pointer;font-family:inherit;position:relative;padding:2px}
+.tab.on{color:var(--orange)}
+.tab .tl{font-size:9.5px;font-weight:600}
+.tab .tbadge{position:absolute;top:-3px;right:calc(50% - 20px);min-width:15px;height:15px;padding:0 4px;background:var(--red);
+  border-radius:8px;font-size:9px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;border:1.5px solid #100F12}
+
+/* drawer */
+.drawer-bg{position:absolute;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:.25s;z-index:40}
+.drawer-bg.show{opacity:1;pointer-events:auto}
+.drawer{position:absolute;top:0;bottom:0;left:0;width:82%;max-width:330px;background:var(--card);border-right:1px solid var(--line);
+  transform:translateX(-105%);transition:transform .28s cubic-bezier(.32,.72,0,1);z-index:41;display:flex;flex-direction:column;
+  padding-top:var(--safe-t)}
+.drawer.show{transform:translateX(0)}
+.drawer-head{padding:20px 18px 16px;border-bottom:1px solid var(--line)}
+.drawer-head .l1{font-size:26px;font-weight:800;color:var(--orange);font-style:italic;line-height:1}
+.drawer-head .l2{font-size:9px;font-weight:700;letter-spacing:3px;margin-top:2px}
+.drawer-head .sub{font-size:12px;color:var(--muted);margin-top:8px}
+.drawer-body{flex:1;overflow-y:auto;padding:14px}
+.dstat{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.dstat .c{background:var(--card2);border-radius:12px;padding:11px}
+.dstat .c .v{font-size:18px;font-weight:800}
+.dstat .c .l{font-size:10px;color:var(--muted);margin-top:2px}
+.dnav{display:flex;align-items:center;gap:12px;padding:12px 8px;border-radius:11px;cursor:pointer;color:var(--text)}
+.dnav:active{background:var(--card2)}
+.dnav .mic{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+.dnav b{font-size:14px;font-weight:600}
+.dsec{font-size:10px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:14px 8px 6px}
+
+/* sheets */
+.sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:.2s;z-index:50}
+.sheet-bg.show{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:22px 22px 0 0;border-top:1px solid var(--line);
+  padding:16px 16px calc(16px + var(--safe-b));transform:translateY(110%);transition:transform .25s cubic-bezier(.32,.72,0,1);
+  z-index:51;max-height:88%;display:flex;flex-direction:column}
+.sheet.show{transform:translateY(0)}
+.sheet-h{width:38px;height:4px;border-radius:2px;background:var(--muted2);margin:0 auto 14px}
+.sheet-t{font-size:17px;font-weight:800;margin-bottom:12px}
+.field{margin-bottom:11px}
+.field label{font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:6px}
+.field input,.field select{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:12px;color:var(--text);font-size:14px;font-family:inherit;outline:none}
+.field input:focus,.field select:focus{border-color:var(--orange)}
+.menu-list{overflow-y:auto;flex:1;margin:-4px -4px 10px;padding:4px}
+.mitem{display:flex;align-items:center;gap:11px;padding:11px;border-radius:12px;cursor:pointer}
+.mitem:active{background:var(--card2)}
+.mitem .me{width:38px;height:38px;border-radius:10px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:20px}
+.mitem .mn{flex:1;min-width:0}
+.mitem .mn b{font-size:13px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mitem .mn span{font-size:11px;color:var(--orange);font-weight:700}
+.mitem.stopped{opacity:.4}
+.mitem .stopmark{font-size:9px;font-weight:800;color:var(--red);border:1px solid var(--red);border-radius:5px;padding:2px 5px}
+
+/* login */
+.login{position:absolute;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:40px 32px;gap:10px}
+.login.hide{display:none}
+.login .l1{font-size:44px;font-weight:800;color:var(--orange);font-style:italic;line-height:1}
+.login .l2{font-size:11px;font-weight:700;letter-spacing:5px;margin-bottom:26px}
+.login p{font-size:14px;color:var(--muted);margin-bottom:16px}
+.login .pwrap{width:100%;position:relative;margin-bottom:16px}
+.login input{width:100%;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:15px 46px 15px 16px;
+  color:var(--text);font-size:18px;letter-spacing:4px;font-family:inherit;outline:none;text-align:center}
+.login input:focus{border-color:var(--orange)}
+.login .eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer}
+.login .forgot{font-size:13px;color:var(--muted);margin-top:16px;cursor:pointer}
+.login .err{color:var(--red);font-size:13px;font-weight:600;height:16px}
+
+/* toast stack (top) */
+.toasts{position:absolute;top:calc(var(--safe-t) + 12px);left:12px;right:12px;z-index:80;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.tst{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;
+  box-shadow:0 10px 34px rgba(0,0,0,.5);transform:translateY(-16px);opacity:0;transition:.25s;pointer-events:auto}
+.tst.show{transform:translateY(0);opacity:1}
+.tst .ti{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tst .tc{flex:1;min-width:0}
+.tst .tc b{font-size:13px;font-weight:700;display:block}
+.tst .tc span{font-size:11px;color:var(--muted)}
+.tst .tx{color:var(--muted2);background:none;border:none;font-size:16px;cursor:pointer;flex-shrink:0}
+.tst.success .ti{background:var(--green-soft);color:var(--green)}
+.tst.error .ti{background:var(--red-soft);color:var(--red)}
+.tst.warn .ti{background:var(--amber-soft);color:var(--amber)}
+.tst.info .ti{background:var(--blue-soft);color:var(--blue)}
+
+/* help */
+.help-fab{position:absolute;right:14px;bottom:calc(78px + var(--safe-b));z-index:70;width:44px;height:44px;border-radius:50%;
+  background:var(--card);border:1px solid var(--orange);color:var(--orange);font-size:20px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.help-fab.on{background:var(--orange);color:#fff}
+body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;border-radius:8px}
+.htip{position:absolute;z-index:71;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:14px;max-width:250px;
+  box-shadow:0 12px 40px rgba(0,0,0,.55);display:none}
+.htip.show{display:block}
+.htip b{font-size:14px;font-weight:800;display:block;margin-bottom:5px}
+.htip p{font-size:12px;color:var(--muted);line-height:1.55}
+.htip .dots{display:flex;gap:5px;justify-content:center;margin-top:10px}
+.htip .dots i{width:5px;height:5px;border-radius:50%;background:var(--muted2)}
+.htip .dots i.on{background:var(--orange)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ═══ LOGIN ═══ -->
+  <div class="login" id="login">
+    <div class="l1">YaYa</div><div class="l2">CHICKEN</div>
+    <p>Введите пароль для доступа</p>
+    <div class="pwrap">
+      <input id="pw" type="password" inputmode="numeric" placeholder="••••" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="eye" onclick="togglePw()" id="eye">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <div class="err" id="pw-err"></div>
+    <button class="btn btn-primary btn-block" style="padding:15px" onclick="doLogin()">Войти</button>
+    <div class="forgot" onclick="toast('info','Пароль','По умолчанию 1234 · сменить можно в Настройках')">Забыли пароль?</div>
+  </div>
+
+  <!-- app bar -->
+  <div class="appbar">
+    <button class="ib" id="ab-left" onclick="appbarLeft()">
+      <svg id="ab-burger" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      <svg id="ab-back" style="display:none" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <h1 id="ab-title">Заказы</h1>
+    <button class="ib bell" onclick="toast('info','Уведомления','Активных заказов: '+activeCount())">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="dot" id="bell-badge">0</span>
+    </button>
+  </div>
+
+  <div class="screens">
+
+    <!-- ═══ ЗАКАЗЫ ═══ -->
+    <section class="screen active" id="s-orders" data-title="Заказы">
+      <div class="scroll">
+        <div class="stats2">
+          <div class="stat"><div class="ic ic-orange"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div><div class="val" id="st-cnt">0</div><div class="lab">Заказов сегодня</div><div class="tr" id="st-cnt-tr"></div></div>
+          <div class="stat"><div class="ic ic-green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></div><div class="val" id="st-rev">0</div><div class="lab">Выручка ₸</div><div class="tr" id="st-rev-tr"></div></div>
+          <div class="stat"><div class="ic ic-amber"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div class="val" id="st-active">0</div><div class="lab">В работе</div></div>
+          <div class="stat"><div class="ic ic-red"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 20h20L12 2Z"/><path d="M12 9v5M12 17h.01"/></svg></div><div class="val" id="st-low">0</div><div class="lab">Критично</div></div>
+        </div>
+
+        <div class="card" data-tip="tip-neworder">
+          <div class="between" style="margin-bottom:12px"><div class="ttl">Новый заказ</div></div>
+          <div class="seg">
+            <button id="tp-delivery" class="on" onclick="setType('delivery')">Доставка</button>
+            <button id="tp-pickup" onclick="setType('pickup')">Самовывоз</button>
+          </div>
+          <div class="cart" id="cart"></div>
+          <button class="btn btn-line btn-block" style="margin-top:10px" onclick="openMenu('add')">＋ Добавить блюдо</button>
+          <div class="total-row"><span class="t">Итого</span><span class="v" id="cart-sum">0 ₸</span></div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:8px">
+            <button class="btn btn-ghost" onclick="cartClear()">Очистить</button>
+            <button class="btn btn-primary" onclick="openCheckout()">Оформить заказ</button>
+          </div>
+        </div>
+
+        <div class="between" style="margin:16px 4px 12px"><div class="ttl">Активные заказы</div><span class="link" id="ord-count"></span></div>
+        <div class="olist" id="active-list"></div>
+      </div>
+    </section>
+
+    <!-- ═══ СПИСАНИЯ ═══ -->
+    <section class="screen" id="s-ded" data-title="Списания">
+      <div class="scroll">
+        <div class="stats2">
+          <div class="stat"><div class="ic ic-green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div><div class="val" id="ded-in">0</div><div class="lab">Приходов</div></div>
+          <div class="stat"><div class="ic ic-red"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></div><div class="val" id="ded-out">0</div><div class="lab">Списаний</div></div>
+        </div>
+        <div class="frow">
+          <select id="ded-period" onchange="renderDed()"><option value="today">Сегодня</option><option value="all">За всё время</option></select>
+          <div class="ic-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+        </div>
+        <div id="ded-list"></div>
+        <button class="btn btn-primary btn-block" style="margin-top:12px;padding:14px" onclick="openDedSheet()">＋ Новое списание</button>
+      </div>
+    </section>
+
+    <!-- ═══ ПЕРЕМЕЩЕНИЯ ═══ -->
+    <section class="screen" id="s-move" data-title="Перемещения">
+      <div class="scroll">
+        <div class="tr-forms">
+          <div class="tr-card">
+            <div class="th">Цех <span class="arw">→</span> Кухня</div>
+            <label>Полуфабрикат</label>
+            <select id="mv-ws-from"></select>
+            <label>Куда (кухня)</label>
+            <select id="mv-ws-to"></select>
+            <label>Количество</label>
+            <select id="mv-ws-qty"></select>
+            <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="doMove('ws')">Переместить</button>
+          </div>
+          <div class="tr-card">
+            <div class="th">Кухня <span class="arw g">→</span> Цех</div>
+            <label>Ингредиент</label>
+            <select id="mv-ks-from"></select>
+            <label>Куда (цех)</label>
+            <select id="mv-ks-to"></select>
+            <label>Количество</label>
+            <select id="mv-ks-qty"></select>
+            <button class="btn btn-green btn-block" style="margin-top:12px" onclick="doMove('ks')">Переместить</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ttl" style="font-size:14px;margin-bottom:6px">Журнал перемещений</div>
+          <div id="mv-log"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ ОТЧЁТЫ ═══ -->
+    <section class="screen" id="s-reports" data-title="Отчёты">
+      <div class="scroll">
+        <div class="frow">
+          <span style="font-size:13px;color:var(--muted);font-weight:600">Период</span>
+          <select id="rep-period" onchange="renderReports()" style="flex:0 0 auto;min-width:130px"><option value="today">Сегодня</option><option value="all">За всё время</option></select>
+        </div>
+        <div class="rstats">
+          <div class="rstat"><div class="l">Выручка</div><div class="v" id="rep-rev">0 ₸</div><div class="d up" id="rep-rev-d"></div></div>
+          <div class="rstat"><div class="l">Заказов</div><div class="v" id="rep-cnt">0</div><div class="d up" id="rep-cnt-d"></div></div>
+          <div class="rstat"><div class="l">Средний чек</div><div class="v" id="rep-avg">0 ₸</div></div>
+          <div class="rstat"><div class="l">Списаний</div><div class="v" id="rep-ded">0</div></div>
+        </div>
+        <div class="card">
+          <div class="ttl" style="font-size:14px;margin-bottom:10px">Топ-10 позиций</div>
+          <div id="rep-top"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ ЕЩЁ ═══ -->
+    <section class="screen" id="s-more" data-title="Ещё">
+      <div class="scroll">
+        <div class="mrow" onclick="openSub('ing','kitchen')"><div class="mic ic-blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9 12 3l9 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 21V12h6v9"/></svg></div><b>Склад кухни</b><span class="chev">›</span></div>
+        <div class="mrow" onclick="openSub('ing','workshop')"><div class="mic ic-purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M4 20V8l5 4V8l5 4V4l6 4v12"/></svg></div><b>Склад цеха</b><span class="chev">›</span></div>
+        <div class="mrow" onclick="openSub('tech')"><div class="mic ic-green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg></div><b>Техкарты</b><span class="chev">›</span></div>
+        <div class="mrow" onclick="openSub('stop')"><div class="mic ic-red"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m5 5 14 14"/></svg></div><b>Стоп-лист</b><span class="chev">›</span></div>
+        <div class="mrow" onclick="openExt('kitchen.html')"><div class="mic ic-orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg></div><b>Экран кухни</b><span class="chev">›</span></div>
+        <div class="mrow" onclick="openSub('suppliers')"><div class="mic ic-amber"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7M5.5 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18.5 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg></div><b>Поставщики</b><span class="chev">›</span></div>
+        <div class="mrow" onclick="openSub('users')"><div class="mic ic-blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/></svg></div><b>Пользователи</b><span class="chev">›</span></div>
+        <div class="mrow" onclick="openSub('settings')"><div class="mic ic-purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15H4a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 6 9.4l-.33-.35a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 11 5.6V4a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 2.51 1.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 20.4 11H21a2 2 0 1 1 0 4h-.09Z"/></svg></div><b>Настройки</b><span class="chev">›</span></div>
+        <div class="mrow" onclick="doBackup()"><div class="mic ic-green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></div><b>Резервная копия</b><span class="chev">›</span></div>
+        <div class="mrow" onclick="openSub('io')"><div class="mic ic-orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4zM9 9l3-3 3 3M12 6v8"/></svg></div><b>Импорт / Экспорт</b><span class="chev">›</span></div>
+        <div class="mrow" onclick="openSub('about')"><div class="mic ic-blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></div><b>О приложении</b><span class="chev">›</span></div>
+        <div class="mfoot"><div class="l1">YaYa</div><div class="l2">CHICKEN</div><div class="v">v2.0.0 Premium</div></div>
+      </div>
+    </section>
+
+    <!-- ═══ ПОД-ЭКРАН (Техкарты/Стоп-лист/Ингредиенты/…) ═══ -->
+    <section class="screen" id="s-sub" data-title="">
+      <div id="sub-chips"></div>
+      <div class="scroll" id="sub-body"></div>
+    </section>
+
+  </div><!-- /screens -->
+
+  <!-- TABBAR -->
+  <nav class="tabbar">
+    <button class="tab on" data-tab="orders" onclick="go('orders')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg><span class="tl">Заказы</span><span class="tbadge" id="tab-badge">0</span></button>
+    <button class="tab" data-tab="ded" onclick="go('ded')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg><span class="tl">Списания</span></button>
+    <button class="tab" data-tab="move" onclick="go('move')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3 4 7l4 4M4 7h13a4 4 0 0 1 0 8h-1M16 21l4-4-4-4M20 17H7a4 4 0 0 1 0-8h1"/></svg><span class="tl">Перемещения</span></button>
+    <button class="tab" data-tab="reports" onclick="go('reports')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg><span class="tl">Отчёты</span></button>
+    <button class="tab" data-tab="more" onclick="go('more')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span class="tl">Ещё</span></button>
+  </nav>
+
+  <!-- DRAWER (☰ = Панель менеджера) -->
+  <div class="drawer-bg" id="drawer-bg" onclick="closeDrawer()"></div>
+  <aside class="drawer" id="drawer">
+    <div class="drawer-head">
+      <div class="l1">YaYa</div><div class="l2">CHICKEN</div>
+      <div class="sub"><span id="dw-date">—</span></div>
+    </div>
+    <div class="drawer-body">
+      <div class="dnav" onclick="closeDrawer();openSub('tech')"><div class="mic ic-green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg></div><b>Техкарты</b></div>
+      <div class="dnav" onclick="closeDrawer();openSub('stop')"><div class="mic ic-red"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m5 5 14 14"/></svg></div><b>Стоп-лист</b></div>
+      <div class="dnav" onclick="closeDrawer();openSub('ing','kitchen')"><div class="mic ic-blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9 12 3l9 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></div><b>Ингредиенты</b></div>
+      <div class="dnav" onclick="closeDrawer();openExt('kitchen.html')"><div class="mic ic-orange"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg></div><b>Экран кухни</b></div>
+    </div>
+  </aside>
+
+  <!-- SHEETS -->
+  <div class="sheet-bg" id="sheet-bg" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet-menu">
+    <div class="sheet-h"></div>
+    <div class="sheet-t" id="menu-title">Меню · выберите блюдо</div>
+    <div class="menu-list" id="menu-list"></div>
+  </div>
+  <div class="sheet" id="sheet-checkout">
+    <div class="sheet-h"></div>
+    <div class="sheet-t">Оформление заказа</div>
+    <div class="seg" style="margin-bottom:14px"><button id="co-delivery" class="on" onclick="coType('delivery')">Доставка</button><button id="co-pickup" onclick="coType('pickup')">Самовывоз</button></div>
+    <div class="field"><label>Имя клиента</label><input id="co-name" placeholder="Иван П." autocomplete="off"></div>
+    <div class="field"><label>Телефон</label><input id="co-phone" placeholder="+7 777 000 00 00" inputmode="tel" autocomplete="off"></div>
+    <div class="total-row"><span class="t">К оплате</span><span class="v" id="co-sum">0 ₸</span></div>
+    <button class="btn btn-primary btn-block" style="padding:14px" onclick="placeOrder()">Принять заказ ✓</button>
+  </div>
+  <div class="sheet" id="sheet-ded">
+    <div class="sheet-h"></div>
+    <div class="sheet-t">Новое списание</div>
+    <div class="field"><label>Ингредиент</label><select id="dd-ing"></select></div>
+    <div class="field"><label>Тип операции</label><select id="dd-type"><option value="out">Расход (−)</option><option value="in">Приход (+)</option></select></div>
+    <div class="field"><label>Количество</label><input id="dd-qty" type="number" step="0.01" min="0" value="1"></div>
+    <div class="field"><label>Причина</label><select id="dd-reason"><option>Порча</option><option>Бой / брак</option><option>Инвентаризация</option><option>Приход товара</option><option>Прочее</option></select></div>
+    <button class="btn btn-primary btn-block" style="padding:14px" onclick="saveDed()">Сохранить</button>
+  </div>
+
+  <!-- TOASTS -->
+  <div class="toasts" id="toasts"></div>
+
+  <!-- HELP -->
+  <button class="help-fab" id="help-fab" onclick="toggleHelp()">?</button>
+  <div class="htip" id="htip"></div>
+
+</div>
+
+<script src="data.js"></script>
+<script>
+/* ── защита от отсутствия data.js ── */
+(function(){
+  if(typeof MENU==='undefined') window.MENU=[];
+  if(typeof getOrders!=='function'){
+    const g=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}};
+    const s=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+    window.getOrders=()=>g('yaya_orders',[]);window.setOrders=v=>s('yaya_orders',v);
+    window.getStock=()=>g('yaya_stock_v3',[]);window.setStock=v=>s('yaya_stock_v3',v);
+    window.getWsStock=()=>g('yaya_wsstock_v3',[]);window.setWsStock=v=>s('yaya_wsstock_v3',v);
+    window.getStopList=()=>g('yaya_stoplist',[]);window.setStopList=v=>s('yaya_stoplist',v);
+    window.getDeductions=()=>g('yaya_deductions',[]);window.setDeductions=v=>s('yaya_deductions',v);
+    window.getTransfers=()=>g('yaya_transfers',[]);window.setTransfers=v=>s('yaya_transfers',v);
+    window.getTechCards=()=>g('yaya_tech_v3',{});
+    window.fmt=n=>Number(n||0).toLocaleString('ru');
+    window.nowStr=()=>new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+    window.todayStr=()=>new Date().toLocaleDateString('ru',{day:'numeric',month:'short'});
+    window.findMenuItem=id=>MENU.find(m=>m.id===id);
+    window.autoDeductForOrder=function(){};
+  }
+})();
+
+const STATUS={new:{l:'Новый',c:'b-new'},cook:{l:'Готовится',c:'b-cook'},done:{l:'Готово',c:'b-done'},cancel:{l:'Отменён',c:'b-cancel'}};
+const $=id=>document.getElementById(id);
+let cart=[], orderType='delivery', curTab='orders', subKind='', subArg='', helpOn=false;
+const SETTINGS_KEY='yaya_settings';
+function getSettings(){try{return JSON.parse(localStorage.getItem(SETTINGS_KEY))||{}}catch{return{}}}
+function setSettings(v){localStorage.setItem(SETTINGS_KEY,JSON.stringify(v))}
+function managerPw(){return getSettings().pw||'1234'}
+
+function money(n){return fmt(n)+' ₸'}
+function dstr(d){return d.toLocaleDateString('ru',{day:'numeric',month:'short'})}
+function agoStr(ts){if(!ts)return'';const m=Math.floor((Date.now()-ts)/60000);if(m<1)return'только что';if(m<60)return m+' мин назад';return Math.floor(m/60)+' ч назад';}
+function activeCount(){return getOrders().filter(o=>o.status==='new'||o.status==='cook').length}
+
+/* ── LOGIN ── */
+function doLogin(){
+  if($('pw').value===managerPw()){ sessionStorage.setItem('yaya_ok','1'); $('login').classList.add('hide'); boot(); }
+  else { $('pw-err').textContent='Неверный пароль'; $('pw').value=''; }
+}
+function togglePw(){const i=$('pw');i.type=i.type==='password'?'text':'password';}
+if(sessionStorage.getItem('yaya_ok')==='1'){ $('login').classList.add('hide'); }
+
+/* ── TOAST ── */
+const TICON={success:'✓',error:'✕',warn:'!',info:'i'};
+function toast(type,title,sub){
+  const el=document.createElement('div'); el.className='tst '+type;
+  el.innerHTML=`<div class="ti">${TICON[type]||'i'}</div><div class="tc"><b>${title}</b>${sub?`<span>${sub}</span>`:''}</div><button class="tx">✕</button>`;
+  el.querySelector('.tx').onclick=()=>rm();
+  $('toasts').appendChild(el); requestAnimationFrame(()=>el.classList.add('show'));
+  const t=setTimeout(rm,3400);
+  function rm(){clearTimeout(t);el.classList.remove('show');setTimeout(()=>el.remove(),260);}
+}
+
+/* ── NAV ── */
+function go(tab){
+  curTab=tab; subKind='';
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $('s-'+tab).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));
+  $('ab-title').textContent=$('s-'+tab).dataset.title;
+  $('ab-burger').style.display=''; $('ab-back').style.display='none';
+  if(tab==='orders') renderOrders();
+  if(tab==='ded') renderDed();
+  if(tab==='move') renderMove();
+  if(tab==='reports') renderReports();
+  const sc=$('s-'+tab).querySelector('.scroll'); if(sc) sc.scrollTop=0;
+}
+function appbarLeft(){ if(subKind) go(curTab); else openDrawer(); }
+function openExt(u){ location.href=u; }
+function openDrawer(){ renderDrawer(); $('drawer').classList.add('show'); $('drawer-bg').classList.add('show'); }
+function closeDrawer(){ $('drawer').classList.remove('show'); $('drawer-bg').classList.remove('show'); }
+
+/* ── SUB SCREENS ── */
+function openSub(kind,arg){
+  subKind=kind; subArg=arg||'';
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $('s-sub').classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab==='more'));
+  $('ab-burger').style.display='none'; $('ab-back').style.display='';
+  const R={tech:renderTech,stop:renderStop,ing:renderIng,suppliers:renderSuppliers,users:renderUsers,settings:renderSettings,io:renderIO,about:renderAbout}[kind];
+  if(R) R(); $('sub-body').scrollTop=0;
+}
+
+/* ── ORDER TYPE / CART ── */
+function setType(t){orderType=t;$('tp-delivery').classList.toggle('on',t==='delivery');$('tp-pickup').classList.toggle('on',t==='pickup');}
+function coType(t){orderType=t;$('co-delivery').classList.toggle('on',t==='delivery');$('co-pickup').classList.toggle('on',t==='pickup');}
+function openMenu(mode){
+  const stop=getStopList();
+  $('menu-title').textContent = mode==='stop'?'Добавить в стоп-лист':'Меню · выберите блюдо';
+  $('menu-list').innerHTML=MENU.map(m=>{
+    const s=stop.includes(m.id);
+    const dis = mode==='stop'? s : s;
+    return `<div class="mitem ${dis?'stopped':''}" ${dis?'':`onclick="${mode==='stop'?`stopAdd('${m.id}')`:`cartAdd('${m.id}')`}"`}>
+      <div class="me">${m.emoji||'🍽'}</div><div class="mn"><b>${m.name}</b><span>${money(m.price)}</span></div>
+      ${s?`<span class="stopmark">${mode==='stop'?'УЖЕ':'СТОП'}</span>`:''}</div>`;
+  }).join('')||'<div class="empty-mini">Меню пустое (нет data.js)</div>';
+  openSheet('sheet-menu');
+}
+function cartAdd(id){const m=findMenuItem(id);if(!m)return;const e=cart.find(c=>c.id===id);if(e)e.qty++;else cart.push({id:m.id,name:m.name,price:m.price,emoji:m.emoji,qty:1});closeSheet();renderCart();}
+function cartStep(id,d){const c=cart.find(x=>x.id===id);if(!c)return;c.qty+=d;if(c.qty<=0)cart=cart.filter(x=>x.id!==id);renderCart();}
+function cartClear(){cart=[];renderCart();}
+function cartTotal(){return cart.reduce((s,c)=>s+c.price*c.qty,0);}
+function renderCart(){
+  const el=$('cart');
+  el.innerHTML=cart.length?cart.map(c=>`<div class="cline">
+    <div class="cthumb">${c.emoji||'🍽'}</div>
+    <div class="cinfo"><div class="cname">${c.name}</div><div class="csub">${c.qty} шт · ${money(c.price)}</div></div>
+    <div class="step"><button onclick="cartStep('${c.id}',-1)">−</button><span class="q">${c.qty}</span><button onclick="cartStep('${c.id}',1)">＋</button></div>
+  </div>`).join(''):'<div class="empty-mini">Корзина пуста — добавьте блюдо</div>';
+  $('cart-sum').textContent=money(cartTotal()); $('co-sum').textContent=money(cartTotal());
+}
+function openCheckout(){if(!cart.length){toast('warn','Корзина пуста','Добавьте хотя бы одно блюдо');return;}coType(orderType);$('co-sum').textContent=money(cartTotal());openSheet('sheet-checkout');}
+function placeOrder(){
+  if(!cart.length)return;
+  const orders=getOrders(),total=cartTotal();
+  const num=(orders.length?Math.max(...orders.map(o=>o.num||0)):0)+1;
+  orders.push({id:Date.now(),num,date:todayStr(),time:nowStr(),items:cart.map(c=>({id:c.id,name:c.name,qty:c.qty,price:c.price})),total,status:'new',type:orderType,name:($('co-name').value||'').trim(),phone:($('co-phone').value||'').trim()});
+  setOrders(orders); try{autoDeductForOrder(cart);}catch(e){}
+  cart=[];renderCart();$('co-name').value='';$('co-phone').value='';closeSheet();
+  toast('success','Заказ #'+num+' принят',money(total));
+  renderOrders();
+}
+function setStatus(id,st){
+  if(st==='cancel'&&!confirm('Отменить заказ?'))return;
+  const orders=getOrders(),o=orders.find(x=>x.id===id);if(o)o.status=st;setOrders(orders);
+  renderOrders(); if(subKind==='')renderDrawer();
+  const o2=getOrders().find(x=>x.id===id);
+  if(st==='done')toast('success','Заказ #'+(o2?o2.num:'')+' готов','Статус изменён на «Готово»');
+  else if(st==='cook')toast('info','Заказ #'+(o2?o2.num:'')+' в работе','Передан на кухню');
+  else toast('warn','Заказ отменён','');
+}
+function orderCard(o){
+  const cls=o.status==='cook'?'cook':(o.status==='new'?'new':'');
+  const st=STATUS[o.status]||STATUS.new, cnt=o.items.reduce((s,i)=>s+i.qty,0);
+  const typeL=o.type==='pickup'?'Самовывоз':'Доставка', nm=o.name||'Гость';
+  const ph=o.phone?`<span class="ophone">${o.phone}</span>`:'';
+  let acts='';
+  if(o.status==='new'||o.status==='cook') acts=`<div class="oacts">
+    <button class="btn btn-primary" onclick="setStatus(${o.id},'cook')">🔥 ${o.status==='cook'?'В работе':'Начать'}</button>
+    <button class="btn btn-green" onclick="setStatus(${o.id},'done')">✓ Готово</button>
+    <button class="btn xbtn" onclick="setStatus(${o.id},'cancel')">✕</button></div>`;
+  return `<div class="ocard ${cls}">
+    <div class="ohead"><span class="onum">#${String(o.num).padStart(3,'0')}</span><span class="badge ${st.c}">${st.l}</span><span class="otime">${agoStr(o.id)||o.time}</span></div>
+    <div><span class="oname">${nm}</span>${ph}</div>
+    <div class="ometa"><span>${cnt} позиц.</span><span class="sepdot"></span><span>${typeL}</span></div>${acts}</div>`;
+}
+
+/* ── ЗАКАЗЫ / статы ── */
+function renderOrders(){
+  const orders=getOrders(),today=todayStr(),yest=dstr(new Date(Date.now()-864e5));
+  const tOrd=orders.filter(o=>o.date===today&&o.status!=='cancel');
+  const yOrd=orders.filter(o=>o.date===yest&&o.status!=='cancel');
+  const rev=tOrd.reduce((s,o)=>s+o.total,0), yRev=yOrd.reduce((s,o)=>s+o.total,0);
+  const active=orders.filter(o=>o.status==='new'||o.status==='cook');
+  const stock=getStock(), low=stock.filter(i=>i.qty<i.min).length;
+  $('st-cnt').textContent=tOrd.length; trend('st-cnt-tr',tOrd.length,yOrd.length);
+  $('st-rev').textContent=fmt(rev); trend('st-rev-tr',rev,yRev);
+  $('st-active').textContent=active.length; $('st-low').textContent=low;
+  const b=active.length; ['bell-badge','tab-badge'].forEach(i=>{const e=$(i);e.textContent=b;e.style.display=b?'flex':'none';});
+  $('ord-count').textContent=active.length?active.length+' активных':'';
+  $('active-list').innerHTML=active.length?[...active].reverse().map(orderCard).join(''):emptyMini('Нет активных заказов');
+  renderCart();
+}
+function trend(id,cur,prev){const el=$(id);if(!el)return;if(!prev){el.textContent=cur?'↑ new':'';el.className='tr up';return;}const d=((cur-prev)/prev)*100;el.textContent=(d>=0?'↑ ':'↓ ')+Math.abs(d).toFixed(0)+'%';el.className='tr '+(d>=0?'up':'down');}
+function emptyMini(t){return `<div class="empty-mini">${t}</div>`;}
+
+/* ── СПИСАНИЯ ── */
+function isIncome(d){return /приход|\+|переда/i.test((d.reason||'')+ (d.qty||''));}
+function renderDed(){
+  const all=getDeductions(), period=$('ded-period')?$('ded-period').value:'today';
+  let list=[...all].reverse(); if(period==='today')list=list.filter(d=>d.date===todayStr());
+  const income=list.filter(isIncome).length, out=list.length-income;
+  $('ded-in').textContent=income; $('ded-out').textContent=out;
+  $('ded-list').innerHTML=list.length?list.slice(0,80).map(d=>{
+    const inc=isIncome(d), q=String(d.qty).replace('+','');
+    return `<div class="jrow">
+      <span class="jdot" style="background:${inc?'var(--green)':'var(--red)'}"></span>
+      <div class="jinfo"><div class="jname">${d.ing}</div><div class="jtime">${d.date} ${d.time} · ${d.reason||''} · ${d.emp||''}</div></div>
+      <div class="jval" style="color:${inc?'var(--green)':'var(--red)'}">${inc?'+':'−'}${q} ${d.unit||''}</div></div>`;
+  }).join(''):emptyMini('Журнал пуст');
+}
+function openDedSheet(){
+  const stock=getStock();
+  $('dd-ing').innerHTML=stock.map(i=>`<option value="${i.id}">${i.name} (${i.qty}${i.unit})</option>`).join('');
+  $('dd-qty').value=1; openSheet('sheet-ded');
+}
+function saveDed(){
+  const id=$('dd-ing').value, type=$('dd-type').value, qty=parseFloat($('dd-qty').value)||0, reason=$('dd-reason').value;
+  if(qty<=0){toast('warn','Введите количество','');return;}
+  const stock=getStock(), it=stock.find(i=>i.id===id); if(!it)return;
+  if(type==='out'){ if(it.qty<qty){toast('error','Недостаточно',it.name+': на складе '+it.qty+it.unit);return;} it.qty=Math.max(0,it.qty-qty);}
+  else it.qty+=qty;
+  setStock(stock);
+  const ded=getDeductions(); ded.push({date:todayStr(),time:nowStr(),ing:it.name,qty:(type==='in'?'+':'')+qty.toFixed(2),unit:it.unit,reason,emp:'Менеджер'}); setDeductions(ded);
+  closeSheet(); renderDed();
+  toast('success',(type==='in'?'Приход':'Списание')+' сохранено',it.name+' '+(type==='in'?'+':'−')+qty+it.unit);
+}
+
+/* ── ПЕРЕМЕЩЕНИЯ ── */
+function qtyOpts(){let o='';[0.5,1,1.5,2,3,5,10,20,30].forEach(v=>o+=`<option value="${v}">${v}</option>`);return o;}
+function renderMove(){
+  const ws=getWsStock(), stock=getStock(), kitchen=stock.filter(i=>i.location==='kitchen');
+  $('mv-ws-from').innerHTML=ws.map(i=>`<option value="${i.id}">${i.name} (${i.qty}${i.unit})</option>`).join('')||'<option>нет</option>';
+  $('mv-ws-to').innerHTML='<option value="">— не приходовать —</option>'+kitchen.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
+  $('mv-ws-qty').innerHTML=qtyOpts();
+  $('mv-ks-from').innerHTML=kitchen.map(i=>`<option value="${i.id}">${i.name} (${i.qty}${i.unit})</option>`).join('')||'<option>нет</option>';
+  $('mv-ks-to').innerHTML='<option value="">— не приходовать —</option>'+stock.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
+  $('mv-ks-qty').innerHTML=qtyOpts();
+  renderMoveLog();
+}
+function renderMoveLog(){
+  const t=[...getTransfers()].reverse().slice(0,40);
+  $('mv-log').innerHTML=t.length?t.map(x=>{
+    const ws=x.dir==='ws-ks';
+    return `<div class="jrow">
+      <span class="jdot" style="background:${ws?'var(--orange)':'var(--green)'}"></span>
+      <div class="jinfo"><div class="jname">${x.from}${x.to&&x.to!=='—'?' → '+x.to:''}</div>
+        <div class="jtime">${x.date} ${x.time} · ${ws?'Цех → Кухня':'Кухня → Цех'}</div></div>
+      <div class="jval">${x.qty} ${x.unit||''}</div></div>`;
+  }).join(''):emptyMini('Перемещений пока нет');
+}
+function doMove(kind){
+  const qty=parseFloat((kind==='ws'?$('mv-ws-qty'):$('mv-ks-qty')).value)||0;
+  if(qty<=0){toast('warn','Выберите количество','');return;}
+  if(kind==='ws'){
+    const fromId=$('mv-ws-from').value, toId=$('mv-ws-to').value;
+    const ws=getWsStock(), w=ws.find(i=>i.id===fromId); if(!w)return;
+    if(w.qty<qty){toast('error','Мало на складе цеха',w.name+': '+w.qty+w.unit);return;}
+    w.qty=Math.max(0,w.qty-qty); setWsStock(ws);
+    let toName='—'; if(toId){const st=getStock(),ing=st.find(i=>i.id===toId);if(ing){ing.qty+=qty;if(ing.qty>(ing.max||0))ing.max=ing.qty;setStock(st);toName=ing.name;}}
+    pushTransfer('ws-ks',w.name,toName,qty,w.unit); toast('success','Цех → Кухня',w.name+' +'+qty+w.unit);
+  } else {
+    const fromId=$('mv-ks-from').value, toId=$('mv-ks-to').value;
+    const st=getStock(), from=st.find(i=>i.id===fromId); if(!from)return;
+    if(from.qty<qty){toast('error','Мало на складе кухни',from.name+': '+from.qty.toFixed(2)+from.unit);return;}
+    from.qty=Math.max(0,from.qty-qty); let toName='—';
+    if(toId){const to=st.find(i=>i.id===toId);if(to){to.qty+=qty;if(to.qty>(to.max||0))to.max=to.qty;toName=to.name;}}
+    setStock(st); pushTransfer('ks-ws',from.name,toName,qty,from.unit); toast('success','Кухня → Цех',from.name+' +'+qty+from.unit);
+  }
+  renderMove();
+}
+function pushTransfer(dir,from,to,qty,unit){
+  const t=getTransfers(); t.push({date:todayStr(),time:nowStr(),dir,from,to,qty:qty.toFixed(2),unit,note:'',emp:'Менеджер'}); setTransfers(t);
+  const ded=getDeductions(); ded.push({date:todayStr(),time:nowStr(),ing:'['+(dir==='ws-ks'?'ЦЕХ→КУХНЯ':'КУХНЯ→ЦЕХ')+'] '+from,qty:'+'+qty.toFixed(2),unit,reason:'Передача',emp:'Менеджер'}); setDeductions(ded);
+}
+
+/* ── ОТЧЁТЫ ── */
+function renderReports(){
+  const period=$('rep-period')?$('rep-period').value:'today';
+  const all=getOrders().filter(o=>o.status!=='cancel');
+  const orders=period==='today'?all.filter(o=>o.date===todayStr()):all;
+  const yest=dstr(new Date(Date.now()-864e5));
+  const yOrd=all.filter(o=>o.date===yest);
+  const rev=orders.reduce((s,o)=>s+o.total,0), yRev=yOrd.reduce((s,o)=>s+o.total,0);
+  const ded=getDeductions().filter(d=>period==='today'?d.date===todayStr():true).length;
+  $('rep-rev').textContent=money(rev); repDelta('rep-rev-d',rev,yRev);
+  $('rep-cnt').textContent=orders.length; repDelta('rep-cnt-d',orders.length,yOrd.length);
+  $('rep-avg').textContent=money(orders.length?Math.round(rev/orders.length):0);
+  $('rep-ded').textContent=ded;
+  const map={};orders.forEach(o=>o.items.forEach(i=>{if(!map[i.name])map[i.name]={q:0,s:0};map[i.name].q+=i.qty;map[i.name].s+=i.qty*i.price;}));
+  const top=Object.entries(map).sort((a,b)=>b[1].s-a[1].s).slice(0,10);
+  const max=top.length?top[0][1].s:1;
+  $('rep-top').innerHTML=top.length?top.map(([n,v],i)=>`<div class="top">
+    <div class="r1"><div class="rn">${i+1}</div><div class="tn">${n}</div><div class="tq">${v.q} шт</div><div class="ts">${money(v.s)}</div></div>
+    <div class="tbar"><i style="width:${(v.s/max*100).toFixed(0)}%"></i></div></div>`).join(''):emptyMini('Пока нет продаж');
+}
+function repDelta(id,cur,prev){const el=$(id);if(!el)return;if(!prev){el.textContent='';return;}const d=((cur-prev)/prev)*100;el.textContent=(d>=0?'+':'')+d.toFixed(1)+'%';el.className='d '+(d>=0?'up':'down');}
+
+/* ── ТЕХКАРТЫ ── */
+function renderTech(){
+  $('ab-title').textContent='Техкарты'; $('sub-chips').innerHTML='';
+  const tc=getTechCards(), stock=getStock(), nameOf=id=>{const s=stock.find(i=>i.id===id);return s?s.name:id;};
+  const withTc=MENU.filter(m=>tc[m.id]&&tc[m.id].length);
+  if(!withTc.length){ $('sub-body').innerHTML=emptyFull('Нет техкарт','Добавьте рецептуры блюд','',''); return; }
+  const cur=subArg&&tc[subArg]?subArg:withTc[0].id;
+  subArg=cur;
+  const m=findMenuItem(cur), rows=tc[cur];
+  const items=rows.map(r=>{const g=Math.round(r.qty*(/кг|л/i.test(r.unit)?1000:1));return {name:nameOf(r.ingId),br:g,net:g,out:g,unit:/кг|л/i.test(r.unit)?'г':r.unit};});
+  const totB=items.reduce((s,i)=>s+i.br,0), totO=items.reduce((s,i)=>s+i.out,0);
+  const chips=`<div class="chips">${withTc.map(x=>`<div class="chip ${x.id===cur?'on':''}" onclick="subArg='${x.id}';renderTech()">${x.emoji||''} ${x.name}</div>`).join('')}</div>`;
+  $('sub-chips').innerHTML=chips;
+  $('sub-body').innerHTML=`
+    <div class="tc-h"><b>${m.emoji||''} ${m.name}</b><span>Выход: ${totO} г · цена ${money(m.price)}</span></div>
+    <div class="card"><div class="ttl" style="font-size:14px;margin-bottom:10px">Ингредиенты</div>
+      <table class="tc-tbl"><thead><tr><th>Ингредиент</th><th>Брутто</th><th>Нетто</th><th>Выход</th></tr></thead><tbody>
+      ${items.map(i=>`<tr><td>${i.name}</td><td>${i.br} ${i.unit}</td><td>${i.net} ${i.unit}</td><td>${i.out} ${i.unit}</td></tr>`).join('')}
+      <tr><td>Итого</td><td>${totB} г</td><td>${totB} г</td><td>${totO} г</td></tr></tbody></table></div>
+    <div class="card"><div class="ttl" style="font-size:14px;margin-bottom:6px">Технология</div>${techSteps(cur)}</div>`;
+}
+function techSteps(id){
+  const steps=(getSettings().tech_steps||{})[id]||[];
+  if(!steps.length) return `<div class="empty-mini" style="text-align:left;padding:6px 0">Технология не заполнена. Поле новое — добавьте шаги при редактировании.</div>`;
+  return steps.map((s,i)=>`<div class="tech-step"><div class="n">${i+1}</div><p>${s}</p></div>`).join('');
+}
+
+/* ── СТОП-ЛИСТ ── */
+function renderStop(tab){
+  $('ab-title').textContent='Стоп-лист';
+  tab=tab||'manual';
+  $('sub-chips').innerHTML=`<div class="chips"><div class="chip ${tab==='manual'?'on':''}" onclick="renderStop('manual')">Ручные</div><div class="chip ${tab==='auto'?'on':''}" onclick="renderStop('auto')">Авто</div></div>`;
+  if(tab==='manual'){
+    const stop=getStopList();
+    const rows=stop.map(id=>{const m=findMenuItem(id);return `<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:13px;margin-top:0;margin-bottom:9px">
+      <div><b style="font-size:14px;font-weight:600">${m?m.name:id}</b><div style="font-size:11px;color:var(--red);font-weight:700;margin-top:3px">Нет в наличии</div></div>
+      <button class="btn btn-green" onclick="stopRemove('${id}')">Вернуть</button></div>`;}).join('');
+    $('sub-body').innerHTML=`<button class="btn btn-red btn-block" style="margin-bottom:12px;padding:13px" onclick="openMenu('stop')">＋ Добавить в стоп-лист</button>${rows||emptyMini('Стоп-лист пуст — всё в продаже')}`;
+  } else {
+    const stock=getStock().filter(i=>i.qty<i.min);
+    const rows=stock.map(i=>{const crit=i.qty<=i.min*0.4;return `<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:13px;margin-top:0;margin-bottom:9px">
+      <div><b style="font-size:14px;font-weight:600">${i.name}</b><div style="font-size:11px;color:${crit?'var(--red)':'var(--amber)'};font-weight:700;margin-top:3px">${crit?'Критично':'Мало'} · ${i.qty}${i.unit}</div></div>
+      <span class="badge ${crit?'b-cancel':'b-cook'}" style="background:${crit?'var(--red-soft)':'var(--amber-soft)'};color:${crit?'var(--red)':'var(--amber)'}">${crit?'КРИТ':'МАЛО'}</span></div>`;}).join('');
+    $('sub-body').innerHTML=rows||emptyMini('Все остатки в норме');
+  }
+}
+function stopAdd(id){const s=getStopList();if(!s.includes(id)){s.push(id);setStopList(s);}closeSheet();renderStop('manual');toast('warn','В стоп-листе',(findMenuItem(id)||{}).name||id);}
+function stopRemove(id){setStopList(getStopList().filter(x=>x!==id));renderStop('manual');toast('success','Вернули в продажу','');}
+
+/* ── ИНГРЕДИЕНТЫ ── */
+function renderIng(loc,q){
+  $('ab-title').textContent='Ингредиенты';
+  loc=loc||subArg||'kitchen';
+  $('sub-chips').innerHTML=`<div class="chips"><div class="chip ${loc==='kitchen'?'on':''}" onclick="subArg='kitchen';renderIng('kitchen')">Кухня</div><div class="chip ${loc==='workshop'?'on':''}" onclick="subArg='workshop';renderIng('workshop')">Цех</div></div>`;
+  const query=(q!=null?q:(window._ingQ||'')).toLowerCase(); window._ingQ=query;
+  let items=getStock().filter(i=>i.location===loc); if(query)items=items.filter(i=>i.name.toLowerCase().includes(query));
+  items.sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));
+  const rows=items.map(i=>{
+    const crit=i.qty<i.min, low=i.qty<i.min*1.5;
+    const st=crit?['Критично','var(--red)']:low?['Мало','var(--amber)']:['Норма','var(--green)'];
+    const pct=Math.min(100,(i.qty/(i.max||i.min*2))*100);
+    return `<div class="irow"><div class="top"><div class="inm">${i.name}</div><div class="iq">${i.qty}${i.unit}</div><div class="ist" style="color:${st[1]}">${st[0]}</div></div>
+      <div class="ibar"><i style="width:${pct}%;background:${st[1]}"></i></div></div>`;
+  }).join('');
+  $('sub-body').innerHTML=`<input class="search" placeholder="Поиск ингредиента..." value="${query}" oninput="renderIng('${loc}',this.value)">
+    <div class="itbl-head"><span>Ингредиент</span><span>Остаток</span><span>Статус</span></div>
+    ${rows||emptyMini('Ничего не найдено')}`;
+  const inp=$('sub-body').querySelector('.search'); if(inp){inp.focus();inp.setSelectionRange(query.length,query.length);}
+}
+
+/* ── ПОСТАВЩИКИ / ПОЛЬЗОВАТЕЛИ (локальные списки) ── */
+function getList(k,def){try{return JSON.parse(localStorage.getItem(k))||def}catch{return def}}
+function renderSuppliers(){
+  $('ab-title').textContent='Поставщики';$('sub-chips').innerHTML='';
+  const list=getList('yaya_suppliers',[{name:'Куриная ферма «Алтын»',info:'мясо, крылья'},{name:'ОптБаза Экибастуз',info:'бакалея, соусы'},{name:'Coca-Cola HBC',info:'напитки'}]);
+  $('sub-body').innerHTML=list.map((s,i)=>`<div class="card" style="display:flex;align-items:center;gap:12px;margin-top:0;margin-bottom:9px;padding:13px">
+    <div class="mic ic-amber" style="width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center">🚚</div>
+    <div style="flex:1"><b style="font-size:14px;font-weight:600">${s.name}</b><div style="font-size:11px;color:var(--muted);margin-top:2px">${s.info||''}</div></div>
+    <button class="btn xbtn" onclick="delFromList('yaya_suppliers',${i},renderSuppliers)">✕</button></div>`).join('')
+    +`<button class="btn btn-primary btn-block" style="margin-top:6px;padding:13px" onclick="addSupplier()">＋ Добавить поставщика</button>`;
+}
+function addSupplier(){const name=prompt('Название поставщика:');if(!name)return;const info=prompt('Что поставляет:')||'';const l=getList('yaya_suppliers',[]);l.push({name,info});localStorage.setItem('yaya_suppliers',JSON.stringify(l));renderSuppliers();toast('success','Поставщик добавлен',name);}
+function renderUsers(){
+  $('ab-title').textContent='Пользователи';$('sub-chips').innerHTML='';
+  const list=getList('yaya_users',[{name:'Артём',role:'Менеджер'},{name:'Повар кухни',role:'Кухня'},{name:'Курьер',role:'Доставка'}]);
+  $('sub-body').innerHTML=list.map((u,i)=>`<div class="card" style="display:flex;align-items:center;gap:12px;margin-top:0;margin-bottom:9px;padding:13px">
+    <div class="avatar" style="width:38px;height:38px;border-radius:50%;background:var(--card2);border:2px solid var(--orange);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--orange)">${(u.name||'?')[0]}</div>
+    <div style="flex:1"><b style="font-size:14px;font-weight:600">${u.name}</b><div style="font-size:11px;color:var(--muted);margin-top:2px">${u.role}</div></div>
+    <button class="btn xbtn" onclick="delFromList('yaya_users',${i},renderUsers)">✕</button></div>`).join('')
+    +`<button class="btn btn-primary btn-block" style="margin-top:6px;padding:13px" onclick="addUser()">＋ Добавить пользователя</button>`;
+}
+function addUser(){const name=prompt('Имя:');if(!name)return;const role=prompt('Роль (Менеджер/Кухня/Доставка):')||'Сотрудник';const l=getList('yaya_users',[]);l.push({name,role});localStorage.setItem('yaya_users',JSON.stringify(l));renderUsers();toast('success','Пользователь добавлен',name);}
+function delFromList(k,i,cb){const l=getList(k,[]);l.splice(i,1);localStorage.setItem(k,JSON.stringify(l));cb();}
+
+/* ── НАСТРОЙКИ ── */
+function renderSettings(){
+  $('ab-title').textContent='Настройки';$('sub-chips').innerHTML='';
+  $('sub-body').innerHTML=`
+    <div class="card"><div class="ttl" style="font-size:14px;margin-bottom:12px">Безопасность</div>
+      <button class="btn btn-line btn-block" onclick="changePw()">Сменить пароль менеджера</button></div>
+    <div class="card"><div class="ttl" style="font-size:14px;margin-bottom:12px">Данные</div>
+      <button class="btn btn-line btn-block" style="margin-bottom:9px" onclick="doBackup()">Скачать резервную копию</button>
+      <button class="btn btn-red btn-block" onclick="resetOrders()">Обнулить заказы за сегодня</button></div>
+    <div class="card"><div class="ttl" style="font-size:14px;margin-bottom:8px">Сессия</div>
+      <button class="btn btn-ghost btn-block" onclick="lockApp()">Выйти (заблокировать)</button></div>`;
+}
+function changePw(){const cur=prompt('Текущий пароль:');if(cur!==managerPw()){toast('error','Неверный пароль','');return;}const nw=prompt('Новый пароль:');if(!nw)return;const s=getSettings();s.pw=nw;setSettings(s);toast('success','Пароль изменён','');}
+function resetOrders(){const pw=prompt('Пароль менеджера для обнуления:');if(pw!==managerPw()){toast('error','Неверный пароль','');return;}const keep=getOrders().filter(o=>o.date!==todayStr());setOrders(keep);toast('success','Заказы за сегодня обнулены','');renderOrders();}
+function lockApp(){sessionStorage.removeItem('yaya_ok');$('login').classList.remove('hide');$('pw').value='';$('pw-err').textContent='';}
+
+/* ── РЕЗЕРВНАЯ КОПИЯ / ИМПОРТ-ЭКСПОРТ ── */
+function collectData(){const o={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf('yaya_')===0)o[k]=localStorage.getItem(k);}return o;}
+function doBackup(){
+  const data=collectData(); const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='yaya-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+  toast('success','Резервная копия','Файл скачан ('+Object.keys(data).length+' ключей)');
+}
+function renderIO(){
+  $('ab-title').textContent='Импорт / Экспорт';$('sub-chips').innerHTML='';
+  const keys=Object.keys(collectData());
+  $('sub-body').innerHTML=`
+    <div class="card"><div class="ttl" style="font-size:14px;margin-bottom:6px">Экспорт</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Сохранить все данные кабинета (${keys.length} разделов) в JSON-файл.</p>
+      <button class="btn btn-primary btn-block" onclick="doBackup()">Скачать JSON</button></div>
+    <div class="card"><div class="ttl" style="font-size:14px;margin-bottom:6px">Импорт</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Восстановить данные из файла резервной копии. Текущие данные будут заменены.</p>
+      <input type="file" id="io-file" accept="application/json" style="display:none" onchange="doImport(this)">
+      <button class="btn btn-line btn-block" onclick="document.getElementById('io-file').click()">Выбрать файл...</button></div>
+    <div class="card"><div class="ttl" style="font-size:14px;margin-bottom:8px">Разделы данных</div>
+      ${keys.map(k=>`<div style="font-size:12px;color:var(--muted);padding:4px 0">• ${k}</div>`).join('')||'<div class="empty-mini">Нет данных</div>'}</div>`;
+}
+function doImport(inp){
+  const f=inp.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!confirm('Заменить текущие данные из файла?'))return;Object.keys(d).forEach(k=>{if(k.indexOf('yaya_')===0)localStorage.setItem(k,d[k]);});toast('success','Импорт завершён','Данные восстановлены');renderIO();renderOrders();}catch(e){toast('error','Ошибка импорта','Неверный формат файла');}};
+  r.readAsText(f);
+}
+function renderAbout(){
+  $('ab-title').textContent='О приложении';$('sub-chips').innerHTML='';
+  $('sub-body').innerHTML=`<div class="mfoot" style="padding:30px 0 20px"><div class="l1" style="font-size:44px">YaYa</div><div class="l2">CHICKEN</div><div class="v">Кабинет менеджера · v2.0.0 Premium</div></div>
+    <div class="card"><p style="font-size:13px;color:var(--muted);line-height:1.7">Система учёта YaYa Chicken · Экибастуз.<br>Заказы, склад, цех, техкарты и отчёты в одном приложении.<br><br>Данные хранятся в браузере устройства и синхронизируются с кухней и цехом через общий домен.</p></div>`;
+}
+
+/* ── DRAWER (Панель менеджера) ── */
+function renderDrawer(){
+  $('dw-date').textContent=new Date().toLocaleDateString('ru',{day:'numeric',month:'long'});
+}
+
+/* ── empty helpers ── */
+function emptyFull(title,sub,btn,fn){
+  return `<div class="empty-full"><svg width="90" height="90" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" stroke-width="1.4"><path d="M20 7 12 3 4 7v10l8 4 8-4V7Z"/><path d="m4 7 8 4 8-4M12 11v10"/><path d="M9 5.5 15 8.5" opacity=".5"/></svg><b>${title}</b><p>${sub}</p>${btn?`<button class="btn btn-primary" style="padding:12px 26px" onclick="${fn}">${btn}</button>`:''}</div>`;
+}
+
+/* ── SHEETS ── */
+function openSheet(id){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'));$(id).classList.add('show');$('sheet-bg').classList.add('show');}
+function closeSheet(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'));$('sheet-bg').classList.remove('show');}
+
+/* ── HELP ── */
+const TIPS={'tip-neworder':{t:'Новый заказ',p:'Выберите тип (доставка/самовывоз), добавьте блюда и оформите. Ингредиенты спишутся по техкарте автоматически.'}};
+function toggleHelp(){helpOn=!helpOn;document.body.classList.toggle('help',helpOn);$('help-fab').classList.toggle('on',helpOn);$('help-fab').textContent=helpOn?'✕':'?';if(!helpOn)$('htip').classList.remove('show');}
+document.addEventListener('click',e=>{
+  if(!helpOn)return;
+  const el=e.target.closest('[data-tip]');
+  if(el){e.preventDefault();e.stopPropagation();const tip=TIPS[el.getAttribute('data-tip')];if(!tip)return;
+    const h=$('htip');h.innerHTML=`<b>${tip.t}</b><p>${tip.p}</p><div class="dots"><i class="on"></i><i></i><i></i></div>`;
+    const r=el.getBoundingClientRect(),ar=document.querySelector('.app').getBoundingClientRect();
+    h.style.left=Math.max(12,r.left-ar.left)+'px';h.style.top=(r.bottom-ar.top+8)+'px';h.classList.add('show');
+  } else if(!e.target.closest('.htip')&&e.target.id!=='help-fab'){$('htip').classList.remove('show');}
+},true);
+
+/* ── BOOT ── */
+function boot(){ renderOrders(); }
+boot();
+setInterval(()=>{if(curTab==='orders'&&!subKind)renderOrders();},15000);
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});}</script>
+</body>
+</html>
