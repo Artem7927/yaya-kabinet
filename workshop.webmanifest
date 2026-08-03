@@ -3,7 +3,7 @@
   "name": "YaYa Цех",
   "short_name": "Цех",
   "start_url": "./workshop-mobile.html",
-  "scope": "./",
+  "scope": "./workshop-mobile.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0A0A0B",

@@ -3,7 +3,7 @@
   "name": "YaYa Кухня",
   "short_name": "Кухня",
   "start_url": "./kitchen-stock-mobile.html",
-  "scope": "./",
+  "scope": "./kitchen-stock-mobile.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0A0A0B",

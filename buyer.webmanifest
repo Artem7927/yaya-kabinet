@@ -3,7 +3,7 @@
   "name": "YaYa Закупщик",
   "short_name": "Закупщик",
   "start_url": "./buyer-mobile.html",
-  "scope": "./",
+  "scope": "./buyer-mobile.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0A0A0B",
