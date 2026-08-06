@@ -706,10 +706,59 @@ function trend(id,cur,prev){const el=$(id);if(!el)return;if(!prev){el.textConten
 function emptyMini(t){return `<div class="empty-mini">${t}</div>`;}
 
 /* ── СПИСАНИЯ ── */
+const DED_API=window.YAYA_API||'https://yaya-db-production.up.railway.app';
+let _dedServer=null,_dedLoading=false;
 function isIncome(d){return /приход|\+|переда/i.test((d.reason||'')+ (d.qty||''));}
+function dedTs(r){
+  if(r&&r.ts!=null&&!isNaN(+r.ts))return +r.ts;
+  const MON={янв:0,фев:1,мар:2,апр:3,май:4,мая:4,июн:5,июл:6,авг:7,сен:8,окт:9,ноя:10,дек:11};
+  const dm=String(r&&r.date||'').trim().match(/^(\d{1,2})\s+([а-яА-Яa-zA-ZёЁ]+)\.?$/);
+  if(dm){
+    const mon=MON[dm[2].toLowerCase().slice(0,3)];
+    if(mon!==undefined){
+      const now=new Date(),d=new Date(now.getFullYear(),mon,+dm[1]);
+      if(d>now)d.setFullYear(now.getFullYear()-1);
+      let ms=d.getTime();
+      const tm=String(r.time||'').match(/^(\d{1,2}):(\d{2})/);
+      if(tm)ms+=(+tm[1])*36e5+(+tm[2])*6e4;
+      return ms;
+    }
+  }
+  return null;
+}
+function dedKey(r,ts){
+  const b=ts!=null&&!isNaN(ts)?Math.floor(ts/6e4):'';
+  return [r.ing,r.qty,r.unit,r.reason,r.emp,b].join('|');
+}
+function fmtDate(ts){try{return new Date(ts).toLocaleDateString('ru',{day:'numeric',month:'short'});}catch(e){return'';}}
+function fmtTime(ts){try{return new Date(ts).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});}catch(e){return'';}}
+function mergeDed(){
+  const server=Array.isArray(_dedServer)?_dedServer:[],local=getDeductions(),seen=new Set(),out=[];
+  server.forEach(s=>{
+    if(seen.has('srv:'+s.id))return;seen.add('srv:'+s.id);
+    const ts=+s.ts;
+    out.push(Object.assign({},s,{ts:ts,date:fmtDate(ts),time:fmtTime(ts)}));
+  });
+  const srvKeys=new Set(server.map(s=>dedKey(s,+s.ts)));
+  local.forEach(l=>{
+    const ts=dedTs(l);
+    if(srvKeys.has(dedKey(l,ts)))return;
+    out.push(Object.assign({},l,{ts:ts}));
+  });
+  return out.sort((a,b)=>(b.ts||0)-(a.ts||0));
+}
+function loadDeductions(){
+  const token=localStorage.getItem('yaya_key')||'';
+  fetch(DED_API+'/deductions',{headers:{'X-Admin-Token':token},cache:'no-store'})
+    .then(r=>r.ok?r.json():Promise.reject(r.status))
+    .then(d=>{_dedServer=(d&&Array.isArray(d.items))?d.items:[];})
+    .catch(()=>{_dedServer=[];})
+    .then(()=>{_dedLoading=false;renderDed();if(typeof renderReports==='function')renderReports();});
+}
 function renderDed(){
-  const all=getDeductions(), period=$('ded-period')?$('ded-period').value:'today';
-  let list=[...all].reverse(); if(period==='today')list=list.filter(d=>d.date===todayStr());
+  if(!_dedLoading&&_dedServer===null){_dedLoading=true;loadDeductions();}
+  const period=$('ded-period')?$('ded-period').value:'today';
+  let list=mergeDed(); if(period==='today')list=list.filter(d=>d.date===todayStr());
   const income=list.filter(isIncome).length, out=list.length-income;
   $('ded-in').textContent=income; $('ded-out').textContent=out;
   $('ded-list').innerHTML=list.length?list.slice(0,80).map(d=>{
@@ -787,13 +836,14 @@ function pushTransfer(dir,from,to,qty,unit){
 
 /* ── ОТЧЁТЫ ── */
 function renderReports(){
+  if(!_dedLoading&&_dedServer===null){_dedLoading=true;loadDeductions();}
   const period=$('rep-period')?$('rep-period').value:'today';
   const all=getOrders().filter(o=>o.status!=='cancel');
   const orders=period==='today'?all.filter(o=>o.date===todayStr()):all;
   const yest=dstr(new Date(Date.now()-864e5));
   const yOrd=all.filter(o=>o.date===yest);
   const rev=orders.reduce((s,o)=>s+o.total,0), yRev=yOrd.reduce((s,o)=>s+o.total,0);
-  const ded=getDeductions().filter(d=>period==='today'?d.date===todayStr():true).length;
+  const ded=mergeDed().filter(d=>period==='today'?d.date===todayStr():true).length;
   $('rep-rev').textContent=money(rev); repDelta('rep-rev-d',rev,yRev);
   $('rep-cnt').textContent=orders.length; repDelta('rep-cnt-d',orders.length,yOrd.length);
   $('rep-avg').textContent=money(orders.length?Math.round(rev/orders.length):0);

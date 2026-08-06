@@ -527,18 +527,72 @@ function doTransferKsToWs() {
 }
 
 // ── СПИСАНИЯ ─────────────────────────────────────────────────────────
+const DED_API_FALLBACK='https://yaya-db-production.up.railway.app';
+let _dedServer=null,_dedLoading=false;
+function dedTs(r){
+  if(r&&r.ts!=null&&!isNaN(+r.ts))return +r.ts;
+  const MON={янв:0,фев:1,мар:2,апр:3,май:4,мая:4,июн:5,июл:6,авг:7,сен:8,окт:9,ноя:10,дек:11};
+  const dm=String(r&&r.date||'').trim().match(/^(\d{1,2})\s+([а-яА-Яa-zA-ZёЁ]+)\.?$/);
+  if(dm){
+    const mon=MON[dm[2].toLowerCase().slice(0,3)];
+    if(mon!==undefined){
+      const now=new Date(),d=new Date(now.getFullYear(),mon,+dm[1]);
+      if(d>now)d.setFullYear(now.getFullYear()-1);
+      let ms=d.getTime();
+      const tm=String(r.time||'').match(/^(\d{1,2}):(\d{2})/);
+      if(tm)ms+=(+tm[1])*36e5+(+tm[2])*6e4;
+      return ms;
+    }
+  }
+  return null;
+}
+function dedKey(r,ts){
+  const b=ts!=null&&!isNaN(ts)?Math.floor(ts/6e4):'';
+  return [r.ing,r.qty,r.unit,r.reason,r.emp,b].join('|');
+}
+function fmtDateD(ts){try{return new Date(ts).toLocaleDateString('ru',{day:'numeric',month:'short'});}catch(e){return'';}}
+function fmtTimeD(ts){try{return new Date(ts).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});}catch(e){return'';}}
+function mergeDed(){
+  const server=Array.isArray(_dedServer)?_dedServer:[],local=getDeductions(),seen=new Set(),out=[];
+  server.forEach(s=>{
+    if(seen.has('srv:'+s.id))return;seen.add('srv:'+s.id);
+    const ts=+s.ts;
+    out.push(Object.assign({},s,{ts:ts,date:fmtDateD(ts),time:fmtTimeD(ts)}));
+  });
+  const srvKeys=new Set(server.map(s=>dedKey(s,+s.ts)));
+  local.forEach(l=>{
+    const ts=dedTs(l);
+    if(srvKeys.has(dedKey(l,ts)))return;
+    out.push(Object.assign({},l,{ts:ts}));
+  });
+  return out.sort((a,b)=>(b.ts||0)-(a.ts||0));
+}
+function loadDeductions(){
+  const API=window.YAYA_API||DED_API_FALLBACK;
+  const token=localStorage.getItem('yaya_key')||'';
+  fetch(API+'/deductions',{headers:{'X-Admin-Token':token},cache:'no-store'})
+    .then(r=>r.ok?r.json():Promise.reject(r.status))
+    .then(d=>{_dedServer=(d&&Array.isArray(d.items))?d.items:[];})
+    .catch(()=>{_dedServer=[];})
+    .then(()=>{_dedLoading=false;renderDeductions();renderReports();});
+}
+function ensureDedLoaded(){
+  if(!_dedLoading&&_dedServer===null){_dedLoading=true;loadDeductions();}
+}
 function renderDeductions() {
-  const tbody=document.getElementById('ded-tbody'); const ded=getDeductions();
+  ensureDedLoaded();
+  const tbody=document.getElementById('ded-tbody'); const ded=mergeDed();
   if(!ded.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Нет списаний</td></tr>';return;}
-  tbody.innerHTML=[...ded].reverse().map(d=>{const pos=String(d.qty).startsWith('+');return`<tr><td>${d.date||''}</td><td>${d.time}</td><td>${d.ing}</td><td style="font-weight:700;color:${pos?'var(--green)':'var(--red)'}">${d.qty}</td><td style="color:var(--muted)">${d.unit}</td><td>${d.reason}</td><td style="color:var(--muted)">${d.emp}</td></tr>`;}).join('');
+  tbody.innerHTML=ded.map(d=>{const pos=String(d.qty).startsWith('+');return`<tr><td>${d.date||''}</td><td>${d.time}</td><td>${d.ing}</td><td style="font-weight:700;color:${pos?'var(--green)':'var(--red)'}">${d.qty}</td><td style="color:var(--muted)">${d.unit}</td><td>${d.reason}</td><td style="color:var(--muted)">${d.emp}</td></tr>`;}).join('');
 }
 
 // ── ОТЧЁТЫ ───────────────────────────────────────────────────────────
 function renderReports() {
+  ensureDedLoaded();
   const orders=getOrders(); const today=todayStr();
   const todayOrders=orders.filter(o=>o.date===today&&o.status!=='cancel');
   const rev=todayOrders.reduce((s,o)=>s+o.total,0); const avg=todayOrders.length?Math.round(rev/todayOrders.length):0;
-  document.getElementById('r-rev').textContent=fmt(rev)+' тг'; document.getElementById('r-orders').textContent=todayOrders.length; document.getElementById('r-avg').textContent=fmt(avg)+' тг'; document.getElementById('r-ded').textContent=getDeductions().filter(d=>d.date===today).length;
+  document.getElementById('r-rev').textContent=fmt(rev)+' тг'; document.getElementById('r-orders').textContent=todayOrders.length; document.getElementById('r-avg').textContent=fmt(avg)+' тг'; document.getElementById('r-ded').textContent=mergeDed().filter(d=>d.date===today).length;
   const cnt={};todayOrders.forEach(o=>o.items.forEach(it=>{cnt[it.name]=(cnt[it.name]||0)+it.qty;}));
   const sorted=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,10);
   document.getElementById('r-top').innerHTML=sorted.length?sorted.map(([n,q],i)=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:13px"><span><span style="color:var(--muted);margin-right:6px">${i+1}.</span>${n}</span><span style="font-weight:600">${q} шт.</span></div>`).join(''):'<div style="color:var(--muted);font-size:13px">Нет данных</div>';
