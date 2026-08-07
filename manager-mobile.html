@@ -762,7 +762,7 @@ function renderDed(){
   const income=list.filter(isIncome).length, out=list.length-income;
   $('ded-in').textContent=income; $('ded-out').textContent=out;
   $('ded-list').innerHTML=list.length?list.slice(0,80).map(d=>{
-    const inc=isIncome(d), q=String(d.qty).replace('+','');
+    const inc=isIncome(d), q=String(d.qty).replace(/^[+-]/,'');
     return `<div class="jrow">
       <span class="jdot" style="background:${inc?'var(--green)':'var(--red)'}"></span>
       <div class="jinfo"><div class="jname">${d.ing}</div><div class="jtime">${d.date} ${d.time} · ${d.reason||''} · ${d.emp||''}</div></div>
