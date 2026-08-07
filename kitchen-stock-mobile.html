@@ -240,6 +240,31 @@ input:focus,select:focus{border-color:var(--orange)}
       </div>
     </section>
 
+    <!-- КАЛЬКУЛЯТОР -->
+    <section class="screen" id="s-calc" data-title="Калькулятор">
+      <div class="scroll">
+        <div class="seg"><button id="cg-dish" class="on" onclick="calcSeg('dish')">Блюдо</button><button id="cg-order" onclick="calcSeg('order')">Заказ</button></div>
+        <div id="calc-dish">
+          <div class="card">
+            <div class="ttl" style="margin-bottom:12px">Расход сырья на блюдо</div>
+            <label class="lbl">Блюдо (только с техкартой)</label>
+            <select id="calc-dish-sel" onchange="calcDish()"></select>
+            <label class="lbl">Порций</label>
+            <div class="stepper"><button onclick="calcStep(-1)">−</button><div class="n" id="calc-qty">1</div><button onclick="calcStep(1)">＋</button></div>
+            <div id="calc-dish-out"></div>
+          </div>
+        </div>
+        <div id="calc-order" style="display:none">
+          <div class="card">
+            <div class="ttl" style="margin-bottom:12px">Расход сырья на заказ</div>
+            <label class="lbl">Активный заказ</label>
+            <select id="calc-order-sel" onchange="calcOrder()"></select>
+            <div id="calc-order-out"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ИНГРЕДИЕНТЫ (sub) -->
     <section class="screen" id="s-ing" data-title="Ингредиенты кухни">
       <div class="scroll">
@@ -257,6 +282,7 @@ input:focus,select:focus{border-color:var(--orange)}
     <button class="tab" data-tab="stock" onclick="go('stock')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9 12 3l9 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 21V12h6v9"/></svg><span class="tl">Склад</span></button>
     <button class="tab" data-tab="tech" onclick="go('tech')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><span class="tl">Техкарты</span></button>
     <button class="tab" data-tab="reports" onclick="go('reports')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/></svg><span class="tl">Отчёты</span></button>
+    <button class="tab" data-tab="calc" onclick="go('calc')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg><span class="tl">Калькулятор</span></button>
   </nav>
 
   <div class="drawer-bg" id="drawer-bg" onclick="closeDrawer()"></div>
@@ -282,14 +308,7 @@ input:focus,select:focus{border-color:var(--orange)}
 
   <div class="sheet" id="sh-tc">
     <div class="sheet-h"></div><div class="sheet-t" id="tc-title">Техкарта</div>
-    <div id="tc-rows" style="margin-bottom:12px"></div>
-    <div class="sheet-t" style="font-size:13px;margin:4px 0 8px">Добавить ингредиент</div>
-    <div style="display:grid;grid-template-columns:1fr 70px 56px auto;gap:8px;align-items:end">
-      <div class="field" style="margin:0"><label>Ингредиент</label><select id="tc-ing"></select></div>
-      <div class="field" style="margin:0"><label>Кол-во</label><input id="tc-qty" type="number" step="0.001" value="0.1"></div>
-      <div class="field" style="margin:0"><label>Ед.</label><input id="tc-unit" value="кг"></div>
-      <button class="btn btn-primary" style="padding:12px 10px" onclick="tcAddRow()">＋</button>
-    </div>
+    <div id="tc-rows"></div>
   </div>
 
   <div class="sheet" id="sh-adding">
@@ -314,7 +333,7 @@ input:focus,select:focus{border-color:var(--orange)}
     const g=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},s=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
     window.getStock=()=>g('yaya_stock_v3',[]);window.setStock=v=>s('yaya_stock_v3',v);
     window.getWsStock=()=>g('yaya_wsstock_v3',[]);window.setWsStock=v=>s('yaya_wsstock_v3',v);
-    window.getTechCards=()=>g('yaya_tech_v3',{});window.setTechCards=v=>s('yaya_tech_v3',v);
+    window.getTechCards=()=>g('yaya_tech_v3',{});
     window.getPurchases=()=>g('yaya_purchases',[]);
     window.getDeductions=()=>g('yaya_deductions',[]);window.setDeductions=v=>s('yaya_deductions',v);
     window.fmt=n=>Number(n||0).toLocaleString('ru');window.nowStr=()=>new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});window.todayStr=()=>new Date().toLocaleDateString('ru',{day:'numeric',month:'short'});window.findMenuItem=id=>MENU.find(m=>m.id===id);
@@ -328,7 +347,7 @@ let curTab='cook', cookQty=1, stockView='raw', tcCat='all', tcEditId=null;
 const TICON={success:'✓',error:'✕',warn:'!',info:'i'};
 function toast(type,title,sub){const el=document.createElement('div');el.className='tst '+type;el.innerHTML=`<div class="ti">${TICON[type]||'i'}</div><div class="tc"><b>${title}</b>${sub?`<span>${sub}</span>`:''}</div>`;$('toasts').appendChild(el);requestAnimationFrame(()=>el.classList.add('show'));setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),260)},3200);}
 
-function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+tab).classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));$('ab-title').textContent=$('s-'+tab).dataset.title;({cook:renderCook,stock:renderStock,tech:renderTechAll,reports:renderReports}[tab]||(()=>{}))();const sc=$('s-'+tab).querySelector('.scroll');if(sc)sc.scrollTop=0;}
+function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+tab).classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));$('ab-title').textContent=$('s-'+tab).dataset.title;({cook:renderCook,stock:renderStock,tech:renderTechAll,reports:renderReports,calc:renderCalc}[tab]||(()=>{}))();const sc=$('s-'+tab).querySelector('.scroll');if(sc)sc.scrollTop=0;}
 function openSub(k){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+k).classList.add('active');$('ab-title').textContent=$('s-'+k).dataset.title;if(k==='ing')renderIng('');}
 function openExt(u){location.href=u}
 function openDrawer(){$('dw-date').textContent=new Date().toLocaleDateString('ru',{day:'numeric',month:'long'});$('drawer').classList.add('show');$('drawer-bg').classList.add('show')}
@@ -392,10 +411,8 @@ function renderTech(q){window._tcQ=q||'';q=(q||'').toLowerCase();const tc=getTec
   $('tc-list').innerHTML=dishes.map(m=>{const rows=tc[m.id]||[];const ing=rows.length?rows.map(r=>{const i=all.find(x=>x.id===r.ingId);return `${i?i.name:r.ingId}: <b>${r.qty}${r.unit}</b>`;}).join('<br>'):'⚠ Техкарта не заполнена';
     return `<div class="dcard" onclick="openTC('${m.id}')"><div class="dn">${m.emoji||''} ${m.name}<span class="cnt">${rows.length} ингр.</span></div><div class="di ${rows.length?'':'empty'}">${ing}</div></div>`;}).join('')||'<div class="empty-mini">Нет блюд</div>';
 }
-function openTC(id){tcEditId=id;const m=findMenuItem(id);$('tc-title').textContent=(m.emoji||'')+' '+m.name;const all=[...getStock().filter(i=>i.location==='kitchen').map(i=>({id:i.id,label:i.name})),...getWsStock().map(w=>({id:w.id,label:'[ПФ] '+w.name}))];$('tc-ing').innerHTML=all.map(i=>`<option value="${i.id}">${i.label}</option>`).join('');renderTCRows();openSheet('sh-tc');}
-function renderTCRows(){const tc=getTechCards(),rows=tc[tcEditId]||[],all=[...getStock(),...getWsStock()];$('tc-rows').innerHTML=rows.length?rows.map((r,i)=>{const ing=all.find(x=>x.id===r.ingId);return `<div class="mini-ing"><span style="flex:1">${ing?ing.name:r.ingId}</span><b>${r.qty} ${r.unit}</b><button class="xbtn" style="width:28px;height:28px" onclick="tcDelRow(${i})">✕</button></div>`;}).join(''):'<div class="empty-mini" style="padding:8px">Техкарта пуста — добавьте ингредиенты</div>';}
-function tcAddRow(){const ingId=$('tc-ing').value,qty=parseFloat($('tc-qty').value)||0,unit=$('tc-unit').value;if(!qty){toast('warn','Введите количество','');return;}const tc=getTechCards();if(!tc[tcEditId])tc[tcEditId]=[];const ex=tc[tcEditId].find(r=>r.ingId===ingId);if(ex)ex.qty=qty;else tc[tcEditId].push({ingId,qty,unit});setTechCards(tc);renderTCRows();toast('success','Техкарта обновлена','');}
-function tcDelRow(idx){const tc=getTechCards();if(tc[tcEditId]){tc[tcEditId].splice(idx,1);setTechCards(tc);}renderTCRows();}
+function openTC(id){tcEditId=id;const m=findMenuItem(id);$('tc-title').textContent=(m.emoji||'')+' '+m.name;renderTCRows();openSheet('sh-tc');}
+function renderTCRows(){const tc=getTechCards(),rows=tc[tcEditId]||[],all=[...getStock(),...getWsStock()];$('tc-rows').innerHTML=rows.length?rows.map(r=>{const ing=all.find(x=>x.id===r.ingId);return `<div class="mini-ing"><span style="flex:1">${ing?ing.name:r.ingId}</span><b>${r.qty} ${r.unit}</b></div>`;}).join(''):'<div class="empty-mini" style="padding:8px">⚠ Не заполнена. Обратитесь к менеджеру</div>';}
 
 /* ОТЧЁТЫ */
 function renderReports(){const log=getCookLog(),stock=getStock().filter(i=>i.location==='kitchen');
@@ -405,6 +422,60 @@ function renderReports(){const log=getCookLog(),stock=getStock().filter(i=>i.loc
   const byIng={};getDeductions().filter(d=>d.emp==='Кухня'&&d.reason&&d.reason.includes('Приготовление')).forEach(d=>{const v=parseFloat(d.qty);if(v<0)byIng[d.ing]=(byIng[d.ing]||0)+Math.abs(v);});const si=Object.entries(byIng).sort((a,b)=>b[1]-a[1]);
   $('rp-ing').innerHTML=si.length?si.map(([n,q])=>`<div class="repcat"><span>${n}</span><span style="font-weight:800;color:var(--red)">${q.toFixed(3)}</span></div>`).join(''):'<div class="empty-mini">Нет данных</div>';}
 
+/* КАЛЬКУЛЯТОР */
+let calcMode='dish', calcN=1;
+function calcSeg(v){calcMode=v;$('cg-dish').classList.toggle('on',v==='dish');$('cg-order').classList.toggle('on',v==='order');$('calc-dish').style.display=v==='dish'?'':'none';$('calc-order').style.display=v==='order'?'':'none';if(v==='dish'){fillCalcDish();calcDish();}else fillCalcOrder();}
+function renderCalc(){calcN=1;$('calc-qty').textContent=calcN;fillCalcDish();calcDish();fillCalcOrder();calcOrder();}
+function fillCalcDish(){
+  const tc=getTechCards(),sel=$('calc-dish-sel'),prev=sel.value,withTC=MENU.filter(m=>tc[m.id]&&tc[m.id].length);
+  sel.innerHTML=withTC.length?withTC.map(m=>`<option value="${m.id}">${m.emoji||''} ${m.name}</option>`).join(''):'<option value="">Нет блюд с техкартой</option>';
+  if(prev&&withTC.find(m=>m.id===prev))sel.value=prev;
+}
+function calcStep(d){calcN=Math.max(1,calcN+d);$('calc-qty').textContent=calcN;calcDish();}
+function calcRowsHtml(rows,mult){
+  const all=[...getStock(),...getWsStock()];let okAll=true,kg=0;
+  const rowsHtml=(Array.isArray(rows)?rows:[]).map(r=>{
+    const ing=all.find(x=>x.id===r.ingId),need=(r.qty||0)*mult,en=ing&&ing.qty>=need;
+    if(!en)okAll=false;if((r.unit==='кг'||r.unit==='л'))kg+=need;
+    return `<div class="r" style="color:${en?'var(--text)':'var(--red)'}"><span>${ing?ing.name:r.ingId}</span><span>${need.toFixed(3)} ${r.unit} ${en?'✓':'⚠ мало'}</span></div>`;
+  }).join('');
+  return {rowsHtml,okAll,kg};
+}
+function calcDish(){
+  const tc=getTechCards(),id=$('calc-dish-sel').value,r=tc[id],el=$('calc-dish-out');
+  if(!r||!Array.isArray(r)||!r.length){el.innerHTML='<div class="empty-mini">⚠ Не заполнена. Обратитесь к менеджеру</div>';return;}
+  const res=calcRowsHtml(r,calcN);
+  el.innerHTML=`<div class="prev" style="border-left-color:${res.okAll?'var(--green)':'var(--red)'}"><div class="h">Потребуется (${calcN} порц.)</div>${res.rowsHtml}<div class="out"><span>Итого расход</span><span>${res.kg.toFixed(3)} кг</span></div></div>`;
+}
+function fillCalcOrder(){
+  const sel=$('calc-order-sel'),prev=sel.value;
+  const acts=getOrders().filter(o=>o.status==='new'||o.status==='cook');
+  sel.innerHTML=acts.length?acts.map(o=>`<option value="${o.id}">#${o.num} — ${(Array.isArray(o.items)?o.items:[]).length} поз.</option>`).join(''):'<option value="">Нет активных заказов</option>';
+  if(prev&&acts.find(o=>String(o.id)===String(prev)))sel.value=prev;
+}
+function calcOrder(){
+  const sel=$('calc-order-sel'),id=sel.value,o=getOrders().find(x=>String(x.id)===String(id)),out=$('calc-order-out');
+  if(!o){out.innerHTML='<div class="empty-mini">Выберите заказ</div>';return;}
+  const tc=getTechCards(),all=[...getStock(),...getWsStock()],acc={},noTc=[];
+  (Array.isArray(o.items)?o.items:[]).forEach(it=>{
+    const rows=tc[it.id]||[];
+    if(!rows.length){noTc.push(it);return;}
+    rows.forEach(r=>{
+      const key=r.ingId;
+      if(!acc[key])acc[key]={name:all.find(x=>x.id===key)?all.find(x=>x.id===key).name:key,need:0,unit:r.unit};
+      acc[key].need+=(r.qty||0)*(it.qty||1);
+    });
+  });
+  let okAll=true,kg=0;
+  const rowsHtml=Object.keys(acc).length?Object.keys(acc).map(k=>{
+    const a=acc[k],ing=all.find(x=>x.id===k),en=ing&&ing.qty>=a.need;
+    if(!en)okAll=false;if((a.unit==='кг'||a.unit==='л'))kg+=a.need;
+    return `<div class="r" style="color:${en?'var(--text)':'var(--red)'}"><span>${a.name}</span><span>${a.need.toFixed(3)} ${a.unit} ${en?'✓':'⚠ мало'}</span></div>`;
+  }).join(''):'<div class="empty-mini">Нет данных о сырье</div>';
+  const noTcHtml=noTc.length?`<div class="card" style="margin-top:12px"><div class="ttl" style="font-size:13px;margin-bottom:6px">⚠ Без техкарты</div>${noTc.map(it=>`<div class="mini-ing"><span style="flex:1">${it.name||it.id}</span><b>×${it.qty}</b></div>`).join('')}</div>`:'';
+  out.innerHTML=`<div class="prev" style="border-left-color:${okAll?'var(--green)':'var(--red)'}"><div class="h">Заказ #${o.num} — потребуется сырья</div>${rowsHtml}<div class="out"><span>Итого расход</span><span>${kg.toFixed(3)} кг</span></div></div>${noTcHtml}`;
+}
+
 /* ИНГРЕДИЕНТЫ */
 function renderIng(q){window._ingQ=q||'';q=(q||'').toLowerCase();const tc=getTechCards();const usage={};Object.entries(tc).forEach(([d,rows])=>rows.forEach(r=>{usage[r.ingId]=(usage[r.ingId]||0)+1}));let items=getStock().filter(i=>i.location==='kitchen');if(q)items=items.filter(i=>i.name.toLowerCase().includes(q));items.sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));
   $('ing-list').innerHTML=items.map(i=>{const st=statusOf(i),pct=Math.min(100,(i.qty/(i.max||Math.max(i.qty,i.min*3,1)))*100),u=usage[i.id]||0;return `<div class="irow"><div class="top"><div class="inm">${i.name}${u?` <span style="color:var(--blue);font-size:10px">· ${u} техк.</span>`:''}</div><div class="iq">${parseFloat(i.qty.toFixed(2))}${i.unit}</div><button class="xbtn" style="width:28px;height:28px" onclick="delIng('${i.id}')">✕</button></div><div class="ibar"><i style="width:${pct}%;background:${st[1]}"></i></div></div>`;}).join('')||'<div class="empty-mini">Ничего не найдено</div>';}
@@ -413,7 +484,7 @@ function openAddIng(){$('ai-name').value='';$('ai-qty').value=0;$('ai-unit').val
 function saveAddIng(){const name=$('ai-name').value.trim();if(!name){toast('warn','Введите название','');return;}const stock=getStock();stock.push({id:'i'+Date.now(),name,qty:parseFloat($('ai-qty').value)||0,unit:$('ai-unit').value.trim()||'шт.',min:parseFloat($('ai-min').value)||1,location:'kitchen'});setStock(stock);closeSheet();renderIng('');toast('success','Ингредиент добавлен',name);}
 
 renderCook();
-window.addEventListener('yaya-menu-ready', () => { renderCook(); renderTechAll(); });
+window.addEventListener('yaya-menu-ready', () => { renderCook(); renderTechAll(); renderCalc(); });
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});}</script>
 </body>
