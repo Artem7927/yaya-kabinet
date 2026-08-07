@@ -626,6 +626,7 @@ function openSub(kind,arg){
 function setType(t){orderType=t;$('tp-delivery').classList.toggle('on',t==='delivery');$('tp-pickup').classList.toggle('on',t==='pickup');}
 function coType(t){orderType=t;$('co-delivery').classList.toggle('on',t==='delivery');$('co-pickup').classList.toggle('on',t==='pickup');}
 function openMenu(mode){
+  window._menuMode=mode;
   const stop=getStopList();
   $('menu-title').textContent = mode==='stop'?'Добавить в стоп-лист':'Меню · выберите блюдо';
   $('menu-list').innerHTML=MENU.map(m=>{
@@ -1031,6 +1032,11 @@ document.addEventListener('click',e=>{
 function boot(){ renderOrders(); }
 boot();
 setInterval(()=>{if(curTab==='orders'&&!subKind)renderOrders();},15000);
+window.addEventListener('yaya-menu-ready',function(){
+  if(subKind==='tech')renderTech();
+  else if(subKind==='stop')renderStop();
+  else if(window._menuMode&&$('sheet-menu').classList.contains('show'))openMenu(window._menuMode);
+});
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});}</script>
 </body>

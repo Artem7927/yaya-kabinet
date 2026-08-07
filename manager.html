@@ -817,6 +817,15 @@ function renderAll() { populateOrderSel(); renderOrders(); updateDashboard(); }
 renderAll(); updateClock();
 setInterval(updateClock, 30000);
 setInterval(()=>{renderOrders();updateDashboard();}, 15000);
+// Живое меню подтянулось — перерисуем списки, зависящие от MENU
+window.addEventListener('yaya-menu-ready', function(){
+  renderAll();
+  const p = document.querySelector('.panel.active');
+  const id = p ? p.id.replace('panel-','') : '';
+  if (id === 'techcards') renderTechCards();
+  else if (id === 'stoplist') renderStopList();
+  else if (id === 'ingredients') renderIngredients();
+});
 </script>
 <div id="help-banner">💡 Режим подсказок — наводите на элементы с оранжевой рамкой</div>
 <button id="help-fab" onclick="toggleHelp()" title="Подсказки">?</button>

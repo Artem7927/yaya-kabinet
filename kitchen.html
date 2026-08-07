@@ -438,6 +438,7 @@ render();
 updateClock();
 setInterval(() => { render(); }, 8000);
 setInterval(updateClock, 1000);
+window.addEventListener('yaya-menu-ready', () => { render(); });
 </script>
 <div id="help-banner">💡 Режим подсказок — наводите на элементы с оранжевой рамкой</div>
 <button id="help-fab" onclick="toggleHelp()" title="Подсказки">?</button>

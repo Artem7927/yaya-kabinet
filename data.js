@@ -1,7 +1,9 @@
 // ─── YaYa Chicken · Shared Data Store v3.0 ───────────────────────────
 // Реальные рецептуры цеха + техкарты кафе по полуфабрикатам
 
-const MENU = [
+// MENU строится из живого yaya_menu (источник витрины); MENU_FALLBACK —
+// офлайн-дефолт, пока живое меню не загрузилось или если сервер недоступен.
+const MENU_FALLBACK = [
   {id:'s1', name:'SET Большой',       price:10290, emoji:'🎁', cat:'sets', desc:'крылышки 20 шт, стрипсы 30 шт, фри 2л, Coca Cola 2л'},
   {id:'s2', name:'SET Средний',        price:5890,  emoji:'🎁', cat:'sets', desc:'крылышки 30 шт'},
   {id:'s3', name:'КОМБО ПИЦЦА',        price:14390, emoji:'🎁', cat:'sets', desc:'Пицца Ранч + Пицца 4 сыра + фри 2л + Coca Cola 2л'},
@@ -62,6 +64,79 @@ const MENU = [
   {id:'s109',name:'Соус томатный',      price:150,   emoji:'🫙', cat:'sauces'},
   {id:'s110',name:'Соус халапеньо',     price:150,   emoji:'🫙', cat:'sauces'},
 ];
+
+// ─── Живое меню из витрины (yaya_menu) ───────────────────────────────
+// Витрина — источник истины. Категории витрины → вкладки кабинета/кухни.
+const YAYA_API_FALLBACK = 'https://yaya-db-production.up.railway.app';
+const MENU_CAT_MAP = {
+  'c0': 'burgers', 'c2': 'sets', 'c3': 'snacks',
+  'sets': 'sets', 'wings': 'wings', 'doners': 'doners', 'pizza': 'pizza',
+  'bliny': 'bliny', 'drinks': 'drinks', 'coffee': 'coffee',
+  'cocktails': 'cocktails', 'mohito': 'mohito', 'lemonade': 'lemonade',
+  'sauces': 'sauces'
+};
+const MENU_CAT_EMOJI = {
+  'c0': '🍔', 'c2': '🍟', 'c3': '🍗', 'sets': '🎁', 'wings': '🍗',
+  'doners': '🌯', 'pizza': '🍕', 'bliny': '🥞', 'drinks': '🥤',
+  'coffee': '☕', 'cocktails': '🍹', 'mohito': '🍹', 'lemonade': '🍋',
+  'sauces': '🫙'
+};
+
+let MENU = MENU_FALLBACK;
+const MENU_CACHE_KEY = 'yaya_menu_v3';
+const MENU_EVENT = 'yaya-menu-ready';
+
+function buildMenuFromLive(live) {
+  const out = [];
+  if (!live || !Array.isArray(live.categories)) return out;
+  live.categories.forEach(cat => {
+    const catId = cat.id;
+    const catKey = MENU_CAT_MAP[catId] || catId;
+    const catEmoji = cat.emoji || MENU_CAT_EMOJI[catId] || '🍽';
+    (cat.items || []).forEach(it => {
+      if (it.off) return; // снято с продажи — в кухню/кабинет не включаем
+      out.push({
+        id: it.id,
+        name: it.name,
+        price: it.price,
+        emoji: catEmoji,
+        cat: catKey,
+        desc: it.desc || ''
+      });
+    });
+  });
+  return out;
+}
+
+function applyLiveMenu(mapped) {
+  if (!mapped || !mapped.length) return;
+  MENU = mapped;
+  try { localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(mapped)); } catch (e) {}
+  window.dispatchEvent(new CustomEvent(MENU_EVENT));
+}
+
+async function loadLiveMenu() {
+  const api = window.YAYA_API || YAYA_API_FALLBACK;
+  try {
+    const r = await fetch(api + '/kv/yaya_menu', { cache: 'no-store' });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d || d.value == null) return;
+    applyLiveMenu(buildMenuFromLive(d.value));
+  } catch (e) { /* офлайн — остаёмся на MENU_FALLBACK */ }
+}
+
+// Сначала подставляем кэш (последнее известное живое меню), затем — свежее.
+try {
+  const cached = localStorage.getItem(MENU_CACHE_KEY);
+  if (cached) {
+    const parsed = JSON.parse(cached);
+    if (Array.isArray(parsed) && parsed.length) MENU = parsed;
+  }
+} catch (e) {}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadLiveMenu);
+else loadLiveMenu();
 
 // ─── СКЛАД СЫРЬЯ (location: 'workshop'=цех, 'kitchen'=кухня) ─────────
 const DEFAULT_STOCK = [

@@ -413,6 +413,7 @@ function openAddIng(){$('ai-name').value='';$('ai-qty').value=0;$('ai-unit').val
 function saveAddIng(){const name=$('ai-name').value.trim();if(!name){toast('warn','Введите название','');return;}const stock=getStock();stock.push({id:'i'+Date.now(),name,qty:parseFloat($('ai-qty').value)||0,unit:$('ai-unit').value.trim()||'шт.',min:parseFloat($('ai-min').value)||1,location:'kitchen'});setStock(stock);closeSheet();renderIng('');toast('success','Ингредиент добавлен',name);}
 
 renderCook();
+window.addEventListener('yaya-menu-ready', () => { renderCook(); renderTechAll(); });
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});}</script>
 </body>
