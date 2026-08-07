@@ -494,18 +494,55 @@ function renderOrders() {
   const nb=document.getElementById('nb-new'); if(nb){nb.textContent=active.length;nb.style.display=active.length?'':'none';}
 }
 function setOrderStatus(id,status) { const orders=getOrders(); const o=orders.find(o=>o.id===id); if(o) o.status=status; setOrders(orders); renderOrders(); updateDashboard(); }
-function updateDashboard() {
-  const orders=getOrders(); const today=todayStr();
-  const todayOrders=orders.filter(o=>o.date===today&&o.status!=='cancel');
-  const rev=todayOrders.reduce((s,o)=>s+o.total,0);
-  const active=orders.filter(o=>o.status==='new'||o.status==='cook').length;
-  const stock=getStock();
-  const lowK=stock.filter(i=>i.location==='kitchen'&&i.qty<i.min).length;
-  const lowW=stock.filter(i=>i.location==='workshop'&&i.qty<i.min).length;
-  document.getElementById('s-cnt').textContent=todayOrders.length;
-  document.getElementById('s-rev').textContent=fmt(rev)+' тг';
-  document.getElementById('s-active').textContent=active;
-  document.getElementById('s-low').textContent=(lowK+lowW)+(lowK+lowW?` (К:${lowK} Ц:${lowW})`:'');
+// Серверные заказы витрины: источник истины для дашборда (выручка/кол-во за день).
+// При недоступности сервера — фолбэк на localStorage (ручные заказы кабинета).
+async function fetchServerOrders() {
+  const API = window.YAYA_API || DED_API_FALLBACK;
+  const token = localStorage.getItem('yaya_key') || '';
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  try {
+    const r = await fetch(API + '/orders?limit=500', { headers: { 'X-Admin-Token': token }, cache: 'no-store', signal: ctrl.signal });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return (d && Array.isArray(d.orders)) ? d.orders : [];
+  } catch (e) { return null; }
+  finally { clearTimeout(timer); }
+}
+function serverOrderTotal(o) {
+  const d = o && o.data;
+  const v = d && d.total != null ? d.total : (d && d.sum != null ? d.sum : 0);
+  return Number(v) || 0;
+}
+async function updateDashboard() {
+  const server = await fetchServerOrders();
+  let todayOrders, rev, activeOrders;
+  if (server !== null) {
+    // «сегодня» — по ts в текущих сутках (локальное время), отменённые не считаем
+    const now = new Date();
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const dayEnd = dayStart + 24 * 3600 * 1000;
+    todayOrders = server.filter(o => {
+      const ts = Number(o.ts);
+      return Number.isFinite(ts) && ts >= dayStart && ts < dayEnd && o.status !== 'cancel';
+    });
+    rev = todayOrders.reduce((s, o) => s + serverOrderTotal(o), 0);
+    activeOrders = server;
+  } else {
+    // фолбэк: прежний расчёт из localStorage (сервер недоступен)
+    const local = getOrders(); const today = todayStr();
+    todayOrders = local.filter(o => o.date === today && o.status !== 'cancel');
+    rev = todayOrders.reduce((s, o) => s + o.total, 0);
+    activeOrders = local;
+  }
+  const active = activeOrders.filter(o => o.status === 'new' || o.status === 'cook').length;
+  const stock = getStock();
+  const lowK = stock.filter(i => i.location === 'kitchen' && i.qty < i.min).length;
+  const lowW = stock.filter(i => i.location === 'workshop' && i.qty < i.min).length;
+  document.getElementById('s-cnt').textContent = todayOrders.length;
+  document.getElementById('s-rev').textContent = fmt(rev) + ' тг';
+  document.getElementById('s-active').textContent = active;
+  document.getElementById('s-low').textContent = (lowK + lowW) + (lowK + lowW ? ` (К:${lowK} Ц:${lowW})` : '');
 }
 
 // ── ПЕРЕМЕЩЕНИЯ ───────────────────────────────────────────────────────
