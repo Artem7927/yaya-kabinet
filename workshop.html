@@ -590,22 +590,8 @@ body.help-mode [data-tip]:hover{outline-color:#D85A30!important;background:rgba(
     </div>
     <div>
       <div class="card">
-        <div class="card-head"><div class="card-title" data-tip-title="Добавить рецептуру" data-tip="Создать новую производственную рецептуру. Укажите название, выход и все ингредиенты с количествами.">Добавить рецептуру</div></div>
-        <div class="form-row">
-          <div class="fg"><label>Название</label><input type="text" id="nr-name" data-tip-title="Название рецептуры" data-tip="Как называется этот вид производства. Будет отображаться в меню производства и журналах." placeholder="Маринованные крылья"></div>
-          <div class="fg" style="max-width:80px"><label>Выход</label><input type="number" id="nr-output" data-tip-title="Выход (на порцию)" data-tip="Сколько единиц полуфабриката получается за одну производственную партию." value="20" min="1"></div>
-          <div class="fg" style="max-width:70px"><label>Ед. выхода</label><input type="text" id="nr-unit" data-tip-title="Единица выхода" data-tip="шт., кг, л — в чём измеряется готовый продукт." value="шт."></div>
-        </div>
-        <div class="fg" style="margin-bottom:10px"><label>Полуфабрикат (результат)</label><select id="nr-ws-item" data-tip-title="Полуфабрикат-результат" data-tip="На какой полуфабрикат из склада кафе будет зачисляться выход этой рецептуры при производстве."></select></div>
-        <div class="section-title" data-tip-title="Ингредиенты рецептуры" data-tip="Список сырья которое будет списываться при каждом запуске этой рецептуры. Добавьте все компоненты.">Ингредиенты рецептуры</div>
-        <div id="nr-ings" style="margin-bottom:10px"></div>
-        <div class="form-row">
-          <div class="fg"><label>Ингредиент</label><select id="nr-ing" data-tip-title="Ингредиент рецептуры" data-tip="Выберите сырьё из справочника склада цеха которое нужно добавить в состав."></select></div>
-          <div class="fg" style="max-width:80px"><label>Кол-во</label><input type="number" id="nr-qty" data-tip-title="Количество ингредиента" data-tip="Сколько этого сырья используется на одну производственную партию." value="1" step="0.001"></div>
-          <div class="fg" style="max-width:60px"><label>Ед.</label><input type="text" id="nr-qunit" data-tip-title="Единица" data-tip="кг, л, шт. — должна совпадать с единицей сырья на складе." value="кг"></div>
-          <button class="btn btn-sm" data-tip-title="Добавить ингредиент" data-tip="Добавить выбранный ингредиент в состав рецептуры." onclick="addNRIng()" style="align-self:flex-end">+</button>
-        </div>
-        <button class="btn btn-teal" data-tip-title="Сохранить рецептуру" data-tip="Сохранить новую рецептуру. После сохранения её можно будет выбрать в меню Производство." style="width:100%;margin-top:8px" onclick="saveRecipe()">Сохранить рецептуру</button>
+        <div class="card-head"><div class="card-title">Рецептуры</div></div>
+        <div style="padding:14px 0;color:var(--muted);font-size:13px;line-height:1.6">Рецептуры настраивает менеджер.<br>Здесь — только производство по готовым рецептурам.</div>
       </div>
     </div>
   </div>
@@ -713,7 +699,6 @@ body.help-mode [data-tip]:hover{outline-color:#D85A30!important;background:rgba(
 <script>
 // ─── Workshop-local state (supplement shared stock) ───────────────────
 // wsLog and purchases are shared via data.js helpers
-let newRecipeIngs = [];
 
 // ─── Nav ─────────────────────────────────────────────────────────────
 function nav(id, btn) {
@@ -1210,7 +1195,6 @@ function renderRecipes() {
   const el = document.getElementById('recipes-list');
   if (!el) return;
   const recipes = getWsRecipes();
-  const wsStock = getWsStock();
   const stock = getStock();
   el.innerHTML = recipes.map(r => {
     const ingHtml = (Array.isArray(r.items)?r.items:[]).map(it => {
@@ -1228,48 +1212,6 @@ function renderRecipes() {
       </div>
     </div>`;
   }).join('');
-
-  // Populate selects
-  const wsItemSel = document.getElementById('nr-ws-item');
-  const nrIng = document.getElementById('nr-ing');
-  if (wsItemSel) { wsItemSel.innerHTML=''; wsStock.forEach(w => wsItemSel.innerHTML+=`<option value="${w.id}">${w.name}</option>`); }
-  if (nrIng) { nrIng.innerHTML=''; stock.forEach(i => nrIng.innerHTML+=`<option value="${i.id}">${i.name}</option>`); }
-}
-
-function addNRIng() {
-  const ingId = document.getElementById('nr-ing').value;
-  const qty = parseFloat(document.getElementById('nr-qty').value) || 0;
-  const unit = document.getElementById('nr-qunit').value;
-  const ing = getStock().find(i => i.id === ingId);
-  if (!qty || !ing) return;
-  newRecipeIngs.push({ingId, qty, unit, name: ing.name});
-  renderNRIngs();
-}
-
-function renderNRIngs() {
-  const el = document.getElementById('nr-ings');
-  if (!el) return;
-  el.innerHTML = newRecipeIngs.map((it, i) =>
-    `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px">
-      <span style="flex:1">${it.name}: <strong>${it.qty} ${it.unit}</strong></span>
-      <button class="btn btn-sm btn-danger" onclick="newRecipeIngs.splice(${i},1);renderNRIngs()">✕</button>
-    </div>`
-  ).join('');
-}
-
-function saveRecipe() {
-  const name = document.getElementById('nr-name').value.trim();
-  const outputQty = parseFloat(document.getElementById('nr-output').value) || 1;
-  const outputUnit = document.getElementById('nr-unit').value;
-  const outputId = document.getElementById('nr-ws-item').value;
-  if (!name || !newRecipeIngs.length) { toast('❗ Заполните название и ингредиенты'); return; }
-  const recipes = getWsRecipes();
-  recipes.push({id:'wr'+Date.now(), name, items:newRecipeIngs.map(r=>({ingId:r.ingId,qty:r.qty,unit:r.unit})), outputId, outputQty, outputUnit});
-  setWsRecipes(recipes);
-  newRecipeIngs = [];
-  renderRecipes();
-  populateProdRecipes();
-  toast('✅ Рецептура сохранена: ' + name);
 }
 
 // ─── Reports ──────────────────────────────────────────────────────────
@@ -1422,7 +1364,6 @@ function refreshAll() {
   ['prod-recipe','prod-batches','wsa-item','wsa-qty','wsa-reason',
    'transfer-item','transfer-qty','transfer-main-ing',
    'purch-ing','purch-qty','purch-unit','purch-price','purch-supplier','purch-note',
-   'nr-name','nr-output','nr-unit','nr-ws-item','nr-ing','nr-qty','nr-qunit',
    'ws-stock-q'
   ].forEach(id => {
     const el = document.getElementById(id);

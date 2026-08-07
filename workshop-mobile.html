@@ -226,7 +226,7 @@ input:focus,select:focus{border-color:var(--orange)}
     <!-- РЕЦЕПТЫ -->
     <section class="screen" id="s-recipes" data-title="Рецепты">
       <div class="scroll">
-        <button class="btn btn-primary btn-block" style="margin-bottom:12px;padding:14px" onclick="openRecipe()">＋ Новая рецептура</button>
+        <div class="note" style="text-align:left;padding:0 4px 12px">Рецептуры настраивает менеджер.</div>
         <div id="recipes-list"></div>
       </div>
     </section>
@@ -294,25 +294,6 @@ input:focus,select:focus{border-color:var(--orange)}
     <button class="btn btn-teal btn-block" style="padding:14px" onclick="doTransfer()">Передать</button>
   </div>
 
-  <div class="sheet" id="sh-recipe">
-    <div class="sheet-h"></div><div class="sheet-t">Новая рецептура</div>
-    <div class="field"><label>Название</label><input id="rc-name" placeholder="напр. Маринование крыльев"></div>
-    <div class="field"><label>Выход — позиция склада цеха</label><select id="rc-out"></select></div>
-    <div style="display:grid;grid-template-columns:1fr 90px;gap:10px">
-      <div class="field"><label>Выход за партию</label><input id="rc-outqty" type="number" step="0.01" value="1"></div>
-      <div class="field"><label>Ед.</label><input id="rc-outunit" value="шт."></div>
-    </div>
-    <div class="sheet-t" style="font-size:14px;margin:6px 0 8px">Сырьё в рецепте</div>
-    <div style="display:grid;grid-template-columns:1fr 70px 60px auto;gap:8px;align-items:end">
-      <div class="field" style="margin:0"><label>Ингредиент</label><select id="rc-ing"></select></div>
-      <div class="field" style="margin:0"><label>Кол-во</label><input id="rc-qty" type="number" step="0.01" value="1"></div>
-      <div class="field" style="margin:0"><label>Ед.</label><input id="rc-unit" value="кг"></div>
-      <button class="btn btn-ghost" style="padding:12px 10px" onclick="rcAddIng()">＋</button>
-    </div>
-    <div id="rc-ings" style="margin:10px 0"></div>
-    <button class="btn btn-primary btn-block" style="padding:14px" onclick="saveRecipe()">Сохранить рецептуру</button>
-  </div>
-
   <div class="sheet" id="sh-adding">
     <div class="sheet-h"></div><div class="sheet-t">Новый ингредиент цеха</div>
     <div class="field"><label>Название</label><input id="ai-name" placeholder="напр. Куриное филе"></div>
@@ -344,7 +325,7 @@ input:focus,select:focus{border-color:var(--orange)}
   }
 })();
 const $=id=>document.getElementById(id);
-let curTab='prod', batches=1, stockView='raw', rcIngs=[];
+let curTab='prod', batches=1, stockView='raw';
 function money(n){return fmt(n)+' ₸'}
 const TICON={success:'✓',error:'✕',warn:'!',info:'i'};
 function toast(type,title,sub){const el=document.createElement('div');el.className='tst '+type;el.innerHTML=`<div class="ti">${TICON[type]||'i'}</div><div class="tc"><b>${title}</b>${sub?`<span>${sub}</span>`:''}</div>`;$('toasts').appendChild(el);requestAnimationFrame(()=>el.classList.add('show'));setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),260)},3200);}
@@ -418,10 +399,6 @@ function doTransfer(){const id=$('tr-item').value,qty=parseFloat($('tr-qty').val
 
 /* РЕЦЕПТЫ */
 function renderRecipes(){const rec=getWsRecipes(),stock=getStock();$('recipes-list').innerHTML=rec.length?rec.map(r=>{const ing=(Array.isArray(r.items)?r.items:[]).map(it=>{const i=stock.find(x=>x.id===it.ingId);return `${i?i.name:'?'}: <b>${it.qty}${it.unit}</b>`;}).join('<br>');return `<div class="rcard"><div class="rn">${r.name}</div><div class="rb"><div class="ri">${ing}</div><div class="ro"><div class="n">${r.outputQty}</div><div class="u">${r.outputUnit}/партия</div></div></div></div>`;}).join(''):'<div class="empty-mini">Рецептур пока нет</div>';}
-function openRecipe(){rcIngs=[];const ws=getWsStock(),stock=getStock();$('rc-out').innerHTML=ws.map(w=>`<option value="${w.id}">${w.name}</option>`).join('');$('rc-ing').innerHTML=stock.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');$('rc-name').value='';$('rc-outqty').value=1;renderRcIngs();openSheet('sh-recipe');}
-function rcAddIng(){const id=$('rc-ing').value,qty=parseFloat($('rc-qty').value)||0,unit=$('rc-unit').value,ing=getStock().find(i=>i.id===id);if(!qty||!ing)return;rcIngs.push({ingId:id,qty,unit,name:ing.name});renderRcIngs();}
-function renderRcIngs(){$('rc-ings').innerHTML=rcIngs.map((it,i)=>`<div class="mini-ing"><span style="flex:1">${it.name}: <b>${it.qty}${it.unit}</b></span><button class="xbtn" style="width:28px;height:28px" onclick="rcIngs.splice(${i},1);renderRcIngs()">✕</button></div>`).join('')||'<div class="empty-mini" style="padding:8px">Добавьте сырьё в рецепт</div>';}
-function saveRecipe(){const name=$('rc-name').value.trim(),outId=$('rc-out').value,outQty=parseFloat($('rc-outqty').value)||1,outUnit=$('rc-outunit').value;if(!name||!rcIngs.length){toast('warn','Заполните название и сырьё','');return;}const rec=getWsRecipes();rec.push({id:'wr'+Date.now(),name,items:rcIngs.map(r=>({ingId:r.ingId,qty:r.qty,unit:r.unit})),outputId:outId,outputQty:outQty,outputUnit:outUnit});setWsRecipes(rec);rcIngs=[];closeSheet();renderRecipes();toast('success','Рецептура сохранена',name);}
 
 /* ОТЧЁТЫ */
 function renderReports(){const log=getWsLog(),purch=getPurchases(),stock=getStock();$('rp-units').textContent=log.reduce((s,l)=>s+l.qty,0);$('rp-purch').textContent=fmt(purch.reduce((s,p)=>s+(parseFloat(p.total)||0),0));$('rp-batch').textContent=log.length;$('rp-crit').textContent=stock.filter(i=>i.qty<i.min).length;

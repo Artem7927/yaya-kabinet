@@ -13,7 +13,7 @@
   const API = window.YAYA_API;
   if (!API) { console.warn('[yaya-sync] window.YAYA_API не задан — работаем только локально'); return; }
 
-  const KEYS = ['yaya_cooklog', 'yaya_purchases', 'yaya_receipts', 'yaya_stock_v3'];
+  const KEYS = ['yaya_cooklog', 'yaya_purchases', 'yaya_receipts', 'yaya_stock_v3', 'yaya_wsrecipes_v3'];
   const POLL_MS = 6000;
 
   const rev = {};       // key -> последняя известная ревизия с сервера

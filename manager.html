@@ -364,13 +364,36 @@ body.help-mode [data-tip]:hover{outline-color:#D85A30!important;background:rgba(
           </div>
           <button class="btn btn-primary" onclick="addIngredientTo('workshop')" data-tip-title="Добавить в цех" data-tip="Сохранить новое сырьё в список склада цеха.">Добавить в цех</button>
         </div>
-        <!-- Техкарты цеха -->
+        <!-- Рецепты цеха -->
         <div class="card">
           <div class="card-head">
-            <div class="card-title" data-tip-title="Рецепты цеха" data-tip="Рецептуры производства полуфабрикатов: что и сколько сырья нужно на 1 единицу. Красный = нехватка сырья.">📝 Рецепты цеха</div>
+            <div class="card-title" data-tip-title="Рецепты цеха" data-tip="Рецептуры производства полуфабрикатов: что и сколько сырья нужно на 1 партию. Красный = нехватка сырья.">📝 Рецепты цеха</div>
             <span style="font-size:11px;color:var(--muted)">производство полуфабрикатов</span>
           </div>
-          <div id="ing-tc-workshop" class="scroll" style="max-height:200px;font-size:13px"></div>
+          <div class="form-row">
+            <div class="fg"><label>Рецепт</label><select id="wr-sel" onchange="renderWsRecipeEditor()"></select></div>
+            <div style="align-self:flex-end;display:flex;gap:6px">
+              <button class="btn btn-primary btn-sm" onclick="newWsRecipe()">＋ Новая</button>
+              <button class="btn btn-danger btn-sm btn-ghost" onclick="deleteWsRecipe()" title="Удалить выбранный рецепт">🗑</button>
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:6px">
+            <div class="fg"><label>Название</label><input type="text" id="wr-name" placeholder="Маринование крыльев"></div>
+            <div class="fg"><label>Выход — позиция склада цеха</label><select id="wr-out"></select></div>
+            <div class="fg" style="max-width:80px"><label>Выход за партию</label><input type="number" id="wr-outqty" step="0.01" value="1"></div>
+            <div class="fg" style="max-width:60px"><label>Ед.</label><input type="text" id="wr-outunit" value="шт."></div>
+          </div>
+          <hr>
+          <div class="section-title">Сырьё в рецепте</div>
+          <div class="form-row">
+            <div class="fg"><label>Ингредиент</label><select id="wr-ing"></select></div>
+            <div class="fg" style="max-width:80px"><label>Кол-во</label><input type="number" id="wr-qty" step="0.001" value="1" min="0"></div>
+            <div class="fg" style="max-width:60px"><label>Ед.</label><input type="text" id="wr-unit" value="кг"></div>
+            <button class="btn btn-primary btn-sm" onclick="wrAddIng()" style="align-self:flex-end">+ Добавить</button>
+          </div>
+          <div id="wr-ings" style="margin:8px 0;font-size:13px;color:var(--muted)"></div>
+          <button class="btn btn-primary" style="width:100%" onclick="saveWsRecipe()">💾 Сохранить рецептуру</button>
+          <div id="ing-tc-workshop" class="scroll" style="max-height:160px;font-size:13px;margin-top:10px"></div>
         </div>
       </div>
       <!-- Список ингредиентов цеха -->
@@ -693,6 +716,7 @@ function renderIngredients() {
   _renderIngStock('workshop');
   _renderIngTechCards('kitchen');
   _renderIngTechCards('workshop');
+  renderWsRecipeEditor();
 }
 
 function _renderIngStock(loc) {
@@ -700,7 +724,7 @@ function _renderIngStock(loc) {
   const stock = getStock().filter(i=>i.location===loc);
   const q = (document.getElementById('ing-q-'+loc)?.value||'').toLowerCase();
   const tc = getTechCards();
-  const wsRecipes = DEFAULT_WORKSHOP_RECIPES || [];
+  const wsRecipes = getWsRecipes() || [];
 
   // Посчитать в каких техкартах используется каждый ингредиент
   const usageMap = {}; // ingId -> [blюдо1, блюдо2…]
@@ -766,7 +790,7 @@ function _renderIngTechCards(loc) {
     });
     el.innerHTML = lines.length ? lines.join('') : '<div style="color:var(--muted)">Нет техкарт</div>';
   } else {
-    const wsRecipes = DEFAULT_WORKSHOP_RECIPES||[];
+    const wsRecipes = getWsRecipes()||[];
     if(!wsRecipes.length){el.innerHTML='<div style="color:var(--muted)">Нет рецептов цеха</div>';return;}
     el.innerHTML = wsRecipes.map(wr=>{
       const ingList = (Array.isArray(wr.items)?wr.items:[]).map(item=>{
@@ -778,6 +802,94 @@ function _renderIngTechCards(loc) {
       return `<div style="padding:5px 0;border-bottom:1px solid rgba(0,0,0,0.05)"><span style="font-weight:600">🏭 ${wr.name}</span> → <span style="color:var(--teal)">${out?out.name:''} ${wr.outputQty}${wr.outputUnit}</span><br><span style="font-size:11px">${ingList}</span></div>`;
     }).join('');
   }
+}
+
+// ── РЕДАКТОР РЕЦЕПТОВ ЦЕХА ────────────────────────────────────────────
+let wrEditingId=null, wrIngs=[];
+
+function renderWsRecipeEditor() {
+  const sel=document.getElementById('wr-sel'); if(!sel) return;
+  const recs=getWsRecipes();
+  const prev=sel.value||wrEditingId;
+  sel.innerHTML='<option value="">— выберите рецепт —</option>'+recs.map(r=>`<option value="${r.id}">${r.name}</option>`).join('');
+  if(prev && [...sel.options].some(o=>o.value===prev)) sel.value=prev;
+  const outSel=document.getElementById('wr-out');
+  outSel.innerHTML=getWsStock().map(w=>`<option value="${w.id}">${w.name}</option>`).join('');
+  document.getElementById('wr-ing').innerHTML=getStock().map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
+  const id=sel.value;
+  const r=recs.find(x=>x.id===id);
+  if(r){
+    wrEditingId=r.id;
+    document.getElementById('wr-name').value=r.name;
+    if(![...outSel.options].some(o=>o.value===r.outputId)) outSel.add(new Option('(позиция удалена)', r.outputId));
+    outSel.value=r.outputId;
+    document.getElementById('wr-outqty').value=r.outputQty;
+    document.getElementById('wr-outunit').value=r.outputUnit;
+    wrIngs=r.items.map(it=>{const ing=getStock().find(i=>i.id===it.ingId);return{ingId:it.ingId,qty:it.qty,unit:it.unit,name:ing?ing.name:'?'};});
+  } else {
+    wrEditingId=null;
+    document.getElementById('wr-name').value='';
+    document.getElementById('wr-outqty').value=1;
+    document.getElementById('wr-outunit').value='шт.';
+    wrIngs=[];
+  }
+  renderWrIngs();
+}
+
+function renderWrIngs() {
+  const el=document.getElementById('wr-ings'); if(!el) return;
+  el.innerHTML=wrIngs.length?wrIngs.map((it,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,0.05)"><span style="flex:1">${it.name}</span><span style="font-weight:600">${it.qty} ${it.unit}</span><button class="btn btn-sm btn-danger btn-ghost" onclick="wrIngs.splice(${i},1);renderWrIngs()">✕</button></div>`).join(''):'<div style="color:var(--muted)">Сырьё не добавлено</div>';
+}
+
+function newWsRecipe() {
+  wrEditingId=null; wrIngs=[];
+  document.getElementById('wr-sel').value='';
+  document.getElementById('wr-name').value='';
+  document.getElementById('wr-outqty').value=1;
+  document.getElementById('wr-outunit').value='шт.';
+  renderWrIngs();
+  document.getElementById('wr-name').focus();
+}
+
+function wrAddIng() {
+  const ingId=document.getElementById('wr-ing').value;
+  const qty=parseFloat(document.getElementById('wr-qty').value)||0;
+  const unit=document.getElementById('wr-unit').value;
+  if(!qty||!ingId) return;
+  const ing=getStock().find(i=>i.id===ingId);
+  const ex=wrIngs.find(x=>x.ingId===ingId);
+  if(ex){ex.qty=qty;ex.unit=unit;} else wrIngs.push({ingId,qty,unit,name:ing?ing.name:'?'});
+  renderWrIngs();
+}
+
+function saveWsRecipe() {
+  const name=document.getElementById('wr-name').value.trim();
+  const outputId=document.getElementById('wr-out').value;
+  const outputQty=parseFloat(document.getElementById('wr-outqty').value)||1;
+  const outputUnit=document.getElementById('wr-outunit').value;
+  if(!name||!outputId){toast('❌ Заполните название и выход');return;}
+  if(!wrIngs.length){toast('❌ Добавьте сырьё в рецепт');return;}
+  const recs=getWsRecipes();
+  if(wrEditingId){
+    const r=recs.find(x=>x.id===wrEditingId);
+    if(r){r.name=name;r.items=wrIngs.map(x=>({ingId:x.ingId,qty:x.qty,unit:x.unit}));r.outputId=outputId;r.outputQty=outputQty;r.outputUnit=outputUnit;}
+  } else {
+    recs.push({id:'wr'+Date.now(),name,items:wrIngs.map(x=>({ingId:x.ingId,qty:x.qty,unit:x.unit})),outputId,outputQty,outputUnit});
+  }
+  setWsRecipes(recs);
+  wrEditingId=recs[recs.length-1].id;
+  renderWsRecipeEditor();
+  renderIngredients();
+  toast('✅ Рецептура сохранена');
+}
+
+function deleteWsRecipe() {
+  if(!wrEditingId) return;
+  if(!confirm('Удалить рецепт?')) return;
+  setWsRecipes(getWsRecipes().filter(r=>r.id!==wrEditingId));
+  wrEditingId=null; wrIngs=[];
+  renderWsRecipeEditor();
+  renderIngredients();
 }
 
 function deleteIngById(id) {
