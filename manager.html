@@ -485,15 +485,43 @@ function orderPlace() {
   orders.push(order); setOrders(orders); autoDeductForOrder(cart); cartClear(); renderOrders(); updateDashboard();
   toast('✅ Заказ #'+num+' принят — '+fmt(total)+' тг');
 }
-function renderOrders() {
-  const orders=getOrders(); const active=orders.filter(o=>o.status==='new'||o.status==='cook');
+// Серверные заказы витрины → вид для UI (id/num/status/items/total/ts/time/date).
+function serverToView(o) {
+  const ts=Number(o&&o.ts)||0;
+  const t=ts?new Date(ts):null;
+  return {
+    id:o&&o.id, num:o&&o.num, status:o&&o.status,
+    items:(o&&Array.isArray(o.data&&o.data.items))?o.data.items:[],
+    total:serverOrderTotal(o),
+    ts:ts,
+    time:t?t.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'}):'',
+    date:t?t.toLocaleDateString('ru',{day:'numeric',month:'short'}):''
+  };
+}
+async function renderOrders() {
+  const src=await fetchServerOrders();
+  const orders=src===null?getOrders():src.map(serverToView);
+  const active=orders.filter(o=>o.status==='new'||o.status==='cook');
   const el=document.getElementById('orders-active');
   if(el) el.innerHTML=active.length?[...active].reverse().map(o=>`<div class="order-card"><div class="order-head"><span class="order-num">#${o.num}</span><span class="badge ${STATUS_CLASS[o.status]}">${STATUS_LABEL[o.status]}</span><span class="order-time">${o.time}</span></div><div class="order-items">${(Array.isArray(o.items)?o.items:[]).map(i=>i.name+' ×'+i.qty).join(', ')}</div><div class="order-foot"><span class="order-total">${fmt(o.total)} тг</span><div style="display:flex;gap:4px"><button class="btn btn-sm" onclick="setOrderStatus(${o.id},'cook')">🍳</button><button class="btn btn-sm btn-primary" onclick="setOrderStatus(${o.id},'done')">✓ Готово</button><button class="btn btn-sm btn-ghost" onclick="setOrderStatus(${o.id},'cancel')">✕</button></div></div></div>`).join(''):'<div style="padding:16px;color:var(--muted);text-align:center;font-size:13px">Нет активных заказов</div>';
   const tbody=document.getElementById('orders-all');
   if(tbody) tbody.innerHTML=[...orders].reverse().map(o=>`<tr><td style="font-weight:700">#${o.num}</td><td>${o.time}</td><td style="color:var(--muted)">${(Array.isArray(o.items)?o.items:[]).map(i=>i.name+'×'+i.qty).join(', ')}</td><td style="font-weight:600;color:var(--orange)">${fmt(o.total)} тг</td><td><span class="badge ${STATUS_CLASS[o.status]}">${STATUS_LABEL[o.status]}</span></td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px">Нет заказов</td></tr>';
   const nb=document.getElementById('nb-new'); if(nb){nb.textContent=active.length;nb.style.display=active.length?'':'none';}
 }
-function setOrderStatus(id,status) { const orders=getOrders(); const o=orders.find(o=>o.id===id); if(o) o.status=status; setOrders(orders); renderOrders(); updateDashboard(); }
+async function setOrderStatus(id,status) {
+  const API=window.YAYA_API||DED_API_FALLBACK;
+  const token=localStorage.getItem('yaya_key')||'';
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),10000);
+  try {
+    const r=await fetch(API+'/orders/'+id+'/status',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':token},body:JSON.stringify({status}),cache:'no-store',signal:ctrl.signal});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    toast('✅ Заказ #'+id+' → '+STATUS_LABEL[status]);
+    renderOrders(); updateDashboard();
+  } catch(e) {
+    toast('❌ Сервер недоступен: статус не изменён');
+  } finally { clearTimeout(timer); }
+}
 // Серверные заказы витрины: источник истины для дашборда (выручка/кол-во за день).
 // При недоступности сервера — фолбэк на localStorage (ручные заказы кабинета).
 async function fetchServerOrders() {
@@ -647,11 +675,25 @@ function renderDeductions() {
 }
 
 // ── ОТЧЁТЫ ───────────────────────────────────────────────────────────
-function renderReports() {
+async function renderReports() {
   ensureDedLoaded();
-  const orders=getOrders(); const today=todayStr();
-  const todayOrders=orders.filter(o=>o.date===today&&o.status!=='cancel');
-  const rev=todayOrders.reduce((s,o)=>s+o.total,0); const avg=todayOrders.length?Math.round(rev/todayOrders.length):0;
+  const today=todayStr();
+  const src=await fetchServerOrders();
+  let todayOrders, rev;
+  if(src!==null){
+    // «сегодня» — по ts в текущих сутках (локальное время), как в updateDashboard; отменённые не считаем
+    const now=new Date();
+    const dayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
+    const dayEnd=dayStart+24*3600*1000;
+    todayOrders=src.map(serverToView).filter(o=>o.ts&&o.ts>=dayStart&&o.ts<dayEnd&&o.status!=='cancel');
+    rev=todayOrders.reduce((s,o)=>s+o.total,0);
+  } else {
+    // фолбэк: сервер недоступен — прежний расчёт из localStorage
+    const orders=getOrders();
+    todayOrders=orders.filter(o=>o.date===today&&o.status!=='cancel');
+    rev=todayOrders.reduce((s,o)=>s+o.total,0);
+  }
+  const avg=todayOrders.length?Math.round(rev/todayOrders.length):0;
   document.getElementById('r-rev').textContent=fmt(rev)+' тг'; document.getElementById('r-orders').textContent=todayOrders.length; document.getElementById('r-avg').textContent=fmt(avg)+' тг'; document.getElementById('r-ded').textContent=mergeDed().filter(d=>d.date===today).length;
   const cnt={};todayOrders.forEach(o=>{(Array.isArray(o.items)?o.items:[]).forEach(it=>{cnt[it.name]=(cnt[it.name]||0)+it.qty;});});
   const sorted=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,10);
