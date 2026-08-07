@@ -356,7 +356,7 @@ function cookPreview(){
   const tc=getTechCards(),id=$('cook-dish').value,r=tc[id],el=$('cook-prev');
   if(!r){el.innerHTML='<div class="empty-mini">Нет техкарты</div>';el.style.borderLeftColor='var(--muted2)';return;}
   const all=[...getStock(),...getWsStock()];let ok=true;
-  const rows=r.map(it=>{const ing=all.find(i=>i.id===it.ingId),need=it.qty*cookQty,en=ing&&ing.qty>=need;if(!en)ok=false;return `<div class="r" style="color:${en?'var(--text)':'var(--red)'}"><span>${ing?ing.name:it.ingId}</span><span>${need.toFixed(3)} ${it.unit} ${en?'✓':'⚠ мало'}</span></div>`;}).join('');
+  const rows=(Array.isArray(r)?r:[]).map(it=>{const ing=all.find(i=>i.id===it.ingId),need=it.qty*cookQty,en=ing&&ing.qty>=need;if(!en)ok=false;return `<div class="r" style="color:${en?'var(--text)':'var(--red)'}"><span>${ing?ing.name:it.ingId}</span><span>${need.toFixed(3)} ${it.unit} ${en?'✓':'⚠ мало'}</span></div>`;}).join('');
   el.innerHTML=`<div class="h">Потребуется (${cookQty} порц.)</div>${rows}<div class="out"><span>Выход</span><span>${cookQty} порц.</span></div>`;
   el.style.borderLeftColor=ok?'var(--green)':'var(--red)';
 }
@@ -364,8 +364,8 @@ function cook(){
   const tc=getTechCards(),id=$('cook-dish').value,r=tc[id];
   if(!r||!r.length){toast('warn','Нет техкарты','Заполните в разделе Техкарты');return;}
   const dish=findMenuItem(id),stock=getStock(),ws=getWsStock(),ded=getDeductions();let spentKg=0;
-  for(const it of r){const need=it.qty*cookQty,ing=stock.find(i=>i.id===it.ingId)||ws.find(w=>w.id===it.ingId);if(!ing||ing.qty<need){toast('error','Недостаточно',(ing?ing.name:it.ingId));return;}}
-  r.forEach(it=>{const need=it.qty*cookQty,w=ws.find(x=>x.id===it.ingId);if(w){w.qty=Math.max(0,w.qty-need);if(it.unit==='кг'||it.unit==='л')spentKg+=need;ded.push({date:todayStr(),time:nowStr(),ing:'[ПФ] '+w.name,qty:(-need).toFixed(3),unit:it.unit,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'});return;}const raw=stock.find(i=>i.id===it.ingId);if(raw){raw.qty=Math.max(0,raw.qty-need);if(it.unit==='кг'||it.unit==='л')spentKg+=need;ded.push({date:todayStr(),time:nowStr(),ing:raw.name,qty:(-need).toFixed(3),unit:it.unit,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'});}});
+  for(const it of (Array.isArray(r)?r:[])){const need=it.qty*cookQty,ing=stock.find(i=>i.id===it.ingId)||ws.find(w=>w.id===it.ingId);if(!ing||ing.qty<need){toast('error','Недостаточно',(ing?ing.name:it.ingId));return;}}
+  (Array.isArray(r)?r:[]).forEach(it=>{const need=it.qty*cookQty,w=ws.find(x=>x.id===it.ingId);if(w){w.qty=Math.max(0,w.qty-need);if(it.unit==='кг'||it.unit==='л')spentKg+=need;ded.push({date:todayStr(),time:nowStr(),ing:'[ПФ] '+w.name,qty:(-need).toFixed(3),unit:it.unit,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'});return;}const raw=stock.find(i=>i.id===it.ingId);if(raw){raw.qty=Math.max(0,raw.qty-need);if(it.unit==='кг'||it.unit==='л')spentKg+=need;ded.push({date:todayStr(),time:nowStr(),ing:raw.name,qty:(-need).toFixed(3),unit:it.unit,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'});}});
   setStock(stock);setWsStock(ws);setDeductions(ded);
   const log=getCookLog();log.unshift({date:todayStr(),time:nowStr(),dishId:id,name:dish.name,emoji:dish.emoji,qty:cookQty,spentKg});setCookLog(log);
   toast('success','Приготовлено',(dish.emoji||'')+' '+dish.name+' ×'+cookQty);renderCook();

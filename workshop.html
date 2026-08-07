@@ -762,7 +762,7 @@ function updateProdPreview() {
   const stock = getStock();
   let html = `<div style="margin-bottom:6px;font-weight:600;font-size:12px;color:var(--muted)">ПОТРЕБУЕТСЯ СЫРЬЯ (на ${batches} партий):</div>`;
   let canProduce = true;
-  recipe.items.forEach(it => {
+  (Array.isArray(recipe.items)?recipe.items:[]).forEach(it => {
     const ing = stock.find(i => i.id === it.ingId);
     const need = it.qty * batches;
     const ok = ing && ing.qty >= need;
@@ -789,7 +789,7 @@ function produce() {
   let spentKg = 0;
 
   // Check availability
-  for (const it of recipe.items) {
+  for (const it of (Array.isArray(recipe.items)?recipe.items:[])) {
     const ing = stock.find(i => i.id === it.ingId);
     if (!ing || ing.qty < it.qty * batches) {
       toast('❗ Недостаточно: ' + (ing?.name || it.ingId));
@@ -798,7 +798,7 @@ function produce() {
   }
 
   // Deduct
-  recipe.items.forEach(it => {
+  (Array.isArray(recipe.items)?recipe.items:[]).forEach(it => {
     const ing = stock.find(i => i.id === it.ingId);
     const amount = it.qty * batches;
     ing.qty = Math.max(0, ing.qty - amount);
@@ -1213,7 +1213,7 @@ function renderRecipes() {
   const wsStock = getWsStock();
   const stock = getStock();
   el.innerHTML = recipes.map(r => {
-    const ingHtml = r.items.map(it => {
+    const ingHtml = (Array.isArray(r.items)?r.items:[]).map(it => {
       const ing = stock.find(i => i.id === it.ingId);
       return `<div class="recipe-ing">${ing?ing.name:'?'}: <strong>${it.qty} ${it.unit}</strong></div>`;
     }).join('');
@@ -1349,7 +1349,7 @@ function wsIRenderStock() {
   const recipes = getWsRecipes();
   const usageMap = {};
   recipes.forEach(r => {
-    r.items.forEach(item => {
+    (Array.isArray(r.items)?r.items:[]).forEach(item => {
       if (!usageMap[item.ingId]) usageMap[item.ingId] = [];
       usageMap[item.ingId].push('🏭 ' + r.name);
     });
@@ -1392,7 +1392,7 @@ function wsIRenderRecipes() {
   const allIng  = [...getStock(), ...getWsStock()];
   if (!recipes.length) { el.innerHTML = '<div style="color:var(--muted)">Нет рецептов</div>'; return; }
   el.innerHTML = recipes.map(r => {
-    const ingHtml = r.items.map(item => {
+    const ingHtml = (Array.isArray(r.items)?r.items:[]).map(item => {
       const ing = allIng.find(i => i.id === item.ingId);
       const low = ing && ing.qty < ing.min;
       return `<span style="color:${low ? 'var(--red)' : 'var(--muted)'};font-size:11px">${ing ? ing.name : '?'} ${item.qty}${item.unit}</span>`;

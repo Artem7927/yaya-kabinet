@@ -673,7 +673,7 @@ function setStatus(id,st){
 }
 function orderCard(o){
   const cls=o.status==='cook'?'cook':(o.status==='new'?'new':'');
-  const st=STATUS[o.status]||STATUS.new, cnt=o.items.reduce((s,i)=>s+i.qty,0);
+  const st=STATUS[o.status]||STATUS.new, cnt=(Array.isArray(o.items)?o.items:[]).reduce((s,i)=>s+i.qty,0);
   const typeL=o.type==='pickup'?'Самовывоз':'Доставка', nm=o.name||'Гость';
   const ph=o.phone?`<span class="ophone">${o.phone}</span>`:'';
   let acts='';
@@ -849,7 +849,7 @@ function renderReports(){
   $('rep-cnt').textContent=orders.length; repDelta('rep-cnt-d',orders.length,yOrd.length);
   $('rep-avg').textContent=money(orders.length?Math.round(rev/orders.length):0);
   $('rep-ded').textContent=ded;
-  const map={};orders.forEach(o=>o.items.forEach(i=>{if(!map[i.name])map[i.name]={q:0,s:0};map[i.name].q+=i.qty;map[i.name].s+=i.qty*i.price;}));
+  const map={};orders.forEach(o=>{(Array.isArray(o.items)?o.items:[]).forEach(i=>{if(!map[i.name])map[i.name]={q:0,s:0};map[i.name].q+=i.qty;map[i.name].s+=i.qty*i.price;});});
   const top=Object.entries(map).sort((a,b)=>b[1].s-a[1].s).slice(0,10);
   const max=top.length?top[0][1].s:1;
   $('rep-top').innerHTML=top.length?top.map(([n,v],i)=>`<div class="top">
