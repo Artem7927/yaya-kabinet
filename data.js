@@ -393,7 +393,7 @@ function getStock()      { return lsGet('yaya_stock_v3',     DEFAULT_STOCK); }
 function setStock(v)     { lsSet('yaya_stock_v3', v); }
 function getTechCards()  { return lsGet('yaya_tech_v3',      DEFAULT_TECH_CARDS); }
 function setTechCards(v) { lsSet('yaya_tech_v3', v); }
-function getOrders()     { return lsGet('yaya_orders',       []); }
+function getOrders()     { const a=lsGet('yaya_orders',[]); return (Array.isArray(a)?a:[]).map(o=>({...o,items:Array.isArray(o.items)?o.items:[],total:Number(o.total)||0})); }
 function setOrders(v)    { lsSet('yaya_orders', v); }
 function getStopList()   { return lsGet('yaya_stoplist',     []); }
 function setStopList(v)  { lsSet('yaya_stoplist', v); }

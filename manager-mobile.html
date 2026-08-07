@@ -545,7 +545,7 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
   if(typeof getOrders!=='function'){
     const g=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}};
     const s=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
-    window.getOrders=()=>g('yaya_orders',[]);window.setOrders=v=>s('yaya_orders',v);
+    window.getOrders=()=>{const a=g('yaya_orders',[]);return (Array.isArray(a)?a:[]).map(o=>({...o,items:Array.isArray(o.items)?o.items:[],total:Number(o.total)||0}));};window.setOrders=v=>s('yaya_orders',v);
     window.getStock=()=>g('yaya_stock_v3',[]);window.setStock=v=>s('yaya_stock_v3',v);
     window.getWsStock=()=>g('yaya_wsstock_v3',[]);window.setWsStock=v=>s('yaya_wsstock_v3',v);
     window.getStopList=()=>g('yaya_stoplist',[]);window.setStopList=v=>s('yaya_stoplist',v);
