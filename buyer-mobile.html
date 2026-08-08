@@ -328,7 +328,7 @@ function needQty(i){const t=(i.max!=null?i.max:i.min);return Math.max(0,Math.rou
 /* СЕРВЕР — источник заявки (фолбэк на локальный кэш) */
 const YAYA_API=window.YAYA_API||'https://yaya-db-production.up.railway.app';
 const yTok=()=>localStorage.getItem('yaya_key')||'';
-let _stockCache=null,_stockCacheT=0,_pfCache=null,_pfCacheT=0,_localFreshT=0;
+let _stockCache=null,_stockCacheT=0,_pfCache=null,_pfCacheT=0,_localFreshT=0,_purchBusy=false;
 async function fetchJson(url){
   const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),10000);
   try{const r=await fetch(YAYA_API+url,{headers:{'X-Admin-Token':yTok()},cache:'no-store',signal:ctrl.signal});if(!r.ok)return null;const d=await r.json();return d&&d.ok?d.items:null;}
@@ -425,18 +425,37 @@ function openPurch(id){
 }
 function onPhoto(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=1000,sc=Math.min(1,max/Math.max(img.width,img.height)),cv=document.createElement('canvas');cv.width=img.width*sc;cv.height=img.height*sc;cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);_photo=cv.toDataURL('image/jpeg',0.6);$('pu-photo-img').src=_photo;$('pu-photo-prev').style.display='block';$('pu-photo-btn').style.display='none';};img.src=r.result;};r.readAsDataURL(f);}
 function clearPhoto(){_photo=null;$('pu-photo').value='';$('pu-photo-prev').style.display='none';$('pu-photo-btn').style.display='flex';}
-function savePurch(){
+async function savePurch(){
   const id=$('pu-ing').value,qty=parseFloat($('pu-qty').value)||0,unit=$('pu-unit').value,price=parseFloat($('pu-price').value)||0,supplier=$('pu-supplier').value.trim();
   if(!id||qty<=0){toast('warn','Заполните позицию и количество','');return;}
-  const stock=getStock(),ing=stock.find(i=>i.id===id);if(!ing)return;
-  ing.qty+=qty;if(!ing.max||ing.qty>ing.max)ing.max=ing.qty;setStock(stock);
-  const pid='p'+Date.now(),loc=ing.location||'workshop';
-  const purch=getPurchases();purch.unshift({id:pid,date:todayStr(),time:nowStr(),ing:ing.name,location:loc,qty:qty.toFixed(2),unit,price,total:price*qty,supplier,note:'',hasReceipt:!!_photo});setPurchases(purch);
-  const ded=getDeductions();ded.push({date:todayStr(),time:nowStr(),ing:ing.name,qty:'+'+qty.toFixed(2),unit,reason:'Закупка ('+locName(loc)+')',emp:'Закупщик'});setDeductions(ded);
-  if(_photo){const rec=getReceipts();rec.push({id:'r'+Date.now(),purchaseId:pid,date:todayStr(),time:nowStr(),supplier,ing:ing.name,location:loc,data:_photo});setReceipts(rec);}
-  if(supplier){const sup=getSuppliers();if(!sup.find(s=>s.name===supplier)){sup.push({name:supplier,info:''});setSuppliers(sup);}}
-  clearPhoto();closeSheet();_localFreshT=Date.now();renderBuy();
-  toast('success','Закупка записана',ing.name+' +'+qty+unit+' · '+money(price*qty)+(_photo?' 🧾':''));
+  if(_purchBusy)return;_purchBusy=true;
+  try{
+    const stock=getStock(),ing=stock.find(i=>i.id===id);if(!ing)return;
+    let serverOk=false,errMsg='';
+    try{
+      const r=await fetch(YAYA_API+'/stock/'+encodeURIComponent(id)+'/receive',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},
+        body:JSON.stringify({qty:Number(qty),price:Number(price)||0,supplier:supplier||'',note:'',media:_photo?[{kind:'receipt',url:_photo}]:[]}),
+        cache:'no-store'
+      });
+      let d=null;try{d=await r.json();}catch(e){}
+      serverOk=!!(r.ok&&d&&d.ok);
+      if(!serverOk)errMsg=(d&&d.error)||('HTTP '+r.status);
+    }catch(e){errMsg=e.message||String(e);}
+    ing.qty+=qty;if(!ing.max||ing.qty>ing.max)ing.max=ing.qty;setStock(stock);
+    const pid='p'+Date.now(),loc=ing.location||'workshop';
+    const purch=getPurchases();purch.unshift({id:pid,date:todayStr(),time:nowStr(),ing:ing.name,location:loc,qty:qty.toFixed(2),unit,price,total:price*qty,supplier,note:'',hasReceipt:!!_photo});setPurchases(purch);
+    const ded=getDeductions();ded.push({date:todayStr(),time:nowStr(),ing:ing.name,qty:'+'+qty.toFixed(2),unit,reason:'Закупка ('+locName(loc)+')',emp:'Закупщик'});setDeductions(ded);
+    if(_photo){const rec=getReceipts();rec.push({id:'r'+Date.now(),purchaseId:pid,date:todayStr(),time:nowStr(),supplier,ing:ing.name,location:loc,data:_photo});setReceipts(rec);}
+    if(supplier){const sup=getSuppliers();if(!sup.find(s=>s.name===supplier)){sup.push({name:supplier,info:''});setSuppliers(sup);}}
+    _stockCache=null;
+    clearPhoto();closeSheet();_localFreshT=Date.now();renderBuy();
+    if(serverOk)toast('success','Закупка записана',ing.name+' +'+qty+unit+' · '+money(price*qty)+(_photo?' 🧾':''));
+    else toast('warn','Сохранено локально, но НЕ на сервере',errMsg+' — повторите позже');
+  }finally{
+    _purchBusy=false;
+  }
 }
 
 /* ЖУРНАЛ */
