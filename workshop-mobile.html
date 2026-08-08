@@ -357,7 +357,7 @@ function stockRow(i,tap){const st=statusOf(i),pct=Math.min(100,(i.qty/(i.max||Ma
 /* СЕРВЕР — источник остатков (фолбэк на локальный кэш) */
 const YAYA_API=window.YAYA_API||'https://yaya-db-production.up.railway.app';
 const yTok=()=>localStorage.getItem('yaya_key')||'';
-let _stockCache=null,_stockCacheT=0,_pfCache=null,_pfCacheT=0;
+let _stockCache=null,_stockCacheT=0,_pfCache=null,_pfCacheT=0,_prodBusy=false,_adjBusy=false,_trBusy=false;
 async function fetchJson(url){
   const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),10000);
   try{const r=await fetch(YAYA_API+url,{headers:{'X-Admin-Token':yTok()},cache:'no-store',signal:ctrl.signal});if(!r.ok)return null;const d=await r.json();return d&&d.ok?d.items:null;}
@@ -387,16 +387,25 @@ async function prodPreview(){
   el.innerHTML=`<div class="h">Потребуется сырья (${batches} партий)</div>${rows}<div class="out"><span>Выход</span><span>${r.outputQty*batches} ${r.outputUnit}</span></div>`;
   el.style.borderLeftColor=ok?'var(--green)':'var(--red)';
 }
-function produce(){
+async function produce(){
   const rec=getWsRecipes(),r=rec.find(x=>x.id===$('prod-recipe').value);if(!r){toast('warn','Выберите рецепт','');return;}
-  const stock=getStock();
-  for(const it of (Array.isArray(r.items)?r.items:[])){const ing=stock.find(i=>i.id===it.ingId);if(!ing||ing.qty<it.qty*batches){toast('error','Недостаточно сырья',(ing?ing.name:it.ingId));return;}}
-  const ded=getDeductions();let spentKg=0;
-  (Array.isArray(r.items)?r.items:[]).forEach(it=>{const ing=stock.find(i=>i.id===it.ingId),amt=it.qty*batches;ing.qty=Math.max(0,ing.qty-amt);if(it.unit==='кг'||it.unit==='л')spentKg+=amt;ded.push({date:todayStr(),time:nowStr(),ing:ing.name,qty:amt.toFixed(2),unit:it.unit,reason:'Производство: '+r.name,emp:'Цех'});});
-  setStock(stock);setDeductions(ded);
-  const ws=getWsStock(),w=ws.find(x=>x.id===r.outputId);if(w)w.qty+=r.outputQty*batches;setWsStock(ws);
-  const log=getWsLog();log.unshift({date:todayStr(),time:nowStr(),name:r.name,batches,qty:r.outputQty*batches,unit:r.outputUnit,spentKg});setWsLog(log);
-  toast('success','Произведено',r.name+' +'+(r.outputQty*batches)+' '+r.outputUnit);renderProd();
+  if(_prodBusy)return;_prodBusy=true;
+  try{
+    let ok=false,errMsg='';
+    try{
+      const res=await fetch(YAYA_API+'/produce',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({recipeId:r.id,batches}),cache:'no-store'});
+      let d=null;try{d=await res.json();}catch(e){}
+      ok=!!(res.ok&&d&&d.ok);
+      if(!ok)errMsg=(d&&d.error)||('HTTP '+res.status);
+    }catch(e){errMsg=e.message||String(e);}
+    if(ok){
+      _stockCache=null;_pfCache=null;
+      const spentKg=(Array.isArray(r.items)?r.items:[]).reduce((s,it)=>s+(it.unit==='кг'||it.unit==='л'?it.qty*batches:0),0);
+      const log=getWsLog();log.unshift({date:todayStr(),time:nowStr(),name:r.name,batches,qty:r.outputQty*batches,unit:r.outputUnit,spentKg});setWsLog(log);
+      renderProd();
+      toast('success','Произведено',r.name+' +'+(r.outputQty*batches)+' '+r.outputUnit);
+    }else{toast('error','Не произведено',errMsg);}
+  }finally{_prodBusy=false;}
 }
 
 /* СКЛАД */
@@ -404,11 +413,47 @@ function stockSeg(v){stockView=v;$('sg-raw').classList.toggle('on',v==='raw');$(
 function renderStock(){if(stockView==='raw')renderRaw(window._rawQ||'');else renderPf();updCrit();}
 async function renderRaw(q){window._rawQ=q||'';q=(q||'').toLowerCase();const stock=(await fetchStockSrv())||getStock().filter(i=>(!i.location||i.location==='workshop'));let items=stock;if(q)items=items.filter(i=>i.name.toLowerCase().includes(q));items.sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));$('raw-list').innerHTML=items.map(i=>stockRow(i,`openAdj('${i.id}')`)).join('')||'<div class="empty-mini">Ничего не найдено</div>';}
 async function renderPf(){const ws=(await fetchPfSrv())||getWsStock();$('pf-list').innerHTML=ws.length?ws.map(w=>{const col=w.qty<=0?'var(--red)':w.qty<10?'var(--amber)':'var(--teal)';return `<div class="irow"><div class="top"><div class="inm">${w.name}</div><div class="iq" style="color:${col}">${parseFloat(w.qty.toFixed(2))}${w.unit}</div><div class="ist muted">полуф.</div></div></div>`;}).join(''):'<div class="empty-mini">Нет полуфабрикатов</div>';}
-function openAdj(id){const raw=getStock().filter(i=>(!i.location||i.location==='workshop'));$('adj-item').innerHTML=raw.map(i=>`<option value="${i.id}">${i.name} (${i.qty.toFixed(1)}${i.unit})</option>`).join('');if(id)$('adj-item').value=id;$('adj-qty').value=1;adjHint();openSheet('sh-adj');}
+async function openAdj(id){const raw=(await fetchStockSrv())||getStock().filter(i=>(!i.location||i.location==='workshop'));$('adj-item').innerHTML=raw.map(i=>`<option value="${i.id}">${i.name} (${i.qty.toFixed(1)}${i.unit})</option>`).join('');if(id)$('adj-item').value=id;$('adj-qty').value=1;adjHint();openSheet('sh-adj');}
 function adjHint(){const r=$('adj-reason').value;const l=$('adj-qlbl'),h=$('adj-hint');if(r==='Внутренний приход'){l.textContent='Количество для добавления';h.textContent='Добавится на склад цеха';h.style.color='var(--green)';}else if(r==='Пересчёт'){l.textContent='Новое точное количество';h.textContent='Установит точный остаток';h.style.color='var(--blue)';}else{l.textContent='Количество для списания';h.textContent='Спишется со склада цеха';h.style.color='var(--red)';}}
-function applyAdj(){const id=$('adj-item').value,qty=parseFloat($('adj-qty').value)||0,reason=$('adj-reason').value;if(qty===0){toast('warn','Введите количество','');return;}const stock=getStock(),ing=stock.find(i=>i.id===id);if(!ing)return;let delta;if(reason==='Пересчёт'){delta=qty-ing.qty;ing.qty=qty;if(qty>(ing.max||0))ing.max=qty;}else if(reason==='Внутренний приход'){delta=qty;ing.qty+=qty;if(ing.qty>(ing.max||0))ing.max=ing.qty;}else{if(ing.qty<qty){toast('error','Недостаточно',ing.name+': '+ing.qty+ing.unit);return;}delta=-qty;ing.qty=Math.max(0,ing.qty-qty);}setStock(stock);const ded=getDeductions();ded.push({date:todayStr(),time:nowStr(),ing:ing.name,qty:(delta>0?'+':'')+delta.toFixed(2),unit:ing.unit,reason,emp:'Цех'});setDeductions(ded);closeSheet();renderStock();toast('success',reason,ing.name+' '+(delta>0?'+':'')+delta.toFixed(2)+ing.unit);}
-function openTransfer(){const ws=getWsStock();$('tr-item').innerHTML=ws.map(w=>`<option value="${w.id}">${w.name} (${parseFloat(w.qty.toFixed(2))}${w.unit})</option>`).join('');const kit=getStock().filter(i=>i.location==='kitchen');$('tr-main').innerHTML='<option value="">— не добавлять —</option>'+kit.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');$('tr-qty').value=1;openSheet('sh-transfer');}
-function doTransfer(){const id=$('tr-item').value,qty=parseFloat($('tr-qty').value)||0,mainId=$('tr-main').value;if(qty<=0){toast('warn','Введите количество','');return;}const ws=getWsStock(),w=ws.find(x=>x.id===id);if(!w)return;if(w.qty<qty){toast('error','Мало на складе',w.name+': '+w.qty+w.unit);return;}w.qty=Math.max(0,w.qty-qty);setWsStock(ws);let toName='—';if(mainId){const st=getStock(),ing=st.find(i=>i.id===mainId);if(ing){ing.qty+=qty;if(ing.qty>(ing.max||0))ing.max=ing.qty;setStock(st);toName=ing.name;}}const tr=getTransfers();tr.push({date:todayStr(),time:nowStr(),dir:'ws-ks',from:w.name,to:toName,qty:qty.toFixed(2),unit:w.unit,note:'',emp:'Цех'});setTransfers(tr);const ded=getDeductions();ded.push({date:todayStr(),time:nowStr(),ing:'[ЦЕХ→КУХНЯ] '+w.name,qty:'+'+qty.toFixed(2),unit:w.unit,reason:'Передача: Цех → Кухня',emp:'Цех'});setDeductions(ded);closeSheet();renderStock();toast('success','Передано на кухню',w.name+' +'+qty+w.unit);}
+async function applyAdj(){
+  const id=$('adj-item').value,qty=parseFloat($('adj-qty').value)||0,reason=$('adj-reason').value;
+  if(qty===0){toast('warn','Введите количество','');return;}
+  if(_adjBusy)return;_adjBusy=true;
+  try{
+    const src=(await fetchStockSrv())||getStock();const ing=src.find(i=>i.id===id);
+    if(!ing){toast('error','Позиция не найдена','');return;}
+    let body,msg;
+    if(reason==='Пересчёт'){body={qty:qty,reason:'Пересчёт',emp:'Цех'};msg='= '+qty;}
+    else if(reason==='Внутренний приход'){body={delta:qty,reason:'Внутренний приход',emp:'Цех'};msg='+ '+qty;}
+    else{if(Number(ing.qty)<qty){toast('error','Недостаточно',ing.name+': '+ing.qty+ing.unit);return;}body={delta:-qty,reason,emp:'Цех'};msg='− '+qty;}
+    let ok=false,errMsg='';
+    try{
+      const res=await fetch(YAYA_API+'/stock/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify(body),cache:'no-store'});
+      let d=null;try{d=await res.json();}catch(e){}
+      ok=!!(res.ok&&d&&d.ok);
+      if(!ok)errMsg=(d&&d.error)||('HTTP '+res.status);
+    }catch(e){errMsg=e.message||String(e);}
+    if(ok){_stockCache=null;closeSheet();renderStock();toast('success',reason,ing.name+' '+msg+ing.unit);}
+    else{toast('warn','Не сохранено на сервере',errMsg+' — повторите');}
+  }finally{_adjBusy=false;}
+}
+async function openTransfer(){const pf=(await fetchPfSrv())||getWsStock();$('tr-item').innerHTML=pf.map(w=>`<option value="${w.id}">${w.name} (${parseFloat(w.qty.toFixed(2))}${w.unit})</option>`).join('');const kit=getStock().filter(i=>i.location==='kitchen');$('tr-main').innerHTML='<option value="">— не добавлять —</option>'+kit.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');$('tr-qty').value=1;openSheet('sh-transfer');}
+async function doTransfer(){
+  const id=$('tr-item').value,qty=parseFloat($('tr-qty').value)||0;
+  if(qty<=0){toast('warn','Введите количество','');return;}
+  if(_trBusy)return;_trBusy=true;
+  try{
+    let ok=false,errMsg='';
+    try{
+      const res=await fetch(YAYA_API+'/transfer',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({dir:'ws-ks',fromId:id,qty}),cache:'no-store'});
+      let d=null;try{d=await res.json();}catch(e){}
+      ok=!!(res.ok&&d&&d.ok);
+      if(!ok)errMsg=(d&&d.error)||('HTTP '+res.status);
+    }catch(e){errMsg=e.message||String(e);}
+    if(ok){_pfCache=null;closeSheet();renderStock();toast('success','Передано на кухню',qty+' шт.');}
+    else{toast('warn','Не передано',errMsg);}
+  }finally{_trBusy=false;}
+}
 
 /* РЕЦЕПТЫ */
 function renderRecipes(){const rec=getWsRecipes(),stock=getStock();$('recipes-list').innerHTML=rec.length?rec.map(r=>{const ing=(Array.isArray(r.items)?r.items:[]).map(it=>{const i=stock.find(x=>x.id===it.ingId);return `${i?i.name:'?'}: <b>${it.qty}${it.unit}</b>`;}).join('<br>');return `<div class="rcard"><div class="rn">${r.name}</div><div class="rb"><div class="ri">${ing}</div><div class="ro"><div class="n">${r.outputQty}</div><div class="u">${r.outputUnit}/партия</div></div></div></div>`;}).join(''):'<div class="empty-mini">Рецептур пока нет</div>';}
