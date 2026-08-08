@@ -371,6 +371,11 @@ async function fetchJson(url){
 function normItems(items){return items.map(i=>({...i,qty:Number(i.qty)||0,min:Number(i.min)||0,crit:i.crit!=null?Number(i.crit)||0:0,max:i.max!=null?Number(i.max):null}));}
 async function fetchStockSrv(){const now=Date.now();if(_stockCache&&now-_stockCacheT<15000)return _stockCache;const it=await fetchJson('/stock?location=kitchen');if(it&&it.length){_stockCache=normItems(it);_stockCacheT=now;return _stockCache;}return null;}
 async function fetchPfSrv(){const now=Date.now();if(_pfCache&&now-_pfCacheT<15000)return _pfCache;const it=await fetchJson('/pf-stock');if(it&&it.length){_pfCache=normItems(it).filter(x=>(x.location||'')==='kitchen');_pfCacheT=now;return _pfCache;}return null;}
+async function availAll(){
+  const s=(await fetchStockSrv())||getStock().filter(i=>(i.location||'')==='kitchen');
+  const p=(await fetchPfSrv())||getWsStock();
+  return [...s,...p];
+}
 
 /* ПРИГОТОВЛЕНИЕ */
 function qtyStep(d){cookQty=Math.max(1,cookQty+d);$('cook-qty').textContent=cookQty;cookPreview();}
@@ -384,10 +389,10 @@ function renderCook(){
   $('cook-log').innerHTML=log.length?log.slice(0,25).map(l=>`<div class="jrow"><span class="jdot" style="background:var(--orange)"></span><div class="jinfo"><div class="jname">${l.emoji||''} ${l.name}</div><div class="jtime">${l.date} ${l.time}</div></div><div class="jval" style="color:var(--orange)">×${l.qty} порц.</div></div>`).join(''):'<div class="empty-mini">Приготовлений ещё не было</div>';
   updCrit();
 }
-function cookPreview(){
+async function cookPreview(){
   const tc=getTechCards(),id=$('cook-dish').value,r=tc[id],el=$('cook-prev');
   if(!r){el.innerHTML='<div class="empty-mini">Нет техкарты</div>';el.style.borderLeftColor='var(--muted2)';return;}
-  const all=[...getStock(),...getWsStock()];let ok=true;
+  const all=await availAll();let ok=true;
   const rows=(Array.isArray(r)?r:[]).map(it=>{const ing=all.find(i=>i.id===it.ingId),need=it.qty*cookQty,en=ing&&ing.qty>=need;if(!en)ok=false;return `<div class="r" style="color:${en?'var(--text)':'var(--red)'}"><span>${ing?ing.name:it.ingId}</span><span>${need.toFixed(3)} ${it.unit} ${en?'✓':'⚠ мало'}</span></div>`;}).join('');
   el.innerHTML=`<div class="h">Потребуется (${cookQty} порц.)</div>${rows}<div class="out"><span>Выход</span><span>${cookQty} порц.</span></div>`;
   el.style.borderLeftColor=ok?'var(--green)':'var(--red)';
@@ -466,8 +471,8 @@ function fillCalcDish(){
   if(prev&&withTC.find(m=>m.id===prev))sel.value=prev;
 }
 function calcStep(d){calcN=Math.max(1,calcN+d);$('calc-qty').textContent=calcN;calcDish();}
-function calcRowsHtml(rows,mult){
-  const all=[...getStock(),...getWsStock()];let okAll=true,kg=0;
+function calcRowsHtml(rows,mult,all){
+  let okAll=true,kg=0;
   const rowsHtml=(Array.isArray(rows)?rows:[]).map(r=>{
     const ing=all.find(x=>x.id===r.ingId),need=(r.qty||0)*mult,en=ing&&ing.qty>=need;
     if(!en)okAll=false;if((r.unit==='кг'||r.unit==='л'))kg+=need;
@@ -475,10 +480,11 @@ function calcRowsHtml(rows,mult){
   }).join('');
   return {rowsHtml,okAll,kg};
 }
-function calcDish(){
+async function calcDish(){
   const tc=getTechCards(),id=$('calc-dish-sel').value,r=tc[id],el=$('calc-dish-out');
   if(!r||!Array.isArray(r)||!r.length){el.innerHTML='<div class="empty-mini">⚠ Не заполнена. Обратитесь к менеджеру</div>';return;}
-  const res=calcRowsHtml(r,calcN);
+  const all=await availAll();
+  const res=calcRowsHtml(r,calcN,all);
   el.innerHTML=`<div class="prev" style="border-left-color:${res.okAll?'var(--green)':'var(--red)'}"><div class="h">Потребуется (${calcN} порц.)</div>${res.rowsHtml}<div class="out"><span>Итого расход</span><span>${res.kg.toFixed(3)} кг</span></div></div>`;
 }
 function fillCalcOrder(){
@@ -487,10 +493,11 @@ function fillCalcOrder(){
   sel.innerHTML=acts.length?acts.map(o=>`<option value="${o.id}">#${o.num} — ${(Array.isArray(o.items)?o.items:[]).length} поз.</option>`).join(''):'<option value="">Нет активных заказов</option>';
   if(prev&&acts.find(o=>String(o.id)===String(prev)))sel.value=prev;
 }
-function calcOrder(){
+async function calcOrder(){
   const sel=$('calc-order-sel'),id=sel.value,o=getOrders().find(x=>String(x.id)===String(id)),out=$('calc-order-out');
   if(!o){out.innerHTML='<div class="empty-mini">Выберите заказ</div>';return;}
-  const tc=getTechCards(),all=[...getStock(),...getWsStock()],acc={},noTc=[];
+  const tc=getTechCards(),acc={},noTc=[];
+  const all=await availAll();
   (Array.isArray(o.items)?o.items:[]).forEach(it=>{
     const rows=tc[it.id]||[];
     if(!rows.length){noTc.push(it);return;}
