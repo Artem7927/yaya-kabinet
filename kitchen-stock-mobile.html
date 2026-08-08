@@ -402,34 +402,20 @@ async function cook(){
   if(!r||!r.length){toast('warn','Нет техкарты','Заполните в разделе Техкарты');return;}
   if(_cookBusy)return;_cookBusy=true;
   try{
-    const dish=findMenuItem(id),ded=getDeductions();let spentKg=0;
+    const dish=findMenuItem(id);
     const raw=(await fetchStockSrv())||getStock().filter(i=>(i.location||'')==='kitchen');
     const pf =(await fetchPfSrv())||getWsStock();
-    const locate=id=>{const a=raw.find(i=>i.id===id);if(a)return{ing:a,kind:'raw'};const b=pf.find(i=>i.id===id);if(b)return{ing:b,kind:'pf'};return null;};
+    const locate=x=>raw.find(i=>i.id===x)||pf.find(i=>i.id===x)||null;
     const rows=Array.isArray(r)?r:[];
-    for(const it of rows){const need=it.qty*cookQty,f=locate(it.ingId);if(!f||f.ing.qty<need){toast('error','Недостаточно',(f?f.ing.name:it.ingId));return;}}
-    for(const it of rows){
-      const need=it.qty*cookQty,f=locate(it.ingId);
-      if(!f)continue;
-      if(f.kind==='pf'){
-        f.ing.qty=Math.max(0,f.ing.qty-need);
-        if(it.unit==='кг'||it.unit==='л')spentKg+=need;
-        ded.push({date:todayStr(),time:nowStr(),ing:'[ПФ] '+f.ing.name,qty:(-need).toFixed(3),unit:it.unit,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'});
-        continue;
-      }
-      let ok=false,errMsg='';
-      try{
-        const res=await fetch(YAYA_API+'/stock/'+encodeURIComponent(it.ingId),{method:'PATCH',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({delta:-need,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'}),cache:'no-store'});
-        let d=null;try{d=await res.json();}catch(e){}
-        ok=!!(res.ok&&d&&d.ok);
-        if(!ok)errMsg=(d&&d.error)||('HTTP '+res.status);
-      }catch(e){errMsg=e.message||String(e);}
-      if(!ok){toast('warn','Не сохранено на сервере',errMsg+' — повторите');renderStock();return;}
-      if(it.unit==='кг'||it.unit==='л')spentKg+=need;
-      ded.push({date:todayStr(),time:nowStr(),ing:f.ing.name,qty:(-need).toFixed(3),unit:it.unit,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'});
-    }
-    setWsStock(pf);
-    setDeductions(ded);
+    for(const it of rows){const need=it.qty*cookQty,ing=locate(it.ingId);if(!ing||ing.qty<need){toast('error','Недостаточно',(ing?ing.name:it.ingId));return;}}
+    let ok=false,errMsg='',spentKg=0;
+    try{
+      const res=await fetch(YAYA_API+'/cook',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({dishId:id,qty:cookQty,name:dish.name,emoji:dish.emoji}),cache:'no-store'});
+      let d=null;try{d=await res.json();}catch(e){}
+      ok=!!(res.ok&&d&&d.ok);
+      if(ok)spentKg=Number(d.spentKg)||0; else errMsg=(d&&d.error)||('HTTP '+res.status);
+    }catch(e){errMsg=e.message||String(e);}
+    if(!ok){toast('error','Не приготовлено',errMsg);renderStock();return;}
     _stockCache=null;_pfCache=null;
     const log=getCookLog();log.unshift({date:todayStr(),time:nowStr(),dishId:id,name:dish.name,emoji:dish.emoji,qty:cookQty,spentKg});setCookLog(log);
     toast('success','Приготовлено',(dish.emoji||'')+' '+dish.name+' ×'+cookQty);renderCook();renderStock();
