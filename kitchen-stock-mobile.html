@@ -354,10 +354,23 @@ function openDrawer(){$('dw-date').textContent=new Date().toLocaleDateString('ru
 function closeDrawer(){$('drawer').classList.remove('show');$('drawer-bg').classList.remove('show')}
 function openSheet(id){$(id).classList.add('show');$('sheet-bg').classList.add('show')}
 function closeSheet(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'));$('sheet-bg').classList.remove('show')}
-function critCount(){return getStock().filter(i=>i.location==='kitchen'&&i.qty<i.min).length}
-function updCrit(){const c=critCount(),b=$('crit-badge');b.textContent=c+' крит.';b.style.display=c?'inline-block':'none';}
+async function critCount(){const st=(await fetchStockSrv())||getStock();return st.filter(i=>i.location==='kitchen'&&i.qty<i.min).length}
+async function updCrit(){const c=await critCount(),b=$('crit-badge');b.textContent=c+' крит.';b.style.display=c?'inline-block':'none';}
 function statusOf(i){const crit=i.qty<i.min,low=i.qty<i.min*1.5;return crit?['Критично','var(--red)']:low?['Мало','var(--amber)']:['Норма','var(--green)'];}
 function stockRow(i,tap){const st=statusOf(i),pct=Math.min(100,(i.qty/(i.max||Math.max(i.qty,i.min*3,1)))*100);return `<div class="irow${tap?' tap':''}" ${tap?`onclick="${tap}"`:''}><div class="top"><div class="inm">${i.name}</div><div class="iq">${parseFloat(i.qty.toFixed(2))}${i.unit}</div><div class="ist" style="color:${st[1]}">${st[0]}</div></div><div class="ibar"><i style="width:${pct}%;background:${st[1]}"></i></div></div>`;}
+
+/* СЕРВЕР — источник остатков (фолбэк на локальный кэш) */
+const YAYA_API=window.YAYA_API||'https://yaya-db-production.up.railway.app';
+const yTok=()=>localStorage.getItem('yaya_key')||'';
+let _stockCache=null,_stockCacheT=0,_pfCache=null,_pfCacheT=0;
+async function fetchJson(url){
+  const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),10000);
+  try{const r=await fetch(YAYA_API+url,{headers:{'X-Admin-Token':yTok()},cache:'no-store',signal:ctrl.signal});if(!r.ok)return null;const d=await r.json();return d&&d.ok?d.items:null;}
+  catch(e){return null;}finally{clearTimeout(t);}
+}
+function normItems(items){return items.map(i=>({...i,qty:Number(i.qty)||0,min:Number(i.min)||0,crit:i.crit!=null?Number(i.crit)||0:0,max:i.max!=null?Number(i.max):null}));}
+async function fetchStockSrv(){const now=Date.now();if(_stockCache&&now-_stockCacheT<15000)return _stockCache;const it=await fetchJson('/stock?location=kitchen');if(it&&it.length){_stockCache=normItems(it);_stockCacheT=now;return _stockCache;}return null;}
+async function fetchPfSrv(){const now=Date.now();if(_pfCache&&now-_pfCacheT<15000)return _pfCache;const it=await fetchJson('/pf-stock');if(it&&it.length){_pfCache=normItems(it).filter(x=>(x.location||'')==='kitchen');_pfCacheT=now;return _pfCache;}return null;}
 
 /* ПРИГОТОВЛЕНИЕ */
 function qtyStep(d){cookQty=Math.max(1,cookQty+d);$('cook-qty').textContent=cookQty;cookPreview();}
@@ -393,8 +406,8 @@ function cook(){
 /* СКЛАД */
 function stockSeg(v){stockView=v;$('sg-raw').classList.toggle('on',v==='raw');$('sg-pf').classList.toggle('on',v==='pf');$('stock-raw').style.display=v==='raw'?'':'none';$('stock-pf').style.display=v==='pf'?'':'none';renderStock();}
 function renderStock(){if(stockView==='raw')renderRaw(window._rawQ||'');else renderPf();updCrit();}
-function renderRaw(q){window._rawQ=q||'';q=(q||'').toLowerCase();let items=getStock().filter(i=>i.location==='kitchen');if(q)items=items.filter(i=>i.name.toLowerCase().includes(q));items.sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));$('raw-list').innerHTML=items.map(i=>stockRow(i,`openAdj('${i.id}')`)).join('')||'<div class="empty-mini">Ничего не найдено</div>';}
-function renderPf(){const ws=getWsStock();$('pf-list').innerHTML=ws.length?ws.map(w=>{const col=w.qty<=0?'var(--red)':w.qty<10?'var(--amber)':'var(--teal)';return `<div class="irow"><div class="top"><div class="inm">${w.name}</div><div class="iq" style="color:${col}">${parseFloat(w.qty.toFixed(2))}${w.unit}</div><div class="ist muted">от цеха</div></div></div>`;}).join(''):'<div class="empty-mini">Нет полуфабрикатов</div>';}
+async function renderRaw(q){window._rawQ=q||'';q=(q||'').toLowerCase();const stock=(await fetchStockSrv())||getStock().filter(i=>(i.location||'')==='kitchen');let items=stock;if(q)items=items.filter(i=>i.name.toLowerCase().includes(q));items.sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));$('raw-list').innerHTML=items.map(i=>stockRow(i,`openAdj('${i.id}')`)).join('')||'<div class="empty-mini">Ничего не найдено</div>';}
+async function renderPf(){const ws=(await fetchPfSrv())||getWsStock();$('pf-list').innerHTML=ws.length?ws.map(w=>{const col=w.qty<=0?'var(--red)':w.qty<10?'var(--amber)':'var(--teal)';return `<div class="irow"><div class="top"><div class="inm">${w.name}</div><div class="iq" style="color:${col}">${parseFloat(w.qty.toFixed(2))}${w.unit}</div><div class="ist muted">от цеха</div></div></div>`;}).join(''):'<div class="empty-mini">Нет полуфабрикатов</div>';}
 function openAdj(id){const st=getStock().filter(i=>i.location==='kitchen');$('adj-item').innerHTML=st.map(i=>`<option value="${i.id}">${i.name} (${i.qty.toFixed(1)}${i.unit})</option>`).join('');if(id)$('adj-item').value=id;$('adj-qty').value=1;$('adj-reason').value='Внутренний приход';adjHint();openSheet('sh-adj');}
 function adjHint(){const r=$('adj-reason').value,l=$('adj-qlbl'),h=$('adj-hint');if(r==='Внутренний приход'){l.textContent='Количество для добавления';h.textContent='Добавится на склад кухни';h.style.color='var(--green)';}else if(r==='Пересчёт'){l.textContent='Новое точное количество';h.textContent='Установит точный остаток';h.style.color='var(--blue)';}else{l.textContent='Количество для списания';h.textContent='Спишется со склада кухни';h.style.color='var(--red)';}}
 function applyAdj(){const id=$('adj-item').value,qty=parseFloat($('adj-qty').value)||0,reason=$('adj-reason').value;if(qty===0){toast('warn','Введите количество','');return;}const stock=getStock(),ing=stock.find(i=>i.id===id);if(!ing)return;let delta;if(reason==='Пересчёт'){delta=qty-ing.qty;ing.qty=qty;if(qty>(ing.max||0))ing.max=qty;}else if(reason==='Внутренний приход'){delta=qty;ing.qty+=qty;if(ing.qty>(ing.max||0))ing.max=ing.qty;}else{if(ing.qty<qty){toast('error','Недостаточно',ing.name+': '+ing.qty+ing.unit);return;}delta=-qty;ing.qty=Math.max(0,ing.qty-qty);}setStock(stock);const ded=getDeductions();ded.push({date:todayStr(),time:nowStr(),ing:ing.name,qty:(delta>0?'+':'')+delta.toFixed(2),unit:ing.unit,reason,emp:'Кухня'});setDeductions(ded);closeSheet();renderStock();toast('success',reason,ing.name+' '+(delta>0?'+':'')+delta.toFixed(2)+ing.unit);}
