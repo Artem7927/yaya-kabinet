@@ -337,7 +337,9 @@ function go(tab){
   $('s-'+tab).classList.add('active');
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));
   $('ab-title').textContent=$('s-'+tab).dataset.title;
-  ({prod:renderProd,stock:renderStock,recipes:renderRecipes,reports:renderReports}[tab]||(()=>{}))();
+  if(tab==='prod'){(async()=>{await syncWsRecipes();renderProd();})();}
+  else if(tab==='recipes'){(async()=>{await syncWsRecipes();renderRecipes();})();}
+  else{({stock:renderStock,reports:renderReports}[tab]||(()=>{}))();}
   const sc=$('s-'+tab).querySelector('.scroll');if(sc)sc.scrollTop=0;
 }
 function openSub(k){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+k).classList.add('active');$('ab-title').textContent=$('s-'+k).dataset.title;if(k==='ing')renderIng('');}
@@ -366,6 +368,14 @@ async function fetchJson(url){
 function normItems(items){return items.map(i=>({...i,qty:Number(i.qty)||0,min:Number(i.min)||0,crit:i.crit!=null?Number(i.crit)||0:0,max:i.max!=null?Number(i.max):null}));}
 async function fetchStockSrv(){const now=Date.now();if(_stockCache&&now-_stockCacheT<15000)return _stockCache;const it=await fetchJson('/stock?location=workshop');if(it&&it.length){_stockCache=normItems(it);_stockCacheT=now;return _stockCache;}return null;}
 async function fetchPfSrv(){const now=Date.now();if(_pfCache&&now-_pfCacheT<15000)return _pfCache;const it=await fetchJson('/pf-stock');if(it&&it.length){_pfCache=normItems(it).filter(x=>(x.location||'')==='workshop');_pfCacheT=now;return _pfCache;}return null;}
+async function syncWsRecipes(){
+  try{
+    const r=await fetch(YAYA_API+'/kv/yaya_wsrecipes_v3',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+    const d=await r.json();
+    if(r.ok && d && d.ok && Array.isArray(d.value) && d.value.length){ setWsRecipes(d.value); return true; }
+  }catch(e){}
+  return false;
+}
 
 /* ПРОИЗВОДСТВО */
 function batchStep(d){batches=Math.max(1,batches+d);$('prod-batches').textContent=batches;prodPreview();}
@@ -472,7 +482,7 @@ function delIng(id){if(!confirm('Удалить позицию?'))return;setStoc
 function openAddIng(){$('ai-name').value='';$('ai-qty').value=0;$('ai-unit').value='кг';$('ai-min').value=1;openSheet('sh-adding');}
 function saveAddIng(){const name=$('ai-name').value.trim();if(!name){toast('warn','Введите название','');return;}const stock=getStock();stock.push({id:'i'+Date.now(),name,qty:parseFloat($('ai-qty').value)||0,unit:$('ai-unit').value.trim()||'кг',min:parseFloat($('ai-min').value)||1,location:'workshop'});setStock(stock);closeSheet();renderIng('');toast('success','Ингредиент добавлен',name);}
 
-renderProd();
+(async()=>{await syncWsRecipes();renderProd();})();
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});}</script>
 </body>
