@@ -376,13 +376,21 @@ async function availAll(){
   const p=(await fetchPfSrv())||getWsStock();
   return [...s,...p];
 }
+let _cookRecCache=null;
+async function fetchCookRecipes(){
+  if(_cookRecCache)return _cookRecCache;
+  try{const r=await fetch(YAYA_API+'/cook-recipes',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+      if(r.ok){const d=await r.json();if(Array.isArray(d)){_cookRecCache=d;return d;}}}catch(e){}
+  return _cookRecCache||[];
+}
+function cookRecipe(id){return (_cookRecCache||[]).find(x=>x.id===id)||null;}
 
 /* ПРИГОТОВЛЕНИЕ */
 function qtyStep(d){cookQty=Math.max(1,cookQty+d);$('cook-qty').textContent=cookQty;cookPreview();}
-function renderCook(){
-  const tc=getTechCards(),sel=$('cook-dish'),prev=sel.value,withTC=MENU.filter(m=>tc[m.id]&&tc[m.id].length);
-  sel.innerHTML=withTC.length?withTC.map(m=>`<option value="${m.id}">${m.emoji||''} ${m.name}</option>`).join(''):'<option value="">Нет блюд с техкартой</option>';
-  if(prev&&withTC.find(m=>m.id===prev))sel.value=prev;
+async function renderCook(){
+  const recs=await fetchCookRecipes(),sel=$('cook-dish'),prev=sel.value;
+  sel.innerHTML=recs.length?recs.map(r=>`<option value="${r.id}">${r.emoji||''} ${r.name}</option>`).join(''):'<option value="">Нет готовочных техкарт</option>';
+  if(prev&&recs.find(r=>r.id===prev))sel.value=prev;
   cookPreview();
   const log=getCookLog(),today=todayStr(),tl=log.filter(l=>l.date===today);
   $('ck-total').textContent=tl.reduce((s,l)=>s+l.qty,0);$('ck-batch').textContent=tl.length;$('ck-spent').textContent=tl.reduce((s,l)=>s+(l.spentKg||0),0).toFixed(1);
@@ -390,35 +398,36 @@ function renderCook(){
   updCrit();
 }
 async function cookPreview(){
-  const tc=getTechCards(),id=$('cook-dish').value,r=tc[id],el=$('cook-prev');
-  if(!r){el.innerHTML='<div class="empty-mini">Нет техкарты</div>';el.style.borderLeftColor='var(--muted2)';return;}
+  await fetchCookRecipes();
+  const id=$('cook-dish').value,rec=cookRecipe(id),r=rec?rec.items:null,el=$('cook-prev');
+  if(!r){el.innerHTML='<div class="empty-mini">Нет готовочной техкарты</div>';el.style.borderLeftColor='var(--muted2)';return;}
   const all=await availAll();let ok=true;
   const rows=(Array.isArray(r)?r:[]).map(it=>{const ing=all.find(i=>i.id===it.ingId),need=it.qty*cookQty,en=ing&&ing.qty>=need;if(!en)ok=false;return `<div class="r" style="color:${en?'var(--text)':'var(--red)'}"><span>${ing?ing.name:it.ingId}</span><span>${need.toFixed(3)} ${it.unit} ${en?'✓':'⚠ мало'}</span></div>`;}).join('');
   el.innerHTML=`<div class="h">Потребуется (${cookQty} порц.)</div>${rows}<div class="out"><span>Выход</span><span>${cookQty} порц.</span></div>`;
   el.style.borderLeftColor=ok?'var(--green)':'var(--red)';
 }
 async function cook(){
-  const tc=getTechCards(),id=$('cook-dish').value,r=tc[id];
-  if(!r||!r.length){toast('warn','Нет техкарты','Заполните в разделе Техкарты');return;}
+  const id=$('cook-dish').value;
   if(_cookBusy)return;_cookBusy=true;
   try{
-    const dish=findMenuItem(id);
+    await fetchCookRecipes(); const rec=cookRecipe(id);
+    if(!rec||!rec.items||!rec.items.length){toast('warn','Нет готовочной техкарты','Обратитесь к менеджеру');return;}
     const raw=(await fetchStockSrv())||getStock().filter(i=>(i.location||'')==='kitchen');
     const pf =(await fetchPfSrv())||getWsStock();
     const locate=x=>raw.find(i=>i.id===x)||pf.find(i=>i.id===x)||null;
-    const rows=Array.isArray(r)?r:[];
+    const rows=rec.items;
     for(const it of rows){const need=it.qty*cookQty,ing=locate(it.ingId);if(!ing||ing.qty<need){toast('error','Недостаточно',(ing?ing.name:it.ingId));return;}}
     let ok=false,errMsg='',spentKg=0;
     try{
-      const res=await fetch(YAYA_API+'/cook',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({dishId:id,qty:cookQty,name:dish.name,emoji:dish.emoji}),cache:'no-store'});
+      const res=await fetch(YAYA_API+'/cook',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({dishId:id,qty:cookQty,name:rec.name,emoji:rec.emoji}),cache:'no-store'});
       let d=null;try{d=await res.json();}catch(e){}
       ok=!!(res.ok&&d&&d.ok);
       if(ok)spentKg=Number(d.spentKg)||0; else errMsg=(d&&d.error)||('HTTP '+res.status);
     }catch(e){errMsg=e.message||String(e);}
     if(!ok){toast('error','Не приготовлено',errMsg);renderStock();return;}
     _stockCache=null;_pfCache=null;
-    const log=getCookLog();log.unshift({date:todayStr(),time:nowStr(),dishId:id,name:dish.name,emoji:dish.emoji,qty:cookQty,spentKg});setCookLog(log);
-    toast('success','Приготовлено',(dish.emoji||'')+' '+dish.name+' ×'+cookQty);renderCook();renderStock();
+    const log=getCookLog();log.unshift({date:todayStr(),time:nowStr(),dishId:id,name:rec.name,emoji:rec.emoji,qty:cookQty,spentKg});setCookLog(log);
+    toast('success','Приготовлено',(rec.emoji||'')+' '+rec.name+' ×'+cookQty);renderCook();renderStock();
   }finally{_cookBusy=false;}
 }
 
