@@ -569,6 +569,7 @@ function setSettings(v){localStorage.setItem(SETTINGS_KEY,JSON.stringify(v))}
 function managerPw(){return getSettings().pw||'1234'}
 
 function money(n){return fmt(n)+' ₸'}
+const fmtQty=n=>parseFloat((Number(n)||0).toFixed(2));
 function dstr(d){return d.toLocaleDateString('ru',{day:'numeric',month:'short'})}
 function agoStr(ts){if(!ts)return'';const m=Math.floor((Date.now()-ts)/60000);if(m<1)return'только что';if(m<60)return m+' мин назад';return Math.floor(m/60)+' ч назад';}
 function activeCount(){return getOrders().filter(o=>o.status==='new'||o.status==='cook').length}
@@ -772,7 +773,7 @@ function renderDed(){
 }
 function openDedSheet(){
   const stock=getStock();
-  $('dd-ing').innerHTML=stock.map(i=>`<option value="${i.id}">${i.name} (${i.qty}${i.unit})</option>`).join('');
+  $('dd-ing').innerHTML=stock.map(i=>`<option value="${i.id}">${i.name} (${fmtQty(i.qty)}${i.unit})</option>`).join('');
   $('dd-qty').value=1; openSheet('sheet-ded');
 }
 function saveDed(){
@@ -791,10 +792,10 @@ function saveDed(){
 function qtyOpts(){let o='';[0.5,1,1.5,2,3,5,10,20,30].forEach(v=>o+=`<option value="${v}">${v}</option>`);return o;}
 function renderMove(){
   const ws=getWsStock(), stock=getStock(), kitchen=stock.filter(i=>i.location==='kitchen');
-  $('mv-ws-from').innerHTML=ws.map(i=>`<option value="${i.id}">${i.name} (${i.qty}${i.unit})</option>`).join('')||'<option>нет</option>';
+  $('mv-ws-from').innerHTML=ws.map(i=>`<option value="${i.id}">${i.name} (${fmtQty(i.qty)}${i.unit})</option>`).join('')||'<option>нет</option>';
   $('mv-ws-to').innerHTML='<option value="">— не приходовать —</option>'+kitchen.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
   $('mv-ws-qty').innerHTML=qtyOpts();
-  $('mv-ks-from').innerHTML=kitchen.map(i=>`<option value="${i.id}">${i.name} (${i.qty}${i.unit})</option>`).join('')||'<option>нет</option>';
+  $('mv-ks-from').innerHTML=kitchen.map(i=>`<option value="${i.id}">${i.name} (${fmtQty(i.qty)}${i.unit})</option>`).join('')||'<option>нет</option>';
   $('mv-ks-to').innerHTML='<option value="">— не приходовать —</option>'+stock.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
   $('mv-ks-qty').innerHTML=qtyOpts();
   renderMoveLog();
@@ -899,7 +900,7 @@ function renderStop(tab){
   } else {
     const stock=getStock().filter(i=>i.qty<i.min);
     const rows=stock.map(i=>{const crit=i.qty<=i.min*0.4;return `<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:13px;margin-top:0;margin-bottom:9px">
-      <div><b style="font-size:14px;font-weight:600">${i.name}</b><div style="font-size:11px;color:${crit?'var(--red)':'var(--amber)'};font-weight:700;margin-top:3px">${crit?'Критично':'Мало'} · ${i.qty}${i.unit}</div></div>
+      <div><b style="font-size:14px;font-weight:600">${i.name}</b><div style="font-size:11px;color:${crit?'var(--red)':'var(--amber)'};font-weight:700;margin-top:3px">${crit?'Критично':'Мало'} · ${fmtQty(i.qty)}${i.unit}</div></div>
       <span class="badge ${crit?'b-cancel':'b-cook'}" style="background:${crit?'var(--red-soft)':'var(--amber-soft)'};color:${crit?'var(--red)':'var(--amber)'}">${crit?'КРИТ':'МАЛО'}</span></div>`;}).join('');
     $('sub-body').innerHTML=rows||emptyMini('Все остатки в норме');
   }
@@ -919,7 +920,7 @@ function renderIng(loc,q){
     const crit=i.qty<i.min, low=i.qty<i.min*1.5;
     const st=crit?['Критично','var(--red)']:low?['Мало','var(--amber)']:['Норма','var(--green)'];
     const pct=Math.min(100,(i.qty/(i.max||i.min*2))*100);
-    return `<div class="irow"><div class="top"><div class="inm">${i.name}</div><div class="iq">${i.qty}${i.unit}</div><div class="ist" style="color:${st[1]}">${st[0]}</div></div>
+    return `<div class="irow"><div class="top"><div class="inm">${i.name}</div><div class="iq">${fmtQty(i.qty)}${i.unit}</div><div class="ist" style="color:${st[1]}">${st[0]}</div></div>
       <div class="ibar"><i style="width:${pct}%;background:${st[1]}"></i></div></div>`;
   }).join('');
   $('sub-body').innerHTML=`<input class="search" placeholder="Поиск ингредиента..." value="${query}" oninput="renderIng('${loc}',this.value)">
