@@ -339,14 +339,14 @@ async function fetchStock(){
   if(Date.now()-_localFreshT<60000)return getStock();
   const now=Date.now();if(_stockCache&&now-_stockCacheT<15000)return _stockCache;
   const items=await fetchJson('/stock');
-  if(items&&items.length){_stockCache=normItems(items);_stockCacheT=now;}
-  return items;
+  if(items&&items.length){_stockCache=normItems(items);_stockCacheT=now;return _stockCache;}
+  return null;
 }
 async function fetchPfStock(){
   const now=Date.now();if(_pfCache&&now-_pfCacheT<15000)return _pfCache;
   const items=await fetchJson('/pf-stock');
-  if(items&&items.length){_pfCache=normItems(items);_pfCacheT=now;}
-  return items;
+  if(items&&items.length){_pfCache=normItems(items);_pfCacheT=now;return _pfCache;}
+  return null;
 }
 
 /* ЧТО КУПИТЬ */
