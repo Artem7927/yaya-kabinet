@@ -131,6 +131,7 @@ input:focus,select:focus{border-color:var(--orange)}
 .photo-prev{position:relative;margin-bottom:11px}
 .photo-prev img{width:100%;max-height:160px;object-fit:cover;border-radius:11px;display:block}
 .photo-prev .rm{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;font-size:15px}
+.jd-ph{margin-top:8px}.jd-ph span{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}.jd-ph img{width:100%;border-radius:11px;display:block}
 
 .tabbar{display:flex;flex-shrink:0;background:rgba(16,15,18,.94);backdrop-filter:blur(20px);border-top:1px solid var(--line);padding:8px 4px calc(8px + var(--safe-b))}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;border:none;background:none;color:var(--muted2);cursor:pointer;font-family:inherit;padding:2px;position:relative}
@@ -253,7 +254,6 @@ input:focus,select:focus{border-color:var(--orange)}
 
   <nav class="tabbar">
     <button class="tab on" data-tab="buy" onclick="go('buy')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11V6a3 3 0 0 1 6 0v5M4 8h16l-1 12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2Z"/></svg><span class="tl">Купить</span><span class="tbadge" id="tab-badge">0</span></button>
-    <button class="tab" data-tab="shop" onclick="go('shop')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M4 20V9l8-6 8 6v11M9 20v-6h6v6"/></svg><span class="tl">Цех</span><span class="tbadge" id="tab-badge-ws" style="display:none">0</span></button>
     <button class="tab" data-tab="log" onclick="go('log')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><span class="tl">Закупки</span></button>
     <button class="tab" data-tab="spend" onclick="go('spend')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="tl">Расходы</span></button>
     <button class="tab" data-tab="more" onclick="go('more')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span class="tl">Ещё</span></button>
@@ -281,8 +281,10 @@ input:focus,select:focus{border-color:var(--orange)}
     <div class="field"><label>Цена за единицу (₸)</label><input id="pu-price" type="number" step="1" value="0" oninput="puTotal()"></div>
     <div class="total-box"><span class="t">Итого</span><span class="v" id="pu-total">0 ₸</span></div>
     <div class="field"><label>Поставщик / базар</label><input id="pu-supplier" list="sup-datalist" placeholder="напр. ОптБаза / Зелёный базар"><datalist id="sup-datalist"></datalist></div>
-    <div class="photo-prev" id="pu-photo-prev" style="display:none"><img id="pu-photo-img"><button class="rm" onclick="clearPhoto()">✕</button></div>
-    <label class="photo-btn" id="pu-photo-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg> Фото чека (необязательно)<input type="file" id="pu-photo" accept="image/*" capture="environment" style="display:none" onchange="onPhoto(this)"></label>
+    <div class="photo-prev" id="pu-goods-prev" style="display:none"><img id="pu-goods-img"><button class="rm" onclick="clearPhoto('goods')">✕</button></div>
+    <label class="photo-btn" id="pu-goods-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg> Фото товара (обязательно)<input type="file" accept="image/*" style="display:none" onchange="onPhoto('goods',this)"></label>
+    <div class="photo-prev" id="pu-receipt-prev" style="display:none"><img id="pu-receipt-img"><button class="rm" onclick="clearPhoto('receipt')">✕</button></div>
+    <label class="photo-btn" id="pu-receipt-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg> Фото чека (обязательно)<input type="file" accept="image/*" style="display:none" onchange="onPhoto('receipt',this)"></label>
     <button class="btn btn-primary btn-block" style="margin-top:14px;padding:14px" onclick="savePurch()">Записать закупку</button>
   </div>
 
@@ -303,7 +305,7 @@ input:focus,select:focus{border-color:var(--orange)}
   }
 })();
 const $=id=>document.getElementById(id);
-let curTab='buy', buyLoc='all', purchLocation='workshop', _photo=null;
+let curTab='buy', buyLoc='all', purchLocation='workshop';
 const SUP_KEY='yaya_suppliers';
 function getSuppliers(){try{return JSON.parse(localStorage.getItem(SUP_KEY))||[]}catch{return[]}}
 function setSuppliers(v){localStorage.setItem(SUP_KEY,JSON.stringify(v))}
@@ -438,11 +440,14 @@ function openPurch(id){
   $('sup-datalist').innerHTML=getSuppliers().map(s=>`<option value="${s.name}">`).join('');
   puTotal();openSheet('sh-purch');
 }
-function onPhoto(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=1000,sc=Math.min(1,max/Math.max(img.width,img.height)),cv=document.createElement('canvas');cv.width=img.width*sc;cv.height=img.height*sc;cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);_photo=cv.toDataURL('image/jpeg',0.6);$('pu-photo-img').src=_photo;$('pu-photo-prev').style.display='block';$('pu-photo-btn').style.display='none';};img.src=r.result;};r.readAsDataURL(f);}
-function clearPhoto(){_photo=null;$('pu-photo').value='';$('pu-photo-prev').style.display='none';$('pu-photo-btn').style.display='flex';}
+let _photoGoods=null,_photoReceipt=null;
+function onPhoto(kind,inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=1000,sc=Math.min(1,max/Math.max(img.width,img.height)),cv=document.createElement('canvas');cv.width=img.width*sc;cv.height=img.height*sc;cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);const data=cv.toDataURL('image/jpeg',0.6);if(kind==='goods')_photoGoods=data;else _photoReceipt=data;$('pu-'+kind+'-img').src=data;$('pu-'+kind+'-prev').style.display='block';$('pu-'+kind+'-btn').style.display='none';};img.src=r.result;};r.readAsDataURL(f);}
+function clearPhoto(kind){if(!kind){_photoGoods=null;_photoReceipt=null;}else if(kind==='goods')_photoGoods=null;else _photoReceipt=null;(kind?[kind]:['goods','receipt']).forEach(k=>{const p=$('pu-'+k+'-prev'),b=$('pu-'+k+'-btn');if(p)p.style.display='none';if(b)b.style.display='flex';});}
 async function savePurch(){
   const id=$('pu-ing').value,qty=parseFloat($('pu-qty').value)||0,unit=$('pu-unit').value,price=parseFloat($('pu-price').value)||0,supplier=$('pu-supplier').value.trim();
   if(!id||qty<=0){toast('warn','Заполните позицию и количество','');return;}
+  if(!_photoGoods){toast('warn','Добавьте фото товара','');return;}
+  if(!_photoReceipt){toast('warn','Добавьте фото чека','');return;}
   if(_purchBusy)return;_purchBusy=true;
   try{
     const stock=getStock(),ing=stock.find(i=>i.id===id);if(!ing)return;
@@ -451,7 +456,7 @@ async function savePurch(){
       const r=await fetch(YAYA_API+'/stock/'+encodeURIComponent(id)+'/receive',{
         method:'POST',
         headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},
-        body:JSON.stringify({qty:Number(qty),price:Number(price)||0,supplier:supplier||'',note:'',media:_photo?[{kind:'receipt',url:_photo}]:[]}),
+        body:JSON.stringify({qty:Number(qty),price:Number(price)||0,supplier:supplier||'',note:'',media:[{kind:'goods',url:_photoGoods},{kind:'receipt',url:_photoReceipt}]}),
         cache:'no-store'
       });
       let d=null;try{d=await r.json();}catch(e){}
@@ -460,13 +465,13 @@ async function savePurch(){
     }catch(e){errMsg=e.message||String(e);}
     ing.qty+=qty;if(!ing.max||ing.qty>ing.max)ing.max=ing.qty;setStock(stock);
     const pid='p'+Date.now(),loc=ing.location||'workshop';
-    const purch=getPurchases();purch.unshift({id:pid,date:todayStr(),time:nowStr(),ing:ing.name,location:loc,qty:qty.toFixed(2),unit,price,total:price*qty,supplier,note:'',hasReceipt:!!_photo});setPurchases(purch);
+    const purch=getPurchases();purch.unshift({id:pid,date:todayStr(),time:nowStr(),ing:ing.name,location:loc,qty:qty.toFixed(2),unit,price,total:price*qty,supplier,note:'',hasReceipt:true});setPurchases(purch);
     const ded=getDeductions();ded.push({date:todayStr(),time:nowStr(),ing:ing.name,qty:'+'+qty.toFixed(2),unit,reason:'Закупка ('+locName(loc)+')',emp:'Закупщик'});setDeductions(ded);
-    if(_photo){const rec=getReceipts();rec.push({id:'r'+Date.now(),purchaseId:pid,date:todayStr(),time:nowStr(),supplier,ing:ing.name,location:loc,data:_photo});setReceipts(rec);}
+    {const rec=getReceipts();rec.push({id:'r'+Date.now(),purchaseId:pid,date:todayStr(),time:nowStr(),supplier,ing:ing.name,location:loc,goods:_photoGoods,receipt:_photoReceipt});setReceipts(rec);}
     if(supplier){const sup=getSuppliers();if(!sup.find(s=>s.name===supplier)){sup.push({name:supplier,info:''});setSuppliers(sup);}}
     _stockCache=null;
     clearPhoto();closeSheet();renderBuy();
-    if(serverOk)toast('success','Закупка записана',ing.name+' +'+qty+unit+' · '+money(price*qty)+(_photo?' 🧾':''));
+    if(serverOk)toast('success','Закупка записана',ing.name+' +'+qty+unit+' · '+money(price*qty)+' 🧾');
     else toast('warn','Сохранено локально, но НЕ на сервере',errMsg+' — повторите позже');
   }finally{
     _purchBusy=false;
@@ -481,8 +486,10 @@ function renderLog(){
   let list=getPurchases().filter(p=>inPeriod(p,period));if(loc!=='all')list=list.filter(p=>(p.location||'workshop')===loc);
   const total=list.reduce((s,p)=>s+(parseFloat(p.total)||0),0);
   $('log-total').textContent=money(total);
-  $('log-list').innerHTML=list.length?list.slice(0,80).map(p=>{const l=p.location||'workshop';return `<div class="jrow"><div class="jl ${l==='kitchen'?'ic-blue':'ic-teal'}">${locEmoji(l)}</div><div class="jinfo"><div class="jname">${p.ing}</div><div class="jtime">${p.date} ${p.time}${p.supplier?' · '+p.supplier:''}${p.hasReceipt?' · 🧾':''}</div></div><div class="jval"><div class="jq">+${p.qty} ${p.unit}</div><div class="jp">${p.total?money(p.total):'—'}</div></div></div>`;}).join(''):'<div class="empty-mini">Закупок за период нет</div>';
+  $('log-list').innerHTML=list.length?list.slice(0,80).map(p=>{const l=p.location||'workshop';const ph=photosFor(p.id);let imgs='';if(ph.goods)imgs+=`<div class="jd-ph"><span>Товар</span><img src="${ph.goods}"></div>`;if(ph.receipt)imgs+=`<div class="jd-ph"><span>Чек</span><img src="${ph.receipt}"></div>`;return `<div class="jitem"><div class="jrow" onclick="toggleJrow('${p.id}')"><div class="jl ${l==='kitchen'?'ic-blue':'ic-teal'}">${locEmoji(l)}</div><div class="jinfo"><div class="jname">${p.ing}</div><div class="jtime">${p.date} ${p.time}${p.supplier?' · '+p.supplier:''}${p.hasReceipt?' · 🧾':''}</div></div><div class="jval"><div class="jq">+${p.qty} ${p.unit}</div><div class="jp">${p.total?money(p.total):'—'}</div></div></div><div class="jdetail" id="jd-${p.id}" style="display:none;padding:2px 4px 12px"><div style="font-size:12px;color:var(--muted);margin:2px 0 8px">Цена: ${money(p.price)}/${p.unit} · Итого: ${p.total?money(p.total):'—'}</div>${imgs||'<div class="empty-mini">Фото нет</div>'}</div></div>`;}).join(''):'<div class="empty-mini">Закупок за период нет</div>';
 }
+function photosFor(pid){return getReceipts().find(r=>r.purchaseId===pid)||{};}
+function toggleJrow(id){const e=$('jd-'+id);if(e)e.style.display=e.style.display==='none'?'block':'none';}
 
 /* РАСХОДЫ */
 function renderSpend(){
