@@ -155,7 +155,7 @@ input:focus,select:focus{border-color:var(--orange)}
 
 .sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:.2s;z-index:50}
 .sheet-bg.show{opacity:1;pointer-events:auto}
-.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:22px 22px 0 0;border-top:1px solid var(--line);padding:16px 16px calc(16px + var(--safe-b));transform:translateY(110%);transition:transform .25s cubic-bezier(.32,.72,0,1);z-index:51;max-height:92%;overflow-y:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:22px 22px 0 0;border-top:1px solid var(--line);padding:16px 16px calc(40px + var(--safe-b));transform:translateY(110%);transition:transform .25s cubic-bezier(.32,.72,0,1);z-index:51;max-height:92%;overflow-y:auto}
 .sheet.show{transform:translateY(0)}
 .sheet-h{width:38px;height:4px;border-radius:2px;background:var(--muted2);margin:0 auto 14px}
 .sheet-t{font-size:17px;font-weight:800;margin-bottom:14px}
@@ -465,7 +465,7 @@ async function savePurch(){
     if(_photo){const rec=getReceipts();rec.push({id:'r'+Date.now(),purchaseId:pid,date:todayStr(),time:nowStr(),supplier,ing:ing.name,location:loc,data:_photo});setReceipts(rec);}
     if(supplier){const sup=getSuppliers();if(!sup.find(s=>s.name===supplier)){sup.push({name:supplier,info:''});setSuppliers(sup);}}
     _stockCache=null;
-    clearPhoto();closeSheet();_localFreshT=Date.now();renderBuy();
+    clearPhoto();closeSheet();renderBuy();
     if(serverOk)toast('success','Закупка записана',ing.name+' +'+qty+unit+' · '+money(price*qty)+(_photo?' 🧾':''));
     else toast('warn','Сохранено локально, но НЕ на сервере',errMsg+' — повторите позже');
   }finally{
