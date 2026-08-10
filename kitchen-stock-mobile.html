@@ -362,7 +362,7 @@ function stockRow(i,tap){const st=statusOf(i),pct=Math.min(100,(i.qty/(i.max||Ma
 /* СЕРВЕР — источник остатков (фолбэк на локальный кэш) */
 const YAYA_API=window.YAYA_API||'https://yaya-db-production.up.railway.app';
 const yTok=()=>localStorage.getItem('yaya_key')||'';
-let _stockCache=null,_stockCacheT=0,_pfCache=null,_pfCacheT=0,_adjBusy=false,_cookBusy=false;
+let _stockCache=null,_stockCacheT=0,_pfCache=null,_pfCacheT=0,_adjBusy=false;
 async function fetchJson(url){
   const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),10000);
   try{const r=await fetch(YAYA_API+url,{headers:{'X-Admin-Token':yTok()},cache:'no-store',signal:ctrl.signal});if(!r.ok)return null;const d=await r.json();return d&&d.ok?d.items:null;}
@@ -371,64 +371,36 @@ async function fetchJson(url){
 function normItems(items){return items.map(i=>({...i,qty:Number(i.qty)||0,min:Number(i.min)||0,crit:i.crit!=null?Number(i.crit)||0:0,max:i.max!=null?Number(i.max):null}));}
 async function fetchStockSrv(){const now=Date.now();if(_stockCache&&now-_stockCacheT<15000)return _stockCache;const it=await fetchJson('/stock?location=kitchen');if(it&&it.length){_stockCache=normItems(it);_stockCacheT=now;return _stockCache;}return null;}
 async function fetchPfSrv(){const now=Date.now();if(_pfCache&&now-_pfCacheT<15000)return _pfCache;const it=await fetchJson('/pf-stock');if(it&&it.length){_pfCache=normItems(it).filter(x=>(x.location||'')==='kitchen');_pfCacheT=now;return _pfCache;}return null;}
-async function availAll(){
-  const s=(await fetchStockSrv())||getStock().filter(i=>(i.location||'')==='kitchen');
-  const p=(await fetchPfSrv())||getWsStock();
-  return [...s,...p];
-}
-let _cookRecCache=null;
-async function fetchCookRecipes(){
-  if(_cookRecCache)return _cookRecCache;
-  try{const r=await fetch(YAYA_API+'/cook-recipes',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
-      if(r.ok){const d=await r.json();if(Array.isArray(d)){_cookRecCache=d;return d;}}}catch(e){}
-  return _cookRecCache||[];
-}
-function cookRecipe(id){return (_cookRecCache||[]).find(x=>x.id===id)||null;}
 
 /* ПРИГОТОВЛЕНИЕ */
 function qtyStep(d){cookQty=Math.max(1,cookQty+d);$('cook-qty').textContent=cookQty;cookPreview();}
-async function renderCook(){
-  const recs=await fetchCookRecipes(),sel=$('cook-dish'),prev=sel.value;
-  sel.innerHTML=recs.length?recs.map(r=>`<option value="${r.id}">${r.emoji||''} ${r.name}</option>`).join(''):'<option value="">Нет готовочных техкарт</option>';
-  if(prev&&recs.find(r=>r.id===prev))sel.value=prev;
+function renderCook(){
+  const tc=getTechCards(),sel=$('cook-dish'),prev=sel.value,withTC=MENU.filter(m=>tc[m.id]&&tc[m.id].length);
+  sel.innerHTML=withTC.length?withTC.map(m=>`<option value="${m.id}">${m.emoji||''} ${m.name}</option>`).join(''):'<option value="">Нет блюд с техкартой</option>';
+  if(prev&&withTC.find(m=>m.id===prev))sel.value=prev;
   cookPreview();
   const log=getCookLog(),today=todayStr(),tl=log.filter(l=>l.date===today);
   $('ck-total').textContent=tl.reduce((s,l)=>s+l.qty,0);$('ck-batch').textContent=tl.length;$('ck-spent').textContent=tl.reduce((s,l)=>s+(l.spentKg||0),0).toFixed(1);
   $('cook-log').innerHTML=log.length?log.slice(0,25).map(l=>`<div class="jrow"><span class="jdot" style="background:var(--orange)"></span><div class="jinfo"><div class="jname">${l.emoji||''} ${l.name}</div><div class="jtime">${l.date} ${l.time}</div></div><div class="jval" style="color:var(--orange)">×${l.qty} порц.</div></div>`).join(''):'<div class="empty-mini">Приготовлений ещё не было</div>';
   updCrit();
 }
-async function cookPreview(){
-  await fetchCookRecipes();
-  const id=$('cook-dish').value,rec=cookRecipe(id),r=rec?rec.items:null,el=$('cook-prev');
-  if(!r){el.innerHTML='<div class="empty-mini">Нет готовочной техкарты</div>';el.style.borderLeftColor='var(--muted2)';return;}
-  const all=await availAll();let ok=true;
+function cookPreview(){
+  const tc=getTechCards(),id=$('cook-dish').value,r=tc[id],el=$('cook-prev');
+  if(!r){el.innerHTML='<div class="empty-mini">Нет техкарты</div>';el.style.borderLeftColor='var(--muted2)';return;}
+  const all=[...getStock(),...getWsStock()];let ok=true;
   const rows=(Array.isArray(r)?r:[]).map(it=>{const ing=all.find(i=>i.id===it.ingId),need=it.qty*cookQty,en=ing&&ing.qty>=need;if(!en)ok=false;return `<div class="r" style="color:${en?'var(--text)':'var(--red)'}"><span>${ing?ing.name:it.ingId}</span><span>${need.toFixed(3)} ${it.unit} ${en?'✓':'⚠ мало'}</span></div>`;}).join('');
   el.innerHTML=`<div class="h">Потребуется (${cookQty} порц.)</div>${rows}<div class="out"><span>Выход</span><span>${cookQty} порц.</span></div>`;
   el.style.borderLeftColor=ok?'var(--green)':'var(--red)';
 }
-async function cook(){
-  const id=$('cook-dish').value;
-  if(_cookBusy)return;_cookBusy=true;
-  try{
-    await fetchCookRecipes(); const rec=cookRecipe(id);
-    if(!rec||!rec.items||!rec.items.length){toast('warn','Нет готовочной техкарты','Обратитесь к менеджеру');return;}
-    const raw=(await fetchStockSrv())||getStock().filter(i=>(i.location||'')==='kitchen');
-    const pf =(await fetchPfSrv())||getWsStock();
-    const locate=x=>raw.find(i=>i.id===x)||pf.find(i=>i.id===x)||null;
-    const rows=rec.items;
-    for(const it of rows){const need=it.qty*cookQty,ing=locate(it.ingId);if(!ing||ing.qty<need){toast('error','Недостаточно',(ing?ing.name:it.ingId));return;}}
-    let ok=false,errMsg='',spentKg=0;
-    try{
-      const res=await fetch(YAYA_API+'/cook',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({dishId:id,qty:cookQty,name:rec.name,emoji:rec.emoji}),cache:'no-store'});
-      let d=null;try{d=await res.json();}catch(e){}
-      ok=!!(res.ok&&d&&d.ok);
-      if(ok)spentKg=Number(d.spentKg)||0; else errMsg=(d&&d.error)||('HTTP '+res.status);
-    }catch(e){errMsg=e.message||String(e);}
-    if(!ok){toast('error','Не приготовлено',errMsg);renderStock();return;}
-    _stockCache=null;_pfCache=null;
-    const log=getCookLog();log.unshift({date:todayStr(),time:nowStr(),dishId:id,name:rec.name,emoji:rec.emoji,qty:cookQty,spentKg});setCookLog(log);
-    toast('success','Приготовлено',(rec.emoji||'')+' '+rec.name+' ×'+cookQty);renderCook();renderStock();
-  }finally{_cookBusy=false;}
+function cook(){
+  const tc=getTechCards(),id=$('cook-dish').value,r=tc[id];
+  if(!r||!r.length){toast('warn','Нет техкарты','Заполните в разделе Техкарты');return;}
+  const dish=findMenuItem(id),stock=getStock(),ws=getWsStock(),ded=getDeductions();let spentKg=0;
+  for(const it of (Array.isArray(r)?r:[])){const need=it.qty*cookQty,ing=stock.find(i=>i.id===it.ingId)||ws.find(w=>w.id===it.ingId);if(!ing||ing.qty<need){toast('error','Недостаточно',(ing?ing.name:it.ingId));return;}}
+  (Array.isArray(r)?r:[]).forEach(it=>{const need=it.qty*cookQty,w=ws.find(x=>x.id===it.ingId);if(w){w.qty=Math.max(0,w.qty-need);if(it.unit==='кг'||it.unit==='л')spentKg+=need;ded.push({date:todayStr(),time:nowStr(),ing:'[ПФ] '+w.name,qty:(-need).toFixed(3),unit:it.unit,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'});return;}const raw=stock.find(i=>i.id===it.ingId);if(raw){raw.qty=Math.max(0,raw.qty-need);if(it.unit==='кг'||it.unit==='л')spentKg+=need;ded.push({date:todayStr(),time:nowStr(),ing:raw.name,qty:(-need).toFixed(3),unit:it.unit,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'});}});
+  setStock(stock);setWsStock(ws);setDeductions(ded);
+  const log=getCookLog();log.unshift({date:todayStr(),time:nowStr(),dishId:id,name:dish.name,emoji:dish.emoji,qty:cookQty,spentKg});setCookLog(log);
+  toast('success','Приготовлено',(dish.emoji||'')+' '+dish.name+' ×'+cookQty);renderCook();
 }
 
 /* СКЛАД */
@@ -494,8 +466,8 @@ function fillCalcDish(){
   if(prev&&withTC.find(m=>m.id===prev))sel.value=prev;
 }
 function calcStep(d){calcN=Math.max(1,calcN+d);$('calc-qty').textContent=calcN;calcDish();}
-function calcRowsHtml(rows,mult,all){
-  let okAll=true,kg=0;
+function calcRowsHtml(rows,mult){
+  const all=[...getStock(),...getWsStock()];let okAll=true,kg=0;
   const rowsHtml=(Array.isArray(rows)?rows:[]).map(r=>{
     const ing=all.find(x=>x.id===r.ingId),need=(r.qty||0)*mult,en=ing&&ing.qty>=need;
     if(!en)okAll=false;if((r.unit==='кг'||r.unit==='л'))kg+=need;
@@ -503,11 +475,10 @@ function calcRowsHtml(rows,mult,all){
   }).join('');
   return {rowsHtml,okAll,kg};
 }
-async function calcDish(){
+function calcDish(){
   const tc=getTechCards(),id=$('calc-dish-sel').value,r=tc[id],el=$('calc-dish-out');
   if(!r||!Array.isArray(r)||!r.length){el.innerHTML='<div class="empty-mini">⚠ Не заполнена. Обратитесь к менеджеру</div>';return;}
-  const all=await availAll();
-  const res=calcRowsHtml(r,calcN,all);
+  const res=calcRowsHtml(r,calcN);
   el.innerHTML=`<div class="prev" style="border-left-color:${res.okAll?'var(--green)':'var(--red)'}"><div class="h">Потребуется (${calcN} порц.)</div>${res.rowsHtml}<div class="out"><span>Итого расход</span><span>${res.kg.toFixed(3)} кг</span></div></div>`;
 }
 function fillCalcOrder(){
@@ -516,11 +487,10 @@ function fillCalcOrder(){
   sel.innerHTML=acts.length?acts.map(o=>`<option value="${o.id}">#${o.num} — ${(Array.isArray(o.items)?o.items:[]).length} поз.</option>`).join(''):'<option value="">Нет активных заказов</option>';
   if(prev&&acts.find(o=>String(o.id)===String(prev)))sel.value=prev;
 }
-async function calcOrder(){
+function calcOrder(){
   const sel=$('calc-order-sel'),id=sel.value,o=getOrders().find(x=>String(x.id)===String(id)),out=$('calc-order-out');
   if(!o){out.innerHTML='<div class="empty-mini">Выберите заказ</div>';return;}
-  const tc=getTechCards(),acc={},noTc=[];
-  const all=await availAll();
+  const tc=getTechCards(),all=[...getStock(),...getWsStock()],acc={},noTc=[];
   (Array.isArray(o.items)?o.items:[]).forEach(it=>{
     const rows=tc[it.id]||[];
     if(!rows.length){noTc.push(it);return;}
