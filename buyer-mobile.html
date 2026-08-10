@@ -263,6 +263,7 @@ input:focus,select:focus{border-color:var(--orange)}
   <aside class="drawer" id="drawer">
     <div class="drawer-head"><div class="l1">YaYa</div><div class="l2">CHICKEN</div><div class="sub"><span id="dw-date">—</span></div></div>
     <div class="drawer-body">
+      <div class="dnav" onclick="closeDrawer();setToken()">🔑 Токен доступа</div>
       <div class="dnav" onclick="closeDrawer();openSub('suppliers')"><div class="mic ic-amber">🚚</div><b>Поставщики / базары</b></div>
     </div>
   </aside>
@@ -317,6 +318,7 @@ function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.cl
 function openSub(k){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+k).classList.add('active');$('ab-title').textContent=$('s-'+k).dataset.title;if(k==='suppliers')renderSuppliers();}
 function openExt(u){location.href=u}
 function openDrawer(){$('dw-date').textContent=new Date().toLocaleDateString('ru',{day:'numeric',month:'long'});$('drawer').classList.add('show');$('drawer-bg').classList.add('show')}
+function setToken(){const t=prompt('Вставьте токен доступа:',localStorage.getItem('yaya_key')||'');if(t!==null){localStorage.setItem('yaya_key',t.trim());location.reload();}}
 function closeDrawer(){$('drawer').classList.remove('show');$('drawer-bg').classList.remove('show')}
 function openSheet(id){$(id).classList.add('show');$('sheet-bg').classList.add('show')}
 function closeSheet(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'));$('sheet-bg').classList.remove('show')}

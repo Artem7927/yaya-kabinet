@@ -495,6 +495,7 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
       <div class="sub"><span id="dw-date">—</span></div>
     </div>
     <div class="drawer-body">
+      <div class="dnav" onclick="closeDrawer();setToken()">🔑 Токен доступа</div>
       <div class="dnav" onclick="closeDrawer();openSub('tech')"><div class="mic ic-green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg></div><b>Техкарты</b></div>
       <div class="dnav" onclick="closeDrawer();openSub('stop')"><div class="mic ic-red"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m5 5 14 14"/></svg></div><b>Стоп-лист</b></div>
       <div class="dnav" onclick="closeDrawer();openSub('ing','kitchen')"><div class="mic ic-blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9 12 3l9 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></div><b>Ингредиенты</b></div>
@@ -610,6 +611,7 @@ function go(tab){
 function appbarLeft(){ if(subKind) go(curTab); else openDrawer(); }
 function openExt(u){ location.href=u; }
 function openDrawer(){ renderDrawer(); $('drawer').classList.add('show'); $('drawer-bg').classList.add('show'); }
+function setToken(){const t=prompt('Вставьте токен доступа:',localStorage.getItem('yaya_key')||'');if(t!==null){localStorage.setItem('yaya_key',t.trim());location.reload();}}
 function closeDrawer(){ $('drawer').classList.remove('show'); $('drawer-bg').classList.remove('show'); }
 
 /* ── SUB SCREENS ── */
