@@ -780,7 +780,7 @@ async function loadOrdersSrv(){
     const r=await fetch(DED_API+'/orders?limit=500',{headers:{'X-Admin-Token':token},cache:'no-store'});
     if(r.ok){const d=await r.json();if(d&&d.ok&&Array.isArray(d.orders)){
       _ordersSrv=d.orders.map(o=>{const b=o.data||{};const items=Array.isArray(b.items)?b.items.map(i=>({name:i.name,qty:Number(i.qty)||0,price:Number(i.price)||0})):[];
-        return {id:o.id,num:o.num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',items,total:Number(b.total)||0,status:o.status||'new',type:b.type,name:b.name||'',phone:b.phone||''};});
+        return {id:o.id,num:o.num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',items,total:(Number(b.total)||0)+(Number(b.delivery)||0),status:o.status||'new',type:b.type,name:b.name||'',phone:b.phone||''};});
     }}
   }catch(e){}
   _ordersLoading=false;renderReports();
