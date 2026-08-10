@@ -551,7 +551,7 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
     window.getStopList=()=>g('yaya_stoplist',[]);window.setStopList=v=>s('yaya_stoplist',v);
     window.getDeductions=()=>g('yaya_deductions',[]);window.setDeductions=v=>s('yaya_deductions',v);
     window.getTransfers=()=>g('yaya_transfers',[]);window.setTransfers=v=>s('yaya_transfers',v);
-    window.getTechCards=()=>g('yaya_tech_v3',{});
+    window.getTechCards=()=>{const l=g('yaya_tech_v3',null);return(l&&Object.keys(l).length)?l:DEFAULT_TECH_CARDS;};
     window.fmt=n=>Number(n||0).toLocaleString('ru');
     window.nowStr=()=>new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
     window.todayStr=()=>new Date().toLocaleDateString('ru',{day:'numeric',month:'short'});

@@ -333,7 +333,7 @@ input:focus,select:focus{border-color:var(--orange)}
     const g=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},s=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
     window.getStock=()=>g('yaya_stock_v3',[]);window.setStock=v=>s('yaya_stock_v3',v);
     window.getWsStock=()=>g('yaya_wsstock_v3',[]);window.setWsStock=v=>s('yaya_wsstock_v3',v);
-    window.getTechCards=()=>g('yaya_tech_v3',{});
+    window.getTechCards=()=>{const l=g('yaya_tech_v3',null);return(l&&Object.keys(l).length)?l:DEFAULT_TECH_CARDS;};
     window.getPurchases=()=>g('yaya_purchases',[]);
     window.getDeductions=()=>g('yaya_deductions',[]);window.setDeductions=v=>s('yaya_deductions',v);
     window.fmt=n=>Number(n||0).toLocaleString('ru');window.nowStr=()=>new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});window.todayStr=()=>new Date().toLocaleDateString('ru',{day:'numeric',month:'short'});window.findMenuItem=id=>MENU.find(m=>m.id===id);
