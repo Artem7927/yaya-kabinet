@@ -457,6 +457,7 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
       <div class="scroll">
         <div class="mrow" onclick="openSub('ing','kitchen')"><div class="mic ic-blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9 12 3l9 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 21V12h6v9"/></svg></div><b>Склад кухни</b><span class="chev">›</span></div>
         <div class="mrow" onclick="openSub('ing','workshop')"><div class="mic ic-purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M4 20V8l5 4V8l5 4V4l6 4v12"/></svg></div><b>Склад цеха</b><span class="chev">›</span></div>
+        <div class="mrow" onclick="openSub('purchases')"><div class="mic ic-amber"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div><b>Закупки</b><span class="chev">›</span></div>
         <div class="mrow" onclick="openSub('tech')"><div class="mic ic-green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg></div><b>Техкарты</b><span class="chev">›</span></div>
         <div class="mrow" onclick="openSub('stop')"><div class="mic ic-red"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m5 5 14 14"/></svg></div><b>Стоп-лист</b><span class="chev">›</span></div>
         <div class="mrow" onclick="openExt('kitchen.html')"><div class="mic ic-orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg></div><b>Экран кухни</b><span class="chev">›</span></div>
@@ -533,7 +534,6 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
   <div class="toasts" id="toasts"></div>
 
   <!-- HELP -->
-  <button class="help-fab" id="help-fab" onclick="toggleHelp()">?</button>
   <div class="htip" id="htip"></div>
 
 </div>
@@ -621,8 +621,21 @@ function openSub(kind,arg){
   $('s-sub').classList.add('active');
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab==='more'));
   $('ab-burger').style.display='none'; $('ab-back').style.display='';
-  const R={tech:renderTech,stop:renderStop,ing:renderIng,suppliers:renderSuppliers,users:renderUsers,settings:renderSettings,io:renderIO,about:renderAbout}[kind];
+  const R={tech:renderTech,stop:renderStop,ing:renderIng,suppliers:renderSuppliers,users:renderUsers,settings:renderSettings,io:renderIO,about:renderAbout,purchases:renderPurchases}[kind];
   if(R) R(); $('sub-body').scrollTop=0;
+}
+async function renderPurchases(){
+  $('s-sub').dataset.title='Закупки';
+  const el=$('sub-body');el.innerHTML='<div class="empty-mini">Загрузка…</div>';
+  const token=localStorage.getItem('yaya_key')||'';
+  try{
+    const r=await fetch(DED_API+'/purchases',{headers:{'X-Admin-Token':token},cache:'no-store'});
+    const d=await r.json();
+    if(!(d&&d.ok&&Array.isArray(d.items))){el.innerHTML='<div class="empty-mini">Нет доступа к серверу — вставьте токен</div>';return;}
+    const it=d.items,total=it.reduce((s,p)=>s+(Number(p.total)||0),0);
+    el.innerHTML=`<div class="rstat" style="margin-bottom:12px"><div class="l">Сумма закупок</div><div class="v" style="color:var(--green)">${money(total)}</div></div>`+
+      (it.length?it.map(p=>{const t=new Date(Number(p.ts)||Date.now());return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 2px;border-bottom:1px solid var(--line)"><div><div style="font-weight:600">${p.ing}</div><div style="font-size:12px;color:var(--muted)">${dstr(t)} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}${p.supplier?' · '+p.supplier:''}</div></div><div style="text-align:right"><div style="color:var(--green);font-weight:600">+${p.qty} ${p.unit}</div><div style="font-size:12px;color:var(--muted)">${p.total?money(p.total):'—'}</div></div></div>`;}).join(''):'<div class="empty-mini">Закупок нет</div>');
+  }catch(e){el.innerHTML='<div class="empty-mini">Сервер недоступен</div>';}
 }
 
 /* ── ORDER TYPE / CART ── */
@@ -759,6 +772,20 @@ function loadDeductions(){
     .catch(()=>{_dedServer=[];})
     .then(()=>{_dedLoading=false;renderDed();if(typeof renderReports==='function')renderReports();});
 }
+let _ordersSrv=null,_ordersLoading=false;
+async function loadOrdersSrv(){
+  if(_ordersLoading)return;_ordersLoading=true;
+  const token=localStorage.getItem('yaya_key')||'';
+  try{
+    const r=await fetch(DED_API+'/orders?limit=500',{headers:{'X-Admin-Token':token},cache:'no-store'});
+    if(r.ok){const d=await r.json();if(d&&d.ok&&Array.isArray(d.orders)){
+      _ordersSrv=d.orders.map(o=>{const b=o.data||{};const items=Array.isArray(b.items)?b.items.map(i=>({name:i.name,qty:Number(i.qty)||0,price:Number(i.price)||0})):[];
+        return {id:o.id,num:o.num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',items,total:Number(b.total)||0,status:o.status||'new',type:b.type,name:b.name||'',phone:b.phone||''};});
+    }}
+  }catch(e){}
+  _ordersLoading=false;renderReports();
+}
+function allOrders(){const srv=_ordersSrv||[];const nums=new Set(srv.map(o=>String(o.num)));return [...srv,...getOrders().filter(o=>!nums.has(String(o.num)))];}
 function renderDed(){
   if(!_dedLoading&&_dedServer===null){_dedLoading=true;loadDeductions();}
   const period=$('ded-period')?$('ded-period').value:'today';
@@ -841,8 +868,9 @@ function pushTransfer(dir,from,to,qty,unit){
 /* ── ОТЧЁТЫ ── */
 function renderReports(){
   if(!_dedLoading&&_dedServer===null){_dedLoading=true;loadDeductions();}
+  if(_ordersSrv===null&&!_ordersLoading)loadOrdersSrv();
   const period=$('rep-period')?$('rep-period').value:'today';
-  const all=getOrders().filter(o=>o.status!=='cancel');
+  const all=allOrders().filter(o=>o.status!=='cancel'&&o.status!=='cancelled');
   const orders=period==='today'?all.filter(o=>o.date===todayStr()):all;
   const yest=dstr(new Date(Date.now()-864e5));
   const yOrd=all.filter(o=>o.date===yest);
