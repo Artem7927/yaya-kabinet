@@ -338,7 +338,7 @@ async function loadPurchasesSrv(){
     const r=await fetch(YAYA_API+'/purchases',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
     const d=await r.json();
     if(!d||!d.ok||!Array.isArray(d.items))return false;
-    setPurchases(d.items.map(it=>{
+    setPurchases(d.items.filter(it=>(it.status||'accepted')!=='cancelled').map(it=>{
       const ts=Number(it.ts)||Date.now(),dt=new Date(ts);
       return {id:String(it.id),ts,
         date:dt.toLocaleDateString('ru',{day:'numeric',month:'short'}),
@@ -381,6 +381,7 @@ async function fetchPfStock(){
 
 /* ЧТО КУПИТЬ */
 function buySeg(v){buyLoc=v;['all','workshop','kitchen'].forEach(x=>$('bg-'+x).classList.toggle('on',x===v));renderBuy();}
+async function pendingIngIds(){try{const items=await fetchJson('/purchases?status=pending');if(!Array.isArray(items))return new Set();return new Set(items.map(p=>String(p.ing_id)));}catch(e){return new Set();}}
 async function renderBuy(){
   const prices=lastPrices();
   const src=await fetchStock();
@@ -393,7 +394,8 @@ async function renderBuy(){
     return;
   }
   const stock=src;
-  const lowAll=stock.filter(i=>i.qty<i.min);
+  const pend=await pendingIngIds();
+  const lowAll=stock.filter(i=>i.qty<i.min&&!pend.has(String(i.id)));
   const low=buyLoc==='all'?lowAll:lowAll.filter(i=>(i.location||'workshop')===buyLoc);
   low.sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));
   const estAll=lowAll.reduce((s,i)=>s+needQty(i)*(prices[i.name]||0),0);
@@ -507,10 +509,11 @@ function renderLog(){
   let list=getPurchases().filter(p=>inPeriod(p,period));if(loc!=='all')list=list.filter(p=>(p.location||'workshop')===loc);
   const total=list.reduce((s,p)=>s+(parseFloat(p.total)||0),0);
   $('log-total').textContent=money(total);
-  $('log-list').innerHTML=list.length?list.slice(0,80).map(p=>{const l=p.location||'workshop';const ph=photosFor(p.id);let photos='';if(ph.goods)photos+=`<div class="jd-ph"><span>Товар</span><img src="${ph.goods}"></div>`;if(ph.receipt)photos+=`<div class="jd-ph"><span>Чек</span><img src="${ph.receipt}"></div>`;const pb=photos?`<div class="jd-photos">${photos}</div>`:'<div class="empty-mini" style="margin-bottom:8px">Фото нет</div>';return `<div class="jitem"><div class="jrow" onclick="toggleJrow('${p.id}')"><div class="jl ${l==='kitchen'?'ic-blue':'ic-teal'}">${locEmoji(l)}</div><div class="jinfo"><div class="jname">${p.ing}</div><div class="jtime">${p.date} ${p.time}${p.supplier?' · '+p.supplier:''}${p.hasReceipt?' · 🧾':''}${p.status==='pending'?' · ⏳ ждёт приёмки':p.status==='rejected'?' · ❌ отклонено':' · ✅ принято'}</div></div><div class="jval"><div class="jq">+${p.qty} ${p.unit}</div><div class="jp">${p.total?money(p.total):'—'}</div></div></div><div class="jdetail" id="jd-${p.id}" style="display:none;padding:8px 4px 12px">${pb}<div class="jd-info"><div><span>Товар</span><b>${p.ing}</b></div><div><span>Количество</span><b>+${p.qty} ${p.unit}</b></div><div><span>Цена за ед.</span><b>${money(p.price)}/${p.unit}</b></div><div><span>Итого</span><b>${p.total?money(p.total):'—'}</b></div>${p.supplier?`<div><span>Поставщик</span><b>${p.supplier}</b></div>`:''}${p.status==='rejected'&&p.reject_reason?`<div><span>Причина отказа</span><b>${p.reject_reason}</b></div>`:''}${(p.recv_qty!=null&&p.status==='accepted')?`<div><span>Принято по факту</span><b>+${Number(p.recv_qty).toFixed(2)} ${p.unit}</b></div>`:''}</div></div></div>`;}).join(''):'<div class="empty-mini">Закупок за период нет</div>';
+  $('log-list').innerHTML=list.length?list.slice(0,80).map(p=>{const l=p.location||'workshop';const ph=photosFor(p.id);let photos='';if(ph.goods)photos+=`<div class="jd-ph"><span>Товар</span><img src="${ph.goods}"></div>`;if(ph.receipt)photos+=`<div class="jd-ph"><span>Чек</span><img src="${ph.receipt}"></div>`;const pb=photos?`<div class="jd-photos">${photos}</div>`:'<div class="empty-mini" style="margin-bottom:8px">Фото нет</div>';return `<div class="jitem"><div class="jrow" onclick="toggleJrow('${p.id}')"><div class="jl ${l==='kitchen'?'ic-blue':'ic-teal'}">${locEmoji(l)}</div><div class="jinfo"><div class="jname">${p.ing}</div><div class="jtime">${p.date} ${p.time}${p.supplier?' · '+p.supplier:''}${p.hasReceipt?' · 🧾':''}${p.status==='pending'?' · ⏳ ждёт приёмки':p.status==='rejected'?' · ❌ отклонено':' · ✅ принято'}</div></div><div class="jval"><div class="jq">+${p.qty} ${p.unit}</div><div class="jp">${p.total?money(p.total):'—'}</div></div></div><div class="jdetail" id="jd-${p.id}" style="display:none;padding:8px 4px 12px">${pb}<div class="jd-info"><div><span>Товар</span><b>${p.ing}</b></div><div><span>Количество</span><b>+${p.qty} ${p.unit}</b></div><div><span>Цена за ед.</span><b>${money(p.price)}/${p.unit}</b></div><div><span>Итого</span><b>${p.total?money(p.total):'—'}</b></div>${p.supplier?`<div><span>Поставщик</span><b>${p.supplier}</b></div>`:''}${p.status==='rejected'&&p.reject_reason?`<div><span>Причина отказа</span><b>${p.reject_reason}</b></div>`:''}${(p.recv_qty!=null&&p.status==='accepted')?`<div><span>Принято по факту</span><b>+${Number(p.recv_qty).toFixed(2)} ${p.unit}</b></div>`:''}</div>${p.status==='pending'?`<button class="btn" style="width:100%;margin-top:8px;padding:11px;color:var(--red)" onclick="cancelPurch('${p.id}')">Отменить поставку</button>`:''}</div></div>`;}).join(''):'<div class="empty-mini">Закупок за период нет</div>';
 }
 function photosFor(pid){return getReceipts().find(r=>r.purchaseId===pid)||{};}
 function toggleJrow(id){const e=$('jd-'+id);if(e)e.style.display=e.style.display==='none'?'block':'none';}
+async function cancelPurch(id){if(!confirm('Отменить эту поставку?'))return;try{const r=await fetch(YAYA_API+'/deliveries/'+id+'/cancel',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();if(r.ok&&d&&d.ok){toast('success','Отменено','');await loadPurchasesSrv();renderLog();renderBuy();}else toast('warn','Не удалось',(d&&d.error)||'');}catch(e){toast('warn','Ошибка сети','');}}
 
 /* РАСХОДЫ */
 function renderSpend(){
