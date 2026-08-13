@@ -510,6 +510,10 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
 
   <!-- SHEETS -->
   <div class="sheet-bg" id="sheet-bg" onclick="closeSheet()"></div>
+  <div class="sheet-bg" id="ded-photo-bg" onclick="closeDedPhoto()"></div>
+  <div id="ded-photo-box" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:18px;z-index:61" onclick="closeDedPhoto()">
+    <div id="ded-photo" onclick="event.stopPropagation()" style="width:100%;max-height:86vh;overflow:auto;background:#000;border-radius:12px;padding:6px"></div>
+  </div>
   <div class="sheet" id="sheet-menu">
     <div class="sheet-h"></div>
     <div class="sheet-t" id="menu-title">Меню · выберите блюдо</div>
@@ -800,10 +804,23 @@ function renderDed(){
     const inc=isIncome(d), q=String(d.qty).replace(/^[+-]/,'');
     return `<div class="jrow">
       <span class="jdot" style="background:${inc?'var(--green)':'var(--red)'}"></span>
-      <div class="jinfo"><div class="jname">${d.ing}</div><div class="jtime">${d.date} ${d.time} · ${d.reason||''} · ${d.emp||''}</div></div>
+      <div class="jinfo"><div class="jname">${d.ing}</div><div class="jtime">${d.date} ${d.time} · ${d.reason||''} · ${d.emp||''}</div>${d.has_media?`<span style="display:inline-block;margin-top:4px;padding:3px 10px;border:1px solid var(--line);border-radius:8px;font-size:11px;color:var(--blue);cursor:pointer" onclick="viewDedPhoto(${d.id})">📷 Фото списания</span>`:''}</div>
       <div class="jval" style="color:${inc?'var(--green)':'var(--red)'}">${inc?'+':'−'}${q} ${d.unit||''}</div></div>`;
   }).join(''):emptyMini('Журнал пуст');
 }
+function viewDedPhoto(id){
+  fetch(DED_API+'/deductions/'+encodeURIComponent(id)+'/media',{headers:{'X-Admin-Token':localStorage.getItem('yaya_key')||''},cache:'no-store'})
+    .then(r=>r.ok?r.json():Promise.reject(r.status))
+    .then(d=>{
+      const imgs=((d&&Array.isArray(d.items))?d.items:[]).filter(m=>m&&m.url).map(m=>m.url);
+      if(!imgs.length){toast('warn','Нет фото','');return;}
+      $('ded-photo').innerHTML=imgs.map(u=>'<img src="'+u+'" style="width:100%;display:block;border-radius:10px;margin-bottom:6px">').join('');
+      $('ded-photo-bg').classList.add('show');
+      $('ded-photo-box').style.display='flex';
+    })
+    .catch(()=>toast('warn','Ошибка загрузки фото',''));
+}
+function closeDedPhoto(){$('ded-photo-bg').classList.remove('show');$('ded-photo-box').style.display='none';}
 function openDedSheet(){
   const stock=getStock();
   $('dd-ing').innerHTML=stock.map(i=>`<option value="${i.id}">${i.name} (${fmtQty(i.qty)}${i.unit})</option>`).join('');
