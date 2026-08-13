@@ -445,6 +445,10 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
           <div class="rstat"><div class="l">Средний чек</div><div class="v" id="rep-avg">0 ₸</div></div>
           <div class="rstat"><div class="l">Списаний</div><div class="v" id="rep-ded">0</div></div>
         </div>
+        <div class="card" style="margin-bottom:12px;padding:12px 14px">
+          <div style="display:flex;justify-content:space-between;padding:5px 0"><span style="color:var(--muted)">🍔 Чистая выручка (еда)</span><b style="color:var(--green)" id="rep-food">0 ₸</b></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid var(--line)"><span style="color:var(--muted)">🛵 Доставка (курьеру)</span><b style="color:#f5a623" id="rep-deliv">0 ₸</b></div>
+        </div>
         <div class="card">
           <div class="ttl" style="font-size:14px;margin-bottom:10px">Топ-10 позиций</div>
           <div id="rep-top"></div>
@@ -780,7 +784,7 @@ async function loadOrdersSrv(){
     const r=await fetch(DED_API+'/orders?limit=500',{headers:{'X-Admin-Token':token},cache:'no-store'});
     if(r.ok){const d=await r.json();if(d&&d.ok&&Array.isArray(d.orders)){
       _ordersSrv=d.orders.map(o=>{const b=o.data||{};const items=Array.isArray(b.items)?b.items.map(i=>({name:i.name,qty:Number(i.qty)||0,price:Number(i.price)||0})):[];
-        return {id:o.id,num:o.num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',items,total:(Number(b.total)||0)+(Number(b.delivery)||0),status:o.status||'new',type:b.type,name:b.name||'',phone:b.phone||''};});
+        return {id:o.id,num:o.num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',items,total:(Number(b.total)||0)+(Number(b.delivery)||0),food:Number(b.total)||0,deliv:Number(b.delivery)||0,status:o.status||'new',type:b.type,name:b.name||'',phone:b.phone||''};});
     }}
   }catch(e){}
   _ordersLoading=false;renderReports();
@@ -875,6 +879,10 @@ function renderReports(){
   const yest=dstr(new Date(Date.now()-864e5));
   const yOrd=all.filter(o=>o.date===yest);
   const rev=orders.reduce((s,o)=>s+o.total,0), yRev=yOrd.reduce((s,o)=>s+o.total,0);
+  const food=orders.reduce((s,o)=>s+(o.food!=null?o.food:o.total),0);
+  const deliv=orders.reduce((s,o)=>s+(o.deliv||0),0);
+  const _rf=$('rep-food');if(_rf)_rf.textContent=money(food);
+  const _rd=$('rep-deliv');if(_rd)_rd.textContent=money(deliv);
   const ded=mergeDed().filter(d=>period==='today'?d.date===todayStr():true).length;
   $('rep-rev').textContent=money(rev); repDelta('rep-rev-d',rev,yRev);
   $('rep-cnt').textContent=orders.length; repDelta('rep-cnt-d',orders.length,yOrd.length);
