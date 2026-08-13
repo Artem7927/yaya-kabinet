@@ -316,7 +316,7 @@ function locEmoji(l){return l==='kitchen'?'🍳':'🏭'}
 function locName(l){return l==='kitchen'?'Кухня':'Цех'}
 
 /* nav */
-function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+tab).classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));$('ab-title').textContent=$('s-'+tab).dataset.title;({buy:renderBuy,shop:renderWsReq,log:renderLog,spend:renderSpend}[tab]||(()=>{}))();const sc=$('s-'+tab).querySelector('.scroll');if(sc)sc.scrollTop=0;}
+function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+tab).classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));$('ab-title').textContent=$('s-'+tab).dataset.title;({buy:renderBuy,shop:renderWsReq,log:renderLog,spend:renderSpend}[tab]||(()=>{}))();if(tab==='log'||tab==='spend')loadPurchasesSrv().then(()=>{(tab==='log'?renderLog:renderSpend)();});const sc=$('s-'+tab).querySelector('.scroll');if(sc)sc.scrollTop=0;}
 function openSub(k){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+k).classList.add('active');$('ab-title').textContent=$('s-'+k).dataset.title;if(k==='suppliers')renderSuppliers();}
 function openExt(u){location.href=u}
 function openDrawer(){$('dw-date').textContent=new Date().toLocaleDateString('ru',{day:'numeric',month:'long'});$('drawer').classList.add('show');$('drawer-bg').classList.add('show')}
@@ -332,6 +332,27 @@ function needQty(i){const t=(i.max!=null?i.max:i.min);return Math.max(0,Math.rou
 /* СЕРВЕР — источник заявки (фолбэк на локальный кэш) */
 const YAYA_API=window.YAYA_API||'https://yaya-db-production.up.railway.app';
 const yTok=()=>localStorage.getItem('yaya_key')||'';
+
+async function loadPurchasesSrv(){
+  try{
+    const r=await fetch(YAYA_API+'/purchases',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+    const d=await r.json();
+    if(!d||!d.ok||!Array.isArray(d.items))return false;
+    setPurchases(d.items.map(it=>{
+      const ts=Number(it.ts)||Date.now(),dt=new Date(ts);
+      return {id:String(it.id),ts,
+        date:dt.toLocaleDateString('ru',{day:'numeric',month:'short'}),
+        time:dt.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'}),
+        ing:it.ing,location:it.location||'workshop',
+        qty:(Number(it.qty)||0).toFixed(2),unit:it.unit||'',
+        price:Number(it.price)||0,total:Number(it.total)||0,
+        supplier:it.supplier||'',note:it.note||'',
+        hasReceipt:!!(photosFor(String(it.id)).goods)};
+    }));
+    return true;
+  }catch(e){return false;}
+}
+
 let _stockCache=null,_stockCacheT=0,_pfCache=null,_pfCacheT=0,_localFreshT=0,_purchBusy=false;
 async function fetchJson(url){
   const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),10000);
@@ -451,7 +472,7 @@ async function savePurch(){
   if(_purchBusy)return;_purchBusy=true;
   try{
     const stock=getStock(),ing=stock.find(i=>i.id===id);if(!ing)return;
-    let serverOk=false,errMsg='';
+    let serverOk=false,errMsg='',srvPurchaseId=null;
     try{
       const r=await fetch(YAYA_API+'/stock/'+encodeURIComponent(id)+'/receive',{
         method:'POST',
@@ -460,17 +481,17 @@ async function savePurch(){
         cache:'no-store'
       });
       let d=null;try{d=await r.json();}catch(e){}
-      serverOk=!!(r.ok&&d&&d.ok);
+      serverOk=!!(r.ok&&d&&d.ok);if(serverOk&&d&&d.purchaseId!=null)srvPurchaseId=String(d.purchaseId);
       if(!serverOk)errMsg=(d&&d.error)||('HTTP '+r.status);
     }catch(e){errMsg=e.message||String(e);}
     ing.qty+=qty;if(!ing.max||ing.qty>ing.max)ing.max=ing.qty;setStock(stock);
-    const pid='p'+Date.now(),loc=ing.location||'workshop';
+    const pid=srvPurchaseId||('p'+Date.now()),loc=ing.location||'workshop';
     const purch=getPurchases();purch.unshift({id:pid,date:todayStr(),time:nowStr(),ing:ing.name,location:loc,qty:qty.toFixed(2),unit,price,total:price*qty,supplier,note:'',hasReceipt:true});setPurchases(purch);
     const ded=getDeductions();ded.push({date:todayStr(),time:nowStr(),ing:ing.name,qty:'+'+qty.toFixed(2),unit,reason:'Закупка ('+locName(loc)+')',emp:'Закупщик'});setDeductions(ded);
     {const rec=getReceipts();rec.push({id:'r'+Date.now(),purchaseId:pid,date:todayStr(),time:nowStr(),supplier,ing:ing.name,location:loc,goods:_photoGoods,receipt:_photoReceipt});setReceipts(rec);}
     if(supplier){const sup=getSuppliers();if(!sup.find(s=>s.name===supplier)){sup.push({name:supplier,info:''});setSuppliers(sup);}}
     _stockCache=null;
-    clearPhoto();closeSheet();renderBuy();
+    clearPhoto();closeSheet();renderBuy();if(serverOk)loadPurchasesSrv().then(()=>{if(curTab==='log')renderLog();else if(curTab==='spend')renderSpend();});
     if(serverOk)toast('success','Закупка записана',ing.name+' +'+qty+unit+' · '+money(price*qty)+' 🧾');
     else toast('warn','Сохранено локально, но НЕ на сервере',errMsg+' — повторите позже');
   }finally{
@@ -480,7 +501,7 @@ async function savePurch(){
 
 /* ЖУРНАЛ */
 function inPeriod(d,period){if(period==='all')return true;if(period==='today')return d.date===todayStr();if(period==='week'){const w=new Date(Date.now()-7*864e5);const t=parsePDate(d);return t>=w;}return true;}
-function parsePDate(p){return p.id&&/^p\d+$/.test(p.id)?new Date(parseInt(p.id.slice(1))):new Date();}
+function parsePDate(p){return p.ts?new Date(Number(p.ts)):(p.id&&/^p\d+$/.test(p.id)?new Date(parseInt(p.id.slice(1))):new Date());}
 function renderLog(){
   const period=$('log-period').value,loc=$('log-loc').value;
   let list=getPurchases().filter(p=>inPeriod(p,period));if(loc!=='all')list=list.filter(p=>(p.location||'workshop')===loc);
