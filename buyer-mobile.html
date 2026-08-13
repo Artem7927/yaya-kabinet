@@ -347,7 +347,7 @@ async function loadPurchasesSrv(){
         qty:(Number(it.qty)||0).toFixed(2),unit:it.unit||'',
         price:Number(it.price)||0,total:Number(it.total)||0,
         supplier:it.supplier||'',note:it.note||'',
-        hasReceipt:!!(photosFor(String(it.id)).goods)};
+        status:it.status||'accepted',recv_qty:(it.recv_qty!=null?Number(it.recv_qty):null),reject_reason:it.reject_reason||'',hasReceipt:!!(photosFor(String(it.id)).goods)};
     }));
     return true;
   }catch(e){return false;}
@@ -474,26 +474,26 @@ async function savePurch(){
     const stock=getStock(),ing=stock.find(i=>i.id===id);if(!ing)return;
     let serverOk=false,errMsg='',srvPurchaseId=null;
     try{
-      const r=await fetch(YAYA_API+'/stock/'+encodeURIComponent(id)+'/receive',{
+      const r=await fetch(YAYA_API+'/stock/'+encodeURIComponent(id)+'/deliver',{
         method:'POST',
         headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},
         body:JSON.stringify({qty:Number(qty),price:Number(price)||0,supplier:supplier||'',note:'',media:[{kind:'goods',url:_photoGoods},{kind:'receipt',url:_photoReceipt}]}),
         cache:'no-store'
       });
       let d=null;try{d=await r.json();}catch(e){}
-      serverOk=!!(r.ok&&d&&d.ok);if(serverOk&&d&&d.purchaseId!=null)srvPurchaseId=String(d.purchaseId);
+      serverOk=!!(r.ok&&d&&d.ok);if(serverOk&&d&&d.id!=null)srvPurchaseId=String(d.id);
       if(!serverOk)errMsg=(d&&d.error)||('HTTP '+r.status);
     }catch(e){errMsg=e.message||String(e);}
-    ing.qty+=qty;if(!ing.max||ing.qty>ing.max)ing.max=ing.qty;setStock(stock);
+    /* склад пополнится только после приёмки цехом/кухней */
     const pid=srvPurchaseId||('p'+Date.now()),loc=ing.location||'workshop';
-    const purch=getPurchases();purch.unshift({id:pid,date:todayStr(),time:nowStr(),ing:ing.name,location:loc,qty:qty.toFixed(2),unit,price,total:price*qty,supplier,note:'',hasReceipt:true});setPurchases(purch);
-    const ded=getDeductions();ded.push({date:todayStr(),time:nowStr(),ing:ing.name,qty:'+'+qty.toFixed(2),unit,reason:'Закупка ('+locName(loc)+')',emp:'Закупщик'});setDeductions(ded);
+    const purch=getPurchases();purch.unshift({id:pid,date:todayStr(),time:nowStr(),ing:ing.name,location:loc,qty:qty.toFixed(2),unit,price,total:price*qty,supplier,note:'',hasReceipt:true,status:'pending'});setPurchases(purch);
+    /* без локального списания — приход ожидает приёмки */
     {const rec=getReceipts();rec.push({id:'r'+Date.now(),purchaseId:pid,date:todayStr(),time:nowStr(),supplier,ing:ing.name,location:loc,goods:_photoGoods,receipt:_photoReceipt});setReceipts(rec);}
     if(supplier){const sup=getSuppliers();if(!sup.find(s=>s.name===supplier)){sup.push({name:supplier,info:''});setSuppliers(sup);}}
     _stockCache=null;
     clearPhoto();closeSheet();renderBuy();if(serverOk)loadPurchasesSrv().then(()=>{if(curTab==='log')renderLog();else if(curTab==='spend')renderSpend();});
-    if(serverOk)toast('success','Закупка записана',ing.name+' +'+qty+unit+' · '+money(price*qty)+' 🧾');
-    else toast('warn','Сохранено локально, но НЕ на сервере',errMsg+' — повторите позже');
+    if(serverOk)toast('success','Отправлено на приёмку',ing.name+' +'+qty+unit+' · ждёт подтверждения складом');
+    else toast('warn','Не отправлено',errMsg+' — повторите позже');
   }finally{
     _purchBusy=false;
   }
@@ -507,7 +507,7 @@ function renderLog(){
   let list=getPurchases().filter(p=>inPeriod(p,period));if(loc!=='all')list=list.filter(p=>(p.location||'workshop')===loc);
   const total=list.reduce((s,p)=>s+(parseFloat(p.total)||0),0);
   $('log-total').textContent=money(total);
-  $('log-list').innerHTML=list.length?list.slice(0,80).map(p=>{const l=p.location||'workshop';const ph=photosFor(p.id);let photos='';if(ph.goods)photos+=`<div class="jd-ph"><span>Товар</span><img src="${ph.goods}"></div>`;if(ph.receipt)photos+=`<div class="jd-ph"><span>Чек</span><img src="${ph.receipt}"></div>`;const pb=photos?`<div class="jd-photos">${photos}</div>`:'<div class="empty-mini" style="margin-bottom:8px">Фото нет</div>';return `<div class="jitem"><div class="jrow" onclick="toggleJrow('${p.id}')"><div class="jl ${l==='kitchen'?'ic-blue':'ic-teal'}">${locEmoji(l)}</div><div class="jinfo"><div class="jname">${p.ing}</div><div class="jtime">${p.date} ${p.time}${p.supplier?' · '+p.supplier:''}${p.hasReceipt?' · 🧾':''}</div></div><div class="jval"><div class="jq">+${p.qty} ${p.unit}</div><div class="jp">${p.total?money(p.total):'—'}</div></div></div><div class="jdetail" id="jd-${p.id}" style="display:none;padding:8px 4px 12px">${pb}<div class="jd-info"><div><span>Товар</span><b>${p.ing}</b></div><div><span>Количество</span><b>+${p.qty} ${p.unit}</b></div><div><span>Цена за ед.</span><b>${money(p.price)}/${p.unit}</b></div><div><span>Итого</span><b>${p.total?money(p.total):'—'}</b></div>${p.supplier?`<div><span>Поставщик</span><b>${p.supplier}</b></div>`:''}</div></div></div>`;}).join(''):'<div class="empty-mini">Закупок за период нет</div>';
+  $('log-list').innerHTML=list.length?list.slice(0,80).map(p=>{const l=p.location||'workshop';const ph=photosFor(p.id);let photos='';if(ph.goods)photos+=`<div class="jd-ph"><span>Товар</span><img src="${ph.goods}"></div>`;if(ph.receipt)photos+=`<div class="jd-ph"><span>Чек</span><img src="${ph.receipt}"></div>`;const pb=photos?`<div class="jd-photos">${photos}</div>`:'<div class="empty-mini" style="margin-bottom:8px">Фото нет</div>';return `<div class="jitem"><div class="jrow" onclick="toggleJrow('${p.id}')"><div class="jl ${l==='kitchen'?'ic-blue':'ic-teal'}">${locEmoji(l)}</div><div class="jinfo"><div class="jname">${p.ing}</div><div class="jtime">${p.date} ${p.time}${p.supplier?' · '+p.supplier:''}${p.hasReceipt?' · 🧾':''}${p.status==='pending'?' · ⏳ ждёт приёмки':p.status==='rejected'?' · ❌ отклонено':' · ✅ принято'}</div></div><div class="jval"><div class="jq">+${p.qty} ${p.unit}</div><div class="jp">${p.total?money(p.total):'—'}</div></div></div><div class="jdetail" id="jd-${p.id}" style="display:none;padding:8px 4px 12px">${pb}<div class="jd-info"><div><span>Товар</span><b>${p.ing}</b></div><div><span>Количество</span><b>+${p.qty} ${p.unit}</b></div><div><span>Цена за ед.</span><b>${money(p.price)}/${p.unit}</b></div><div><span>Итого</span><b>${p.total?money(p.total):'—'}</b></div>${p.supplier?`<div><span>Поставщик</span><b>${p.supplier}</b></div>`:''}${p.status==='rejected'&&p.reject_reason?`<div><span>Причина отказа</span><b>${p.reject_reason}</b></div>`:''}${(p.recv_qty!=null&&p.status==='accepted')?`<div><span>Принято по факту</span><b>+${Number(p.recv_qty).toFixed(2)} ${p.unit}</b></div>`:''}</div></div></div>`;}).join(''):'<div class="empty-mini">Закупок за период нет</div>';
 }
 function photosFor(pid){return getReceipts().find(r=>r.purchaseId===pid)||{};}
 function toggleJrow(id){const e=$('jd-'+id);if(e)e.style.display=e.style.display==='none'?'block':'none';}

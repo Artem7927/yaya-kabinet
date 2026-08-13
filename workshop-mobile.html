@@ -209,6 +209,7 @@ input:focus,select:focus{border-color:var(--orange)}
     <!-- СКЛАД ЦЕХА -->
     <section class="screen" id="s-stock" data-title="Склад цеха">
       <div class="scroll">
+        <div id="incoming"></div>
         <div class="seg"><button id="sg-raw" class="on" onclick="stockSeg('raw')">Сырьё</button><button id="sg-pf" onclick="stockSeg('pf')">Полуфабрикаты</button></div>
         <div id="stock-raw">
           <input class="search" placeholder="Поиск сырья..." oninput="renderRaw(this.value)">
@@ -422,7 +423,31 @@ async function produce(){
 
 /* СКЛАД */
 function stockSeg(v){stockView=v;$('sg-raw').classList.toggle('on',v==='raw');$('sg-pf').classList.toggle('on',v==='pf');$('stock-raw').style.display=v==='raw'?'':'none';$('stock-pf').style.display=v==='pf'?'':'none';renderStock();}
-function renderStock(){if(stockView==='raw')renderRaw(window._rawQ||'');else renderPf();updCrit();}
+function renderStock(){if(stockView==='raw')renderRaw(window._rawQ||'');else renderPf();updCrit();renderIncoming();}
+const RECV_LOC='workshop';   // в kitchen-stock-mobile.html поставить 'kitchen'
+async function renderIncoming(){
+  const box=$('incoming');if(!box)return;
+  let items=null;try{items=await fetchJson('/purchases?status=pending&location='+RECV_LOC);}catch(e){}
+  if(!items||!items.length){box.innerHTML='';return;}
+  box.innerHTML=`<div class="itbl-head" style="margin-top:2px"><span>Входящие поставки</span><span>${items.length}</span></div>`+items.map(p=>{
+    const q=Number(p.qty)||0,u=p.unit||'',sup=p.supplier?(' · '+p.supplier):'';
+    return `<div class="jitem" style="padding:10px 12px;margin-bottom:8px;border:1px solid var(--line);border-radius:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div><b style="font-size:14px">${p.ing}</b><div style="font-size:11px;color:var(--muted)">Закупщик${sup}</div></div>
+        <div style="font-weight:800;color:var(--green)">+${q.toFixed(2)} ${u}</div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button class="btn btn-primary" style="flex:1;padding:10px" onclick="acceptDelivery(${p.id})">Принять</button>
+        <button class="btn" style="flex:1;padding:10px" onclick="acceptCorrect(${p.id},${q})">Факт</button>
+        <button class="btn" style="flex:1;padding:10px;color:var(--red)" onclick="rejectDelivery(${p.id})">Отклонить</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function _deliv(url,body){try{const r=await fetch(YAYA_API+url,{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify(body||{}),cache:'no-store'});const d=await r.json();return (r.ok&&d&&d.ok)?d:null;}catch(e){return null;}}
+async function acceptDelivery(id){const d=await _deliv('/deliveries/'+id+'/accept',{});if(d){toast('success','Принято','Склад пополнен');_stockCache=null;renderStock();}else toast('warn','Не удалось','Повторите');}
+async function acceptCorrect(id,def){const v=prompt('Принять по факту, количество:',String(def));if(v===null)return;const q=parseFloat(v);if(!(q>0)){toast('warn','Неверное число','');return;}const d=await _deliv('/deliveries/'+id+'/accept',{recv_qty:q});if(d){toast('success','Принято по факту','+'+q);_stockCache=null;renderStock();}else toast('warn','Не удалось','Повторите');}
+async function rejectDelivery(id){const reason=prompt('Причина отказа (необязательно):','')||'';const d=await _deliv('/deliveries/'+id+'/reject',{reason});if(d){toast('info','Отклонено','');renderStock();}else toast('warn','Не удалось','Повторите');}
 async function renderRaw(q){window._rawQ=q||'';q=(q||'').toLowerCase();const stock=(await fetchStockSrv())||getStock().filter(i=>(!i.location||i.location==='workshop'));let items=stock;if(q)items=items.filter(i=>i.name.toLowerCase().includes(q));items.sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));$('raw-list').innerHTML=items.map(i=>stockRow(i,`openAdj('${i.id}')`)).join('')||'<div class="empty-mini">Ничего не найдено</div>';}
 async function renderPf(){const ws=(await fetchPfSrv())||getWsStock();$('pf-list').innerHTML=ws.length?ws.map(w=>{const col=w.qty<=0?'var(--red)':w.qty<10?'var(--amber)':'var(--teal)';return `<div class="irow"><div class="top"><div class="inm">${w.name}</div><div class="iq" style="color:${col}">${parseFloat(w.qty.toFixed(2))}${w.unit}</div><div class="ist muted">полуф.</div></div></div>`;}).join(''):'<div class="empty-mini">Нет полуфабрикатов</div>';}
 async function openAdj(id){const raw=(await fetchStockSrv())||getStock().filter(i=>(!i.location||i.location==='workshop'));$('adj-item').innerHTML=raw.map(i=>`<option value="${i.id}">${i.name} (${i.qty.toFixed(1)}${i.unit})</option>`).join('');if(id)$('adj-item').value=id;$('adj-qty').value=1;adjHint();openSheet('sh-adj');}
