@@ -630,19 +630,21 @@ function openSub(kind,arg){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab==='more'));
   $('ab-burger').style.display='none'; $('ab-back').style.display='';
   const R={tech:renderTech,stop:renderStop,ing:renderIng,suppliers:renderSuppliers,users:renderUsers,settings:renderSettings,io:renderIO,about:renderAbout,purchases:renderPurchases}[kind];
-  if(R) R(); $('sub-body').scrollTop=0;
+  $('sub-chips').innerHTML=''; if(R) R(); $('sub-body').scrollTop=0;
 }
-async function renderPurchases(){
+async function renderPurchases(loc){
+  loc=(loc==='kitchen'||loc==='workshop')?loc:(window._purchLoc||'workshop');window._purchLoc=loc;
   $('s-sub').dataset.title='Закупки';
+  $('sub-chips').innerHTML=`<div class="chips"><div class="chip ${loc==='workshop'?'on':''}" onclick="renderPurchases('workshop')">Цех</div><div class="chip ${loc==='kitchen'?'on':''}" onclick="renderPurchases('kitchen')">Кухня</div></div>`;
   const el=$('sub-body');el.innerHTML='<div class="empty-mini">Загрузка…</div>';
   const token=localStorage.getItem('yaya_key')||'';
   try{
-    const r=await fetch(DED_API+'/purchases',{headers:{'X-Admin-Token':token},cache:'no-store'});
+    const r=await fetch(DED_API+'/purchases?location='+loc,{headers:{'X-Admin-Token':token},cache:'no-store'});
     const d=await r.json();
     if(!(d&&d.ok&&Array.isArray(d.items))){el.innerHTML='<div class="empty-mini">Нет доступа к серверу — вставьте токен</div>';return;}
-    const it=d.items,total=it.reduce((s,p)=>s+(Number(p.total)||0),0);
-    el.innerHTML=`<div class="rstat" style="margin-bottom:12px"><div class="l">Сумма закупок</div><div class="v" style="color:var(--green)">${money(total)}</div></div>`+
-      (it.length?it.map(p=>{const t=new Date(Number(p.ts)||Date.now());return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 2px;border-bottom:1px solid var(--line)"><div><div style="font-weight:600">${p.ing}</div><div style="font-size:12px;color:var(--muted)">${dstr(t)} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}${p.supplier?' · '+p.supplier:''}</div></div><div style="text-align:right"><div style="color:var(--green);font-weight:600">+${p.qty} ${p.unit}</div><div style="font-size:12px;color:var(--muted)">${p.total?money(p.total):'—'}</div></div></div>`;}).join(''):'<div class="empty-mini">Закупок нет</div>');
+    const it=d.items.filter(p=>(p.status||'accepted')!=='cancelled'),total=it.reduce((s,p)=>s+(Number(p.total)||0),0);
+    el.innerHTML=`<div class="rstat" style="margin-bottom:12px"><div class="l">Сумма закупок (${loc==='kitchen'?'кухня':'цех'})</div><div class="v" style="color:var(--green)">${money(total)}</div></div>`+
+      (it.length?it.map(p=>{const t=new Date(Number(p.ts)||Date.now());const st=p.status==='pending'?' · ⏳ ждёт':p.status==='rejected'?' · ❌ отклонено':'';return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 2px;border-bottom:1px solid var(--line)"><div><div style="font-weight:600">${p.ing}</div><div style="font-size:12px;color:var(--muted)">${dstr(t)} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}${p.supplier?' · '+p.supplier:''}${st}</div></div><div style="text-align:right"><div style="color:var(--green);font-weight:600">+${p.qty} ${p.unit}</div><div style="font-size:12px;color:var(--muted)">${p.total?money(p.total):'—'}</div></div></div>`;}).join(''):'<div class="empty-mini">Закупок нет</div>');
   }catch(e){el.innerHTML='<div class="empty-mini">Сервер недоступен</div>';}
 }
 
