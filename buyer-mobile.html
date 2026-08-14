@@ -172,6 +172,10 @@ input:focus,select:focus{border-color:var(--orange)}
 .tst.error .ti{background:var(--red-soft);color:var(--red)}
 .tst.warn .ti{background:var(--amber-soft);color:var(--amber)}
 .tst.info .ti{background:var(--blue-soft);color:var(--blue)}
+.abg{display:inline-block;margin-top:5px;padding:3px 9px;border-radius:8px;font-size:10.5px;font-weight:700}
+.abg.g{background:var(--green-soft);color:var(--green)}
+.abg.b{background:var(--blue-soft);color:var(--blue)}
+.abg.o{background:var(--orange-soft);color:var(--orange)}
 </style>
 </head>
 <body>
@@ -382,6 +386,14 @@ async function fetchPfStock(){
 /* ЧТО КУПИТЬ */
 function buySeg(v){buyLoc=v;['all','workshop','kitchen'].forEach(x=>$('bg-'+x).classList.toggle('on',x===v));renderBuy();}
 async function pendingIngIds(){try{const items=await fetchJson('/purchases?status=pending');if(!Array.isArray(items))return new Set();return new Set(items.map(p=>String(p.ing_id)));}catch(e){return new Set();}}
+async function fetchJsonAssign(){try{const r=await fetch(YAYA_API+'/purchase-assign',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});if(!r.ok)return{};const d=await r.json();return (d&&d.ok&&d.assign&&typeof d.assign==='object')?d.assign:{};}catch(e){return{};}}
+function assignBadge(ingId,assign){
+  const a=assign[String(ingId)];if(!a)return '';
+  if(a==='🛒')return '<span class="abg g">Закупщик</span>';
+  if(a==='🚚')return '<span class="abg b">Везёт менеджер</span>';
+  if(typeof a==='object'&&a.t==='🧾')return '<span class="abg o">Куплено'+(a.sum?' · '+money(a.sum):'')+'</span>';
+  return '';
+}
 async function renderBuy(){
   const prices=lastPrices();
   const src=await fetchStock();
@@ -394,7 +406,7 @@ async function renderBuy(){
     return;
   }
   const stock=src;
-  const pend=await pendingIngIds();
+  const pend=await pendingIngIds(); const assign=await fetchJsonAssign();
   const lowAll=stock.filter(i=>i.qty<i.min&&!pend.has(String(i.id)));
   const low=buyLoc==='all'?lowAll:lowAll.filter(i=>(i.location||'workshop')===buyLoc);
   low.sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));
@@ -407,7 +419,7 @@ async function renderBuy(){
   $('buy-list').innerHTML=low.map(i=>{const loc=i.location||'workshop',need=needQty(i),pr=prices[i.name];const est=pr?' · ≈'+money(need*pr):'';
     return `<div class="buyrow" onclick="openPurch('${i.id}')">
       <div class="loc ${loc==='kitchen'?'ic-blue':'ic-teal'}">${locEmoji(loc)}</div>
-      <div class="bi"><div class="bn">${i.name}</div><div class="bs">Сейчас ${parseFloat(i.qty.toFixed(2))}${i.unit} · мин ${i.min}${i.unit}${est}</div></div>
+      <div class="bi"><div class="bn">${i.name}</div><div class="bs">Сейчас ${parseFloat(i.qty.toFixed(2))}${i.unit} · мин ${i.min}${i.unit}${est}</div>${assignBadge(i.id,assign)}</div>
       <div class="bneed"><div class="q">+${need}</div><div class="u">${i.unit}</div></div>
       <button class="add" onclick="event.stopPropagation();openPurch('${i.id}')">＋</button></div>`;
   }).join('');
@@ -550,5 +562,6 @@ function exportCsv(){
 renderBuy();
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});}</script>
+<script>if('serviceWorker' in navigator&&'Notification' in window){var API=window.YAYA_API||'https://yaya-db-production.up.railway.app';function b64u(u){u=u.replace(/-/g,'+').replace(/_/g,'/');while(u.length%4)u+='=';var bin=atob(u),arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr;}function sTok(){return localStorage.getItem('yaya_key')||'';}function doSub(reg){fetch(API+'/push/public-key',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(!(d&&d.ok&&d.key))return;return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(d.key)});}).then(sub=>{if(!sub)return;return fetch(API+'/push/subscribe',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':sTok()},body:JSON.stringify({role:'buyer',sub:sub.toJSON()})});}).catch(function(){});}navigator.serviceWorker.ready.then(reg=>{if(Notification.permission==='denied')return;if(Notification.permission==='granted'){reg.pushManager.getSubscription().then(s=>{if(!s)doSub(reg);});}else{Notification.requestPermission().then(p=>{if(p==='granted')doSub(reg);});}});}</script>
 </body>
 </html>

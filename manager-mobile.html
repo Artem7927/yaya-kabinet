@@ -319,6 +319,39 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
 .htip .dots{display:flex;gap:5px;justify-content:center;margin-top:10px}
 .htip .dots i{width:5px;height:5px;border-radius:50%;background:var(--muted2)}
 .htip .dots i.on{background:var(--orange)}
+/* закупки: карточки-аккордеон */
+.prow{border:1px solid var(--line);border-radius:13px;margin-bottom:9px;background:var(--card)}
+.prow.open{border-color:var(--orange)}
+.phead{display:flex;align-items:center;gap:10px;padding:12px;cursor:pointer}
+.phead:active{background:var(--card2);border-radius:13px}
+.phead .pi{flex:1;min-width:0}
+.phead .pn{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.phead .pt{font-size:11px;color:var(--muted);margin-top:2px}
+.phead .pv{text-align:right;flex-shrink:0}
+.phead .pv .pq{font-weight:800;color:var(--green);font-size:14px}
+.phead .pv .pm{font-size:11px;color:var(--muted)}
+.phead .pchev{color:var(--muted2);font-size:13px;transition:transform .2s;flex-shrink:0}
+.prow.open .pchev{transform:rotate(180deg)}
+.pcard{display:none;border-top:1px solid var(--line);padding:12px}
+.prow.open .pcard{display:block}
+.pcard .pfield{display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:13px}
+.pcard .pfield span{color:var(--muted)}
+.pcard .pfield b{text-align:right}
+.pcard .plabel{font-size:12px;color:var(--muted);padding:8px 0 4px;font-weight:700}
+.pcard .plabel.muted{color:var(--muted2);font-weight:600}
+.pphotos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pthumb{aspect-ratio:1/1;border-radius:11px;overflow:hidden;background:#000;cursor:pointer;position:relative}
+.pthumb img{width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0}
+.dz-img{width:100%;display:block;border-radius:10px;margin-bottom:6px;pointer-events:none;user-select:none;-webkit-user-drag:none}
+/* купить: назначение */
+.buynote{font-size:12px;color:var(--muted);background:var(--card2);border-radius:11px;padding:10px 12px;margin-bottom:12px;line-height:1.5}
+.abuyrow{display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:1px solid var(--line)}
+.abuyrow:last-child{border-bottom:none}
+.abuyrow .an{flex:1;min-width:0}
+.abuyrow .an b{font-size:13px;font-weight:600;display:block}
+.abuyrow .an span{font-size:11px;color:var(--muted)}
+.aseg{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:34px;padding:0 8px;border:1px solid var(--line);border-radius:9px;background:var(--card2);cursor:pointer;font-size:15px;font-weight:700}
+.aseg.on{border-color:var(--orange);background:var(--orange-soft)}
 </style>
 </head>
 <body>
@@ -504,6 +537,7 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
       <div class="dnav" onclick="closeDrawer();openSub('tech')"><div class="mic ic-green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg></div><b>Техкарты</b></div>
       <div class="dnav" onclick="closeDrawer();openSub('stop')"><div class="mic ic-red"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m5 5 14 14"/></svg></div><b>Стоп-лист</b></div>
       <div class="dnav" onclick="closeDrawer();openSub('ing','kitchen')"><div class="mic ic-blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9 12 3l9 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></div><b>Ингредиенты</b></div>
+      <div class="dnav" onclick="closeDrawer();openSub('buy')"><div class="mic ic-orange"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div><b>Купить</b></div>
       <div class="dnav" onclick="closeDrawer();openExt('kitchen.html')"><div class="mic ic-orange"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg></div><b>Экран кухни</b></div>
     </div>
   </aside>
@@ -512,7 +546,7 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
   <div class="sheet-bg" id="sheet-bg" onclick="closeSheet()"></div>
   <div class="sheet-bg" id="ded-photo-bg" onclick="closeDedPhoto()"></div>
   <div id="ded-photo-box" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:18px;z-index:61" onclick="closeDedPhoto()">
-    <div id="ded-photo" onclick="event.stopPropagation()" style="width:100%;max-height:86vh;overflow:auto;background:#000;border-radius:12px;padding:6px"></div>
+    <div id="ded-photo" onclick="event.stopPropagation()" style="width:100%;max-height:86vh;overflow:hidden;background:#000;border-radius:12px;padding:6px;touch-action:none"></div>
   </div>
   <div class="sheet" id="sheet-menu">
     <div class="sheet-h"></div>
@@ -629,7 +663,7 @@ function openSub(kind,arg){
   $('s-sub').classList.add('active');
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab==='more'));
   $('ab-burger').style.display='none'; $('ab-back').style.display='';
-  const R={tech:renderTech,stop:renderStop,ing:renderIng,suppliers:renderSuppliers,users:renderUsers,settings:renderSettings,io:renderIO,about:renderAbout,purchases:renderPurchases}[kind];
+  const R={tech:renderTech,stop:renderStop,ing:renderIng,suppliers:renderSuppliers,users:renderUsers,settings:renderSettings,io:renderIO,about:renderAbout,purchases:renderPurchases,buy:renderBuy}[kind];
   $('sub-chips').innerHTML=''; if(R) R(); $('sub-body').scrollTop=0;
 }
 async function renderPurchases(loc){
@@ -642,10 +676,61 @@ async function renderPurchases(loc){
     const r=await fetch(DED_API+'/purchases?location='+loc,{headers:{'X-Admin-Token':token},cache:'no-store'});
     const d=await r.json();
     if(!(d&&d.ok&&Array.isArray(d.items))){el.innerHTML='<div class="empty-mini">Нет доступа к серверу — вставьте токен</div>';return;}
-    const it=d.items.filter(p=>(p.status||'accepted')!=='cancelled'),total=it.reduce((s,p)=>s+(Number(p.total)||0),0);
+    const it=d.items.filter(p=>(p.status||'accepted')!=='cancelled'),total=it.reduce((s,p)=>s+(Number(p.total)||0),0); _purchCache=it;
     el.innerHTML=`<div class="rstat" style="margin-bottom:12px"><div class="l">Сумма закупок (${loc==='kitchen'?'кухня':'цех'})</div><div class="v" style="color:var(--green)">${money(total)}</div></div>`+
-      (it.length?it.map(p=>{const t=new Date(Number(p.ts)||Date.now());const st=p.status==='pending'?' · ⏳ ждёт':p.status==='rejected'?' · ❌ отклонено':'';return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 2px;border-bottom:1px solid var(--line)"><div><div style="font-weight:600">${p.ing}</div><div style="font-size:12px;color:var(--muted)">${dstr(t)} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}${p.supplier?' · '+p.supplier:''}${st}${p.note?' · '+p.note:''}${p.status==='rejected'&&p.reject_reason?' · причина: '+p.reject_reason:''}${(p.recv_qty!=null&&Number(p.recv_qty)!==Number(p.qty))?' · принято '+p.recv_qty:''}</div>${p.has_media?`<span style="display:inline-block;margin-top:4px;padding:3px 10px;border:1px solid var(--line);border-radius:8px;font-size:11px;color:var(--blue);cursor:pointer" onclick="viewPurchasePhoto(${p.id})">📷 Фото товара/чека</span>`:''}</div><div style="text-align:right"><div style="color:var(--green);font-weight:600">+${p.qty} ${p.unit}</div><div style="font-size:12px;color:var(--muted)">${p.total?money(p.total):'—'}</div></div></div>`;}).join(''):'<div class="empty-mini">Закупок нет</div>');
+      (it.length?it.map(p=>{const t=new Date(Number(p.ts)||Date.now());const st=p.status==='pending'?' · ⏳ ждёт':p.status==='rejected'?' · ❌ отклонено':'';return `<div class="prow" id="pr-${p.id}"><div class="phead" onclick="purchToggle(${p.id})"><div class="pi"><div class="pn">${p.ing}</div><div class="pt">${dstr(t)} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}${p.supplier?' · '+p.supplier:''}${st}</div></div><div class="pv"><div class="pq">+${p.qty} ${p.unit}</div><div class="pm">${p.total?money(p.total):'—'}</div></div><div class="pchev">▾</div></div><div class="pcard" id="pc-${p.id}"></div></div>`;}).join(''):'<div class="empty-mini">Закупок нет</div>');
   }catch(e){el.innerHTML='<div class="empty-mini">Сервер недоступен</div>';}
+}
+
+let _assignMap=null;
+async function fetchAssign(){try{const r=await fetch(DED_API+'/purchase-assign',{headers:{'X-Admin-Token':localStorage.getItem('yaya_key')||''},cache:'no-store'});const d=await r.json();return (r.ok&&d&&d.ok&&d.assign&&typeof d.assign==='object')?d.assign:{};}catch(e){return{};}}
+async function renderBuy(){
+  $('s-sub').dataset.title='Купить';
+  $('sub-chips').innerHTML='';
+  const el=$('sub-body');el.innerHTML='<div class="empty-mini">Загрузка…</div>';
+  const token=localStorage.getItem('yaya_key')||'';
+  try{
+    const [sr,ar]=await Promise.all([
+      fetch(DED_API+'/stock',{headers:{'X-Admin-Token':token},cache:'no-store'}),
+      fetch(DED_API+'/purchase-assign',{headers:{'X-Admin-Token':token},cache:'no-store'})
+    ]);
+    const sd=await sr.json(),ad=await ar.json();
+    if(!(sd&&sd.ok&&Array.isArray(sd.items))){el.innerHTML='<div class="empty-mini">Нет доступа к серверу — вставьте токен</div>';return;}
+    const assign=(ad&&ad.ok&&ad.assign&&typeof ad.assign==='object')?ad.assign:{};
+    _assignMap=assign;
+    const low=sd.items.filter(i=>Number(i.qty)<Number(i.min)).sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));
+    if(!low.length){el.innerHTML='<div class="empty-mini">Всё в наличии — докупать нечего</div>';return;}
+    el.innerHTML=`<div class="buynote">Назначьте, кто что покупает — назначение увидит закупщик в экране «Что купить».</div>`+low.map(i=>{
+      const need=Math.max(0,Math.round((Number(i.max!=null?i.max:i.min)-Number(i.qty))*100)/100);
+      const a=assign[String(i.id)]||null;
+      const isOn=s=>a===s||(s==='🧾'&&a&&typeof a==='object'&&a.t==='🧾');
+      const segs=['🛒','🚚','🧾'].map(s=>`<span class="aseg ${isOn(s)?'on':''}" onclick="setAssign('${i.id}','${s}')">${s}</span>`).join('');
+      return `<div class="abuyrow"><div class="an"><b>${i.name}</b><span>Сейчас ${Number(i.qty).toFixed(2)}${i.unit} · мин ${i.min}${i.unit} · нужно +${need}${i.unit}</span></div><div style="display:flex;gap:6px;flex-shrink:0">${segs}</div></div>`;
+    }).join('');
+  }catch(e){el.innerHTML='<div class="empty-mini">Сервер недоступен</div>';}
+}
+async function setAssign(ingId,v){
+  const a=Object.assign({},_assignMap||{});
+  if(a[ingId]&&((a[ingId]===v)||(v==='🧾'&&typeof a[ingId]==='object'&&a[ingId].t==='🧾'))){delete a[ingId];}
+  else if(v==='🧾'){
+    const cur=a[ingId]&&typeof a[ingId]==='object'?a[ingId].sum:'';
+    const s=prompt('Сумма чека (₸):',cur||'');
+    if(s===null)return;
+    const sum=parseFloat(String(s).replace(/[^\d.]/g,''));
+    if(!(sum>0)){toast('warn','Некорректная сумма','');return;}
+    a[ingId]={t:'🧾',sum:Math.round(sum)};
+  } else { a[ingId]=v; }
+  _assignMap=a;
+  await saveAssign(a);
+  renderBuy();
+}
+async function saveAssign(a){
+  try{
+    const r=await fetch(DED_API+'/purchase-assign',{method:'PUT',headers:{'Content-Type':'application/json','X-Admin-Token':localStorage.getItem('yaya_key')||''},body:JSON.stringify({assign:a}),cache:'no-store'});
+    const d=await r.json();
+    if(r.ok&&d&&d.ok)toast('success','Назначение сохранено','');
+    else toast('warn','Не сохранено',(d&&d.error)||'');
+  }catch(e){toast('warn','Ошибка сети','');}
 }
 
 /* ── ORDER TYPE / CART ── */
@@ -678,12 +763,22 @@ function renderCart(){
   $('cart-sum').textContent=money(cartTotal()); $('co-sum').textContent=money(cartTotal());
 }
 function openCheckout(){if(!cart.length){toast('warn','Корзина пуста','Добавьте хотя бы одно блюдо');return;}coType(orderType);$('co-sum').textContent=money(cartTotal());openSheet('sheet-checkout');}
-function placeOrder(){
+async function placeOrder(){
   if(!cart.length)return;
-  const orders=getOrders(),total=cartTotal();
-  const num=(orders.length?Math.max(...orders.map(o=>o.num||0)):0)+1;
-  orders.push({id:Date.now(),num,date:todayStr(),time:nowStr(),items:cart.map(c=>({id:c.id,name:c.name,qty:c.qty,price:c.price})),total,status:'new',type:orderType,name:($('co-name').value||'').trim(),phone:($('co-phone').value||'').trim()});
-  setOrders(orders); try{autoDeductForOrder(cart);}catch(e){}
+  const total=cartTotal();
+  const items=cart.map(c=>({id:c.id,name:c.name,qty:c.qty,price:c.price}));
+  const data={items,total,type:orderType,name:($('co-name').value||'').trim(),phone:($('co-phone').value||'').trim()};
+  let srvId=null,srvNum=null;
+  try{
+    const r=await fetch(DED_API+'/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),cache:'no-store'});
+    const d=await r.json();
+    if(r.ok&&d&&d.ok){srvId=d.id||null;srvNum=d.num||null;}
+  }catch(e){}
+  const orders=getOrders();
+  const num=srvNum||(orders.length?Math.max(...orders.map(o=>o.num||0)):0)+1;
+  const rec={id:srvId||Date.now(),num,date:todayStr(),time:nowStr(),items,total,status:'new',type:orderType,name:data.name,phone:data.phone};
+  if(srvId){rec._srv=true;rec.srvId=srvId;}
+  orders.push(rec);setOrders(orders);try{autoDeductForOrder(cart);}catch(e){}
   cart=[];renderCart();$('co-name').value='';$('co-phone').value='';closeSheet();
   toast('success','Заказ #'+num+' принят',money(total));
   renderOrders();
@@ -696,6 +791,14 @@ function setStatus(id,st){
   if(st==='done')toast('success','Заказ #'+(o2?o2.num:'')+' готов','Статус изменён на «Готово»');
   else if(st==='cook')toast('info','Заказ #'+(o2?o2.num:'')+' в работе','Передан на кухню');
   else toast('warn','Заказ отменён','');
+  if(o2&&o2._srv&&o2.srvId)syncStatus(o2.srvId,st);
+}
+async function syncStatus(id,st){
+  try{
+    const r=await fetch(DED_API+'/orders/'+encodeURIComponent(id)+'/status',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':localStorage.getItem('yaya_key')||''},body:JSON.stringify({status:st}),cache:'no-store'});
+    const d=await r.json();
+    if(!(r.ok&&d&&d.ok))toast('warn','Сервер не применил статус',(d&&d.error)||'');
+  }catch(e){toast('warn','Ошибка сети — статус только локально','');}
 }
 function orderCard(o){
   const cls=o.status==='cook'?'cook':(o.status==='new'?'new':'');
@@ -728,6 +831,7 @@ function renderOrders(){
   $('ord-count').textContent=active.length?active.length+' активных':'';
   $('active-list').innerHTML=active.length?[...active].reverse().map(orderCard).join(''):emptyMini('Нет активных заказов');
   renderCart();
+  if(!_ordersSynced){_ordersSynced=true;syncOrdersFromServer().then(ok=>{_ordersSynced=ok;if(ok)renderOrders();});}
 }
 function trend(id,cur,prev){const el=$(id);if(!el)return;if(!prev){el.textContent=cur?'↑ new':'';el.className='tr up';return;}const d=((cur-prev)/prev)*100;el.textContent=(d>=0?'↑ ':'↓ ')+Math.abs(d).toFixed(0)+'%';el.className='tr '+(d>=0?'up':'down');}
 function emptyMini(t){return `<div class="empty-mini">${t}</div>`;}
@@ -782,7 +886,7 @@ function loadDeductions(){
     .catch(()=>{_dedServer=[];})
     .then(()=>{_dedLoading=false;renderDed();if(typeof renderReports==='function')renderReports();});
 }
-let _ordersSrv=null,_ordersLoading=false;
+let _ordersSrv=null,_ordersLoading=false,_ordersSynced=false;
 async function loadOrdersSrv(){
   if(_ordersLoading)return;_ordersLoading=true;
   const token=localStorage.getItem('yaya_key')||'';
@@ -794,6 +898,20 @@ async function loadOrdersSrv(){
     }}
   }catch(e){}
   _ordersLoading=false;renderReports();
+}
+async function syncOrdersFromServer(){
+  const token=localStorage.getItem('yaya_key')||'';
+  try{
+    const r=await fetch(DED_API+'/orders?limit=300',{headers:{'X-Admin-Token':token},cache:'no-store'});
+    if(!r.ok)return false;
+    const d=await r.json();
+    if(!(d&&d.ok&&Array.isArray(d.orders)))return false;
+    const srv=d.orders.map(o=>{const b=o.data||{};const items=Array.isArray(b.items)?b.items.map(i=>({id:i.id||i.name,name:i.name,qty:Number(i.qty)||0,price:Number(i.price)||0})):[];const num=Number(o.num);return {id:Number(o.id),num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',items,total:(Number(b.total)||0)+(Number(b.delivery)||0),status:o.status||'new',type:b.type||'delivery',name:b.name||'',phone:b.phone||'',_srv:true,srvId:Number(o.id)};});
+    const nums=new Set(srv.map(o=>String(o.num)));
+    const local=getOrders().filter(o=>!o._srv||!nums.has(String(o.num)));
+    setOrders(srv.concat(local).sort((a,b)=>((b.srvId||b.id||0))-((a.srvId||a.id||0))));
+    return true;
+  }catch(e){return false;}
 }
 function allOrders(){const srv=_ordersSrv||[];const nums=new Set(srv.map(o=>String(o.num)));return [...srv,...getOrders().filter(o=>!nums.has(String(o.num)))];}
 function renderDed(){
@@ -810,19 +928,80 @@ function renderDed(){
       <div class="jval" style="color:${inc?'var(--green)':'var(--red)'}">${inc?'+':'−'}${q} ${d.unit||''}</div></div>`;
   }).join(''):emptyMini('Журнал пуст');
 }
-function viewPurchasePhoto(id){ fetch(DED_API+'/purchases/'+encodeURIComponent(id)+'/media',{headers:{'X-Admin-Token':localStorage.getItem('yaya_key')||''},cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(r.status)).then(d=>{const imgs=((d&&Array.isArray(d.items))?d.items:[]).filter(m=>m&&m.url).map(m=>m.url);if(!imgs.length){toast('warn','Нет фото','');return;}$('ded-photo').innerHTML=imgs.map(u=>'<img src="'+u+'" style="width:100%;display:block;border-radius:10px;margin-bottom:6px">').join('');$('ded-photo-bg').classList.add('show');$('ded-photo-box').style.display='flex';}).catch(()=>toast('warn','Ошибка загрузки фото','')); } function viewDedPhoto(id){
+function viewPurchasePhoto(id){fetch(DED_API+'/purchases/'+encodeURIComponent(id)+'/media',{headers:{'X-Admin-Token':localStorage.getItem('yaya_key')||''},cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(r.status)).then(d=>{const imgs=((d&&Array.isArray(d.items))?d.items:[]).filter(m=>m&&m.url).map(m=>m.url);if(!imgs.length){toast('warn','Нет фото','');return;}_zoomUrls=imgs;dedOpenZoom(0);}).catch(()=>toast('warn','Ошибка загрузки фото',''));}
+function viewDedPhoto(id){
   fetch(DED_API+'/deductions/'+encodeURIComponent(id)+'/media',{headers:{'X-Admin-Token':localStorage.getItem('yaya_key')||''},cache:'no-store'})
     .then(r=>r.ok?r.json():Promise.reject(r.status))
     .then(d=>{
       const imgs=((d&&Array.isArray(d.items))?d.items:[]).filter(m=>m&&m.url).map(m=>m.url);
       if(!imgs.length){toast('warn','Нет фото','');return;}
-      $('ded-photo').innerHTML=imgs.map(u=>'<img src="'+u+'" style="width:100%;display:block;border-radius:10px;margin-bottom:6px">').join('');
-      $('ded-photo-bg').classList.add('show');
-      $('ded-photo-box').style.display='flex';
+      _zoomUrls=imgs;dedOpenZoom(0);
     })
     .catch(()=>toast('warn','Ошибка загрузки фото',''));
 }
-function closeDedPhoto(){$('ded-photo-bg').classList.remove('show');$('ded-photo-box').style.display='none';}
+function closeDedPhoto(){$('ded-photo-bg').classList.remove('show');$('ded-photo-box').style.display='none';dzReset();}
+let _purchCache=[],_zoomUrls=[];let _dz={s:1,x:0,y:0};
+function dzReset(){_dz={s:1,x:0,y:0};const el=$('ded-photo');if(el)el.style.transform='';}
+function dzApply(){const el=$('ded-photo');if(!el)return;el.style.transform='translate('+_dz.x+'px,'+_dz.y+'px) scale('+_dz.s+')';}
+function dzBind(){
+  const el=$('ded-photo');if(!el)return;
+  el.style.transformOrigin='center center';
+  const pts=new Map();
+  el.onpointerdown=function(e){if(el.setPointerCapture)el.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});el.style.transition='none';};
+  el.onpointermove=function(e){
+    const p=pts.get(e.pointerId);if(!p)return;
+    if(pts.size===2){
+      const a=[...pts.values()][0],b=[...pts.values()][1];
+      const d0=Math.hypot(a.x-b.x,a.y-b.y);
+      p.x=e.clientX;p.y=e.clientY;
+      const d1=Math.hypot(a.x-b.x,a.y-b.y);
+      if(d0>0)_dz.s=Math.min(5,Math.max(1,_dz.s*d1/d0));
+    } else {
+      if(_dz.s>1){_dz.x+=e.clientX-p.x;_dz.y+=e.clientY-p.y;}
+      p.x=e.clientX;p.y=e.clientY;
+    }
+    dzApply();
+  };
+  const up=function(e){pts.delete(e.pointerId);if(!pts.size){el.style.transition='transform .12s ease-out';if(_dz.s<=1)dzReset();}};
+  el.onpointerup=up;el.onpointercancel=up;el.onpointerleave=up;
+}
+function dedOpenZoom(idx){
+  const imgs=_zoomUrls||[];
+  if(!imgs.length){toast('warn','Нет фото','');return;}
+  const i=Math.max(0,Math.min(Number(idx)||0,imgs.length-1));
+  $('ded-photo').innerHTML=imgs.map((u,j)=>'<img class="dz-img'+(j===i?' on':'')+'" src="'+u+'" alt="">').join('');
+  $('ded-photo-bg').classList.add('show');$('ded-photo-box').style.display='flex';
+  dzReset();dzBind();
+}
+function purchToggle(id){
+  const c=$('pc-'+id),r=$('pr-'+id);if(!c)return;
+  const open=!c.dataset.open;
+  c.dataset.open=open?'1':'';
+  if(r)r.classList.toggle('open',open);
+  if(open){const p=(_purchCache||[]).find(x=>String(x.id)===String(id));if(p)purchMedia(id,p);}else{c.innerHTML='';}
+}
+async function purchMedia(id,p){
+  const el=$('pc-'+id);if(!el||el.dataset.loaded)return;el.dataset.loaded='1';
+  const f=[];
+  if(p.price!=null)f.push(`<div class="pfield"><span>Цена за ед.</span><b>${money(p.price)}/${p.unit}</b></div>`);
+  if(p.total!=null)f.push(`<div class="pfield"><span>Сумма</span><b>${money(p.total)}</b></div>`);
+  if(p.supplier)f.push(`<div class="pfield"><span>Поставщик</span><b>${p.supplier}</b></div>`);
+  if(p.note)f.push(`<div class="pfield"><span>Заметка</span><b>${p.note}</b></div>`);
+  if(p.status==='accepted'&&p.recv_qty!=null)f.push(`<div class="pfield"><span>Принято по факту</span><b>+${Number(p.recv_qty).toFixed(2)} ${p.unit}</b></div>`);
+  if(p.status==='rejected'&&p.reject_reason)f.push(`<div class="pfield"><span>Причина отказа</span><b>${p.reject_reason}</b></div>`);
+  el.innerHTML=f.join('')+`<div class="plabel">📷 Фото товара/чека</div><div class="pphotos" id="pm-${id}"><div class="plabel muted">Загрузка…</div></div>`;
+  const token=localStorage.getItem('yaya_key')||'';
+  try{
+    const r=await fetch(DED_API+'/purchases/'+encodeURIComponent(id)+'/media',{headers:{'X-Admin-Token':token},cache:'no-store'});
+    if(!r.ok)throw 0;
+    const d=await r.json();
+    const imgs=((d&&Array.isArray(d.items))?d.items:[]).filter(m=>m&&m.url).map(m=>m.url);
+    const box=$('pm-'+id);if(!box)return;
+    if(!imgs.length){box.innerHTML='<div class="plabel muted">Фото нет</div>';return;}
+    _zoomUrls=imgs;
+    box.innerHTML=imgs.map((u,j)=>`<div class="pthumb" onclick="dedOpenZoom(${j})"><img src="${u}" alt=""></div>`).join('');
+  }catch(e){const box=$('pm-'+id);if(box)box.innerHTML='<div class="plabel muted">Фото недоступны</div>';}
+}
 function openDedSheet(){
   const stock=getStock();
   $('dd-ing').innerHTML=stock.map(i=>`<option value="${i.id}">${i.name} (${fmtQty(i.qty)}${i.unit})</option>`).join('');
