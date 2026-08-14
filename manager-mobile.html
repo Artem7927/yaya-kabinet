@@ -345,13 +345,17 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
 .dz-img{width:100%;display:block;border-radius:10px;margin-bottom:6px;pointer-events:none;user-select:none;-webkit-user-drag:none}
 /* купить: назначение */
 .buynote{font-size:12px;color:var(--muted);background:var(--card2);border-radius:11px;padding:10px 12px;margin-bottom:12px;line-height:1.5}
-.abuyrow{display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:1px solid var(--line)}
+.abuyrow{padding:11px 2px;border-bottom:1px solid var(--line)}
 .abuyrow:last-child{border-bottom:none}
 .abuyrow .an{flex:1;min-width:0}
 .abuyrow .an b{font-size:13px;font-weight:600;display:block}
 .abuyrow .an span{font-size:11px;color:var(--muted)}
-.aseg{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:34px;padding:0 8px;border:1px solid var(--line);border-radius:9px;background:var(--card2);cursor:pointer;font-size:15px;font-weight:700}
+.asegrow{display:flex;gap:6px;margin-top:8px}
+.aseg{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex:1;min-width:0;padding:7px 6px;border:1px solid var(--line);border-radius:10px;background:var(--card2);cursor:pointer;font-size:15px;font-weight:700}
+.aseg svg{width:20px;height:20px;color:var(--muted)}
+.aseg span{font-size:9px;font-weight:600;color:var(--muted);text-align:center;line-height:1.2}
 .aseg.on{border-color:var(--orange);background:var(--orange-soft)}
+.aseg.on svg,.aseg.on span{color:var(--orange)}
 </style>
 </head>
 <body>
@@ -684,6 +688,12 @@ async function renderPurchases(loc){
 
 let _assignMap=null;
 async function fetchAssign(){try{const r=await fetch(DED_API+'/purchase-assign',{headers:{'X-Admin-Token':localStorage.getItem('yaya_key')||''},cache:'no-store'});const d=await r.json();return (r.ok&&d&&d.ok&&d.assign&&typeof d.assign==='object')?d.assign:{};}catch(e){return{};}}
+const AICON={
+  '🛒':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>',
+  '🚚':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7M5.5 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18.5 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>',
+  '🧾':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>'
+};
+const ALABEL={'🛒':'Куплю сам','🚚':'Привезёт поставщик','🧾':'Забрать по счёту'};
 async function renderBuy(){
   $('s-sub').dataset.title='Купить';
   $('sub-chips').innerHTML='';
@@ -704,8 +714,9 @@ async function renderBuy(){
       const need=Math.max(0,Math.round((Number(i.max!=null?i.max:i.min)-Number(i.qty))*100)/100);
       const a=assign[String(i.id)]||null;
       const isOn=s=>a===s||(s==='🧾'&&a&&typeof a==='object'&&a.t==='🧾');
-      const segs=['🛒','🚚','🧾'].map(s=>`<span class="aseg ${isOn(s)?'on':''}" onclick="setAssign('${i.id}','${s}')">${s}</span>`).join('');
-      return `<div class="abuyrow"><div class="an"><b>${i.name}</b><span>Сейчас ${Number(i.qty).toFixed(2)}${i.unit} · мин ${i.min}${i.unit} · нужно +${need}${i.unit}</span></div><div style="display:flex;gap:6px;flex-shrink:0">${segs}</div></div>`;
+      const sum=a&&typeof a==='object'&&a.t==='🧾'&&a.sum?' · '+money(a.sum):'';
+      const segs=['🛒','🚚','🧾'].map(s=>`<button class="aseg ${isOn(s)?'on':''}" onclick="setAssign('${i.id}','${s}')" title="${ALABEL[s]}">${AICON[s]}<span>${ALABEL[s]}${s==='🧾'?sum:''}</span></button>`).join('');
+      return `<div class="abuyrow"><div class="an"><b>${i.name}</b><span>Сейчас ${Number(i.qty).toFixed(2)}${i.unit} · мин ${i.min}${i.unit} · нужно +${need}${i.unit}</span></div><div class="asegrow">${segs}</div></div>`;
     }).join('');
   }catch(e){el.innerHTML='<div class="empty-mini">Сервер недоступен</div>';}
 }
@@ -973,15 +984,20 @@ function dedOpenZoom(idx){
   $('ded-photo-bg').classList.add('show');$('ded-photo-box').style.display='flex';
   dzReset();dzBind();
 }
+let _purchMediaCache={};
 function purchToggle(id){
   const c=$('pc-'+id),r=$('pr-'+id);if(!c)return;
   const open=!c.dataset.open;
   c.dataset.open=open?'1':'';
   if(r)r.classList.toggle('open',open);
-  if(open){const p=(_purchCache||[]).find(x=>String(x.id)===String(id));if(p)purchMedia(id,p);}else{c.innerHTML='';}
+  if(open){const p=(_purchCache||[]).find(x=>String(x.id)===String(id));if(p)purchMedia(id,p);}
+  else{c.dataset.loaded='';c.innerHTML='';}
 }
 async function purchMedia(id,p){
-  const el=$('pc-'+id);if(!el||el.dataset.loaded)return;el.dataset.loaded='1';
+  const el=$('pc-'+id);if(!el||el.dataset.loaded)return;
+  const cached=_purchMediaCache[String(id)];
+  if(cached){_zoomUrls=cached.urls||[];el.innerHTML=cached.html;return;}
+  el.dataset.loaded='1';
   const f=[];
   if(p.price!=null)f.push(`<div class="pfield"><span>Цена за ед.</span><b>${money(p.price)}/${p.unit}</b></div>`);
   if(p.total!=null)f.push(`<div class="pfield"><span>Сумма</span><b>${money(p.total)}</b></div>`);
@@ -997,9 +1013,10 @@ async function purchMedia(id,p){
     const d=await r.json();
     const imgs=((d&&Array.isArray(d.items))?d.items:[]).filter(m=>m&&m.url).map(m=>m.url);
     const box=$('pm-'+id);if(!box)return;
-    if(!imgs.length){box.innerHTML='<div class="plabel muted">Фото нет</div>';return;}
+    if(!imgs.length){box.innerHTML='<div class="plabel muted">Фото нет</div>';_purchMediaCache[String(id)]={html:el.innerHTML,urls:[]};return;}
     _zoomUrls=imgs;
     box.innerHTML=imgs.map((u,j)=>`<div class="pthumb" onclick="dedOpenZoom(${j})"><img src="${u}" alt=""></div>`).join('');
+    _purchMediaCache[String(id)]={html:el.innerHTML,urls:imgs};
   }catch(e){const box=$('pm-'+id);if(box)box.innerHTML='<div class="plabel muted">Фото недоступны</div>';}
 }
 function openDedSheet(){
