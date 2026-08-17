@@ -291,6 +291,13 @@ input:focus,select:focus{border-color:var(--orange)}
     <button class="btn btn-primary btn-block" style="margin-top:14px;padding:14px" onclick="savePurch()">Записать закупку</button>
   </div>
 
+  <div class="sheet" id="sh-deliver">
+    <div class="sheet-h"></div><div class="sheet-t">Привёз: <span id="dl-title"></span></div>
+    <div class="field"><label>Количество</label><input id="dl-qty" type="number" step="0.01" value="" min="0.01"></div>
+    <div class="field"><label>Цена за единицу (₸)</label><input id="dl-price" type="number" step="1" value="0"></div>
+    <button class="btn btn-primary btn-block" style="margin-top:14px;padding:14px" id="dl-btn" onclick="saveDeliver()">Отправить</button>
+  </div>
+
   <div class="toasts" id="toasts"></div>
 </div>
 
@@ -426,7 +433,7 @@ async function renderBuy(){
       <div class="loc ${loc==='kitchen'?'ic-blue':'ic-teal'}">${locEmoji(loc)}</div>
       <div class="bi"><div class="bn">${i.name}</div><div class="bs">Сейчас ${parseFloat(i.qty.toFixed(2))}${i.unit} · мин ${i.min}${i.unit}${est}</div>${assignBadge(i.id,assign)}</div>
       <div class="bneed"><div class="q">+${need}</div><div class="u">${i.unit}</div></div>
-      <button class="add" onclick="event.stopPropagation();openPurch('${i.id}')">＋</button></div>`;
+      ${assign[String(i.id)]==='🚚'?`<button class="add" style="background:var(--green-soft);color:var(--green)" onclick="event.stopPropagation();quickDeliver('${i.id}')">🚚</button>`:''}<button class="add" onclick="event.stopPropagation();openPurch('${i.id}')">＋</button></div>`;
   }).join('');
 }
 
@@ -516,6 +523,45 @@ async function savePurch(){
   }finally{
     _purchBusy=false;
   }
+}
+
+/* ПРОСТАЯ ОТПРАВКА ПОСТАВКИ (🚚) */
+let _deliverIngId=null,_deliverBusy=false;
+function quickDeliver(id){
+  const it=getStock().find(x=>x.id===id);
+  if(!it)return;
+  _deliverIngId=id;
+  $('dl-title').textContent=it.name;
+  const prices=lastPrices();const pr=prices[it.name]||0;
+  $('dl-qty').value='';
+  $('dl-price').value=pr;
+  openSheet('sh-deliver');
+  setTimeout(()=>$('dl-qty').focus(),300);
+}
+async function saveDeliver(){
+  if(_deliverBusy)return;
+  const qty=parseFloat($('dl-qty').value)||0;
+  const price=parseFloat($('dl-price').value)||0;
+  if(qty<=0){toast('warn','Введите количество','');return;}
+  if(!_deliverIngId)return;
+  _deliverBusy=true;
+  $('dl-btn').disabled=true;$('dl-btn').textContent='Отправка…';
+  try{
+    const r=await fetch(YAYA_API+'/stock/'+encodeURIComponent(_deliverIngId)+'/deliver',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},
+      body:JSON.stringify({qty:qty,price:price}),
+      cache:'no-store'
+    });
+    let d=null;try{d=await r.json();}catch(e){}
+    if(r.ok&&d&&d.ok){
+      toast('success','Отправлено','Заявка на приёмку создана');
+      closeSheet();renderBuy();
+    }else{
+      toast('warn','Ошибка',(d&&d.error)||('HTTP '+r.status));
+    }
+  }catch(e){toast('warn','Ошибка сети',e.message||String(e));}
+  finally{_deliverBusy=false;$('dl-btn').disabled=false;$('dl-btn').textContent='Отправить';}
 }
 
 /* ЖУРНАЛ */
