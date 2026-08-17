@@ -60,6 +60,6 @@ yaya-sync.js (только десктоп):
 - Кодировка/переносы (Windows): файлы UTF-8 без BOM; не смешивать CRLF/LF; при правках не использовать PowerShell -replace.
 
 ## 6. TODO(owner) — неоднозначности, требующие решения владельца
-- yaya_orders вне yaya-sync: намеренно ли ручные заказы менеджера/кухни не уходят на сервер? (витрина их не увидит).
-- Расхождение складов «десктоп-local vs мобильный-server»: yaya_tech_v3/yaya_wsstock_v3/stoplist/deductions/transfers не синкаются — стоит ли включить в yaya-sync или переводить десктоп на серверные /stock, /pf-stock?
-- assembler.webmanifest и manifest-kabinet.json — мёртвые артефакты: удалить или это задел под будущие экраны?
+- yaya_orders: пишется только в localStorage, мимо yaya-sync; намеренность не подтверждена (TODO owner).
+- Десктопные экраны (manager/kitchen/workshop .html) НЕ задействованы — рабочие только *-mobile.html. Расхождение складов (tech_v3/wsstock/stoplist/deductions/transfers desktop→localStorage) неактуально: десктоп мёртв. TODO kabinet-2 закрыт.
+- assembler.webmanifest + иконки icon-assembler-{192,512}.png + manifest-kabinet.json — задел под будущий экран кабинета сборщика (assembler-mobile.html ещё не создан). Не удалять. TODO kabinet-3 закрыт.
