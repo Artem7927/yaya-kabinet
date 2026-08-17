@@ -562,6 +562,7 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
       <div class="dnav" onclick="closeDrawer();openSub('ing','kitchen')"><div class="mic ic-blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9 12 3l9 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 21V12h6v9"/></svg></div><b>Склад кухни</b></div>
       <div class="dnav" onclick="closeDrawer();openSub('ing','workshop')"><div class="mic ic-purple"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M4 20V8l5 4V8l5 4V4l6 4v12"/></svg></div><b>Склад цеха</b></div>
       <div class="dnav" onclick="closeDrawer();openSub('purchases')"><div class="mic ic-amber"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div><b>Закупки</b></div>
+      <div class="dnav" onclick="closeDrawer();openSub('supplylog')"><div class="mic ic-green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg></div><b>Журнал поставок</b></div>
       <div class="dnav" onclick="closeDrawer();openExt('kitchen.html')"><div class="mic ic-orange"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg></div><b>Экран кухни</b></div>
     </div>
   </aside>
@@ -687,7 +688,7 @@ function openSub(kind,arg){
   $('s-sub').classList.add('active');
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab==='more'));
   $('ab-burger').style.display='none'; $('ab-back').style.display='';
-  const R={tech:renderTech,stop:renderStop,ing:renderIng,suppliers:renderSuppliers,users:renderUsers,settings:renderSettings,io:renderIO,about:renderAbout,purchases:renderPurchases,buy:renderBuy}[kind];
+  const R={tech:renderTech,stop:renderStop,ing:renderIng,suppliers:renderSuppliers,users:renderUsers,settings:renderSettings,io:renderIO,about:renderAbout,purchases:renderPurchases,buy:renderBuy,supplylog:renderSupplyLog}[kind];
   $('sub-chips').innerHTML=''; if(R) R(); $('sub-body').scrollTop=0;
 }
 async function renderPurchases(loc){
@@ -721,6 +722,43 @@ function purchRow(p){
   return `<div class="prow" id="pr-${p.id}"><div class="phead" onclick="purchToggle(${p.id})"><div class="pi"><div class="pn">${p.ing}</div><div class="pt">${dstr(t)} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}${p.supplier?' · '+p.supplier:''}${st}</div></div><div class="pv"><div class="pq">+${p.qty} ${p.unit}</div><div class="pm">${p.total?money(p.total):'—'}</div></div><div class="pchev">▾</div></div><div class="pcard" id="pc-${p.id}"></div></div>`;
 }
 
+async function renderSupplyLog(){
+  _subCtx='supplylog';
+  $('s-sub').dataset.title='Журнал поставок';
+  const [from,to]=dStep(_dCursor);
+  $('sub-chips').innerHTML=`<div class="dpanel">
+    <div class="seg" style="margin-bottom:10px"><button class="${_dMode==='day'?'on':''}" onclick="dSetMode('day')">День</button><button class="${_dMode==='month'?'on':''}" onclick="dSetMode('month')">Месяц</button><button class="${_dMode==='year'?'on':''}" onclick="dSetMode('year')">Год</button></div>
+    <div class="dnavrow">
+      <button class="dprev" onclick="dShift(-1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <input type="date" value="${dInputVal(_dCursor)}" onchange="dJump(this.value)">
+      <button class="dnext" onclick="dShift(1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+    <div class="dlabel"><b>${dLabel(_dCursor)}</b>${dIsCurrent(_dCursor)?'':' · <a onclick="dToday()">сегодня</a>'}</div>
+  </div>`;
+  const el=$('sub-body');el.innerHTML='<div class="empty-mini">Загрузка…</div>';
+  const token=localStorage.getItem('yaya_key')||'';
+  const fromIso=new Date(from).toISOString(),toIso=new Date(to).toISOString();
+  try{
+    const r=await fetch(DED_API+'/supply-log?from='+fromIso+'&to='+toIso,{headers:{'X-Admin-Token':token},cache:'no-store'});
+    const d=await r.json();
+    if(!(d&&d.ok&&Array.isArray(d.entries))){el.innerHTML='<div class="empty-mini">Нет доступа к серверу</div>';return;}
+    if(!d.entries.length){el.innerHTML='<div class="empty-mini">Нет записей за период</div>';return;}
+    el.innerHTML=d.entries.map(e=>{
+      if(e.stage==='assigned'){
+        const t=new Date(e.at);const tm=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+        const tp=e.assign_type==='🧾'?e.assign_type+' '+(e.assign_sum?money(e.assign_sum):'—'):e.assign_type||'';
+        return `<div class="prow"><div class="phead"><div class="pi"><div class="pn">Назначено · ${e.ing||''}</div><div class="pt">${dstr(t)} ${tm} · ${tp}${e.by?' · '+e.by:''}</div></div></div></div>`;
+      }
+      const t=new Date(e.created_at);const tm=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+      const stMap={pending:'заявлено',accepted:'принято',rejected:'отклонено'};
+      const st=stMap[e.status]||e.status||'';
+      const stExtra=e.status==='rejected'&&e.reject_reason?' · '+e.reject_reason:'';
+      const who=e.accepted_by?e.accepted_by:e.created_by||'';
+      return `<div class="prow"><div class="phead"><div class="pi"><div class="pn">Приехало · ${e.ing||''}</div><div class="pt">${dstr(t)} ${tm} · ${e.qty||''} ${e.unit||''} · ${e.total?money(e.total):'—'}${e.supplier?' · '+e.supplier:''}</div><div class="pt">${st}${stExtra} · ${who}</div></div></div></div>`;
+    }).join('');
+  }catch(e){el.innerHTML='<div class="empty-mini">Сервер недоступен</div>';}
+}
+
 let _assignMap=null;
 async function fetchAssign(){try{const r=await fetch(DED_API+'/purchase-assign',{headers:{'X-Admin-Token':localStorage.getItem('yaya_key')||''},cache:'no-store'});const d=await r.json();return (r.ok&&d&&d.ok&&d.assign&&typeof d.assign==='object')?d.assign:{};}catch(e){return{};}}
 const AICON={
@@ -743,15 +781,15 @@ function dStep(t){
   else {const d=new Date(s);d.setFullYear(d.getFullYear()+1);e=d.getTime();}
   return [s,e];
 }
-function dSetMode(m){_dMode=m;_subCtx==='purchases'?renderPurchases():renderBuy();}
+function dSetMode(m){_dMode=m;_subCtx==='purchases'?renderPurchases():_subCtx==='supplylog'?renderSupplyLog():renderBuy();}
 function dShift(dir){
   const d=new Date(_dCursor);
   if(_dMode==='day')d.setDate(d.getDate()+dir);
   else if(_dMode==='month')d.setMonth(d.getMonth()+dir);
   else d.setFullYear(d.getFullYear()+dir);
-  _dCursor=d.getTime();_subCtx==='purchases'?renderPurchases():renderBuy();
+  _dCursor=d.getTime();_subCtx==='purchases'?renderPurchases():_subCtx==='supplylog'?renderSupplyLog():renderBuy();
 }
-function dToday(){_dCursor=Date.now();_subCtx==='purchases'?renderPurchases():renderBuy();}
+function dToday(){_dCursor=Date.now();_subCtx==='purchases'?renderPurchases():_subCtx==='supplylog'?renderSupplyLog():renderBuy();}
 function dJump(v){
   if(!v)return;
   const p=String(v).split('-').map(Number);
@@ -759,7 +797,7 @@ function dJump(v){
   const d=new Date(p[0],(p[1]||1)-1,p[2]||1,12);
   if(_dMode==='month')d.setDate(1);
   if(_dMode==='year')d.setMonth(0,1);
-  _dCursor=d.getTime();_subCtx==='purchases'?renderPurchases():renderBuy();
+  _dCursor=d.getTime();_subCtx==='purchases'?renderPurchases():_subCtx==='supplylog'?renderSupplyLog():renderBuy();
 }
 function dInputVal(t){const d=new Date(t);const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
 function dLabel(t){
