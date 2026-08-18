@@ -393,12 +393,13 @@ async function fetchPfStock(){
 function buySeg(v){buyLoc=v;['all','workshop','kitchen'].forEach(x=>$('bg-'+x).classList.toggle('on',x===v));renderBuy();}
 async function pendingIngIds(){try{const items=await fetchJson('/purchases?status=pending');if(!Array.isArray(items))return new Set();return new Set(items.map(p=>String(p.ing_id)));}catch(e){return new Set();}}
 async function fetchJsonAssign(){try{const r=await fetch(YAYA_API+'/purchase-assign',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});if(!r.ok)return{};const d=await r.json();return (d&&d.ok&&d.assign&&typeof d.assign==='object')?d.assign:{};}catch(e){return{};}}
-const AICON={
-  '🛒':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>',
-  '🚚':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7M5.5 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18.5 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>',
-  '🧾':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>'
-};
-const ALABEL={'🛒':'Куплю сам','🚚':'Привезёт поставщик','🧾':'Забрать по счёту'};
+function typeMeta(code){
+  const m={'🚚':{l:'Привезёт поставщик',c:'#2563eb'},'🛍':{l:'Привезёт закупщик',c:'#059669'},'🛒':{l:'Куплю сам',c:'#d97706'},'🧾':{l:'По счёту',c:'#7c3aed'}}[code]||{l:'',c:'#888'};
+  const p={'🚚':'<path d="M3 6 h13 v14 h-13 z"/><path d="M16 11 h6 l4 4 v5 h-10 z"/><circle cx="8" cy="22" r="2.4" fill="'+m.c+'" stroke="none"/><circle cx="21" cy="22" r="2.4" fill="'+m.c+'" stroke="none"/>','🛍':'<path d="M4 9 h18 l-1.5 15 h-15 z"/><path d="M8 9 v-2 a5 5 0 0 1 10 0 v2"/>','🛒':'<path d="M2 4 h4 l3 13 h12 l3 -9 h-16"/><circle cx="10" cy="22" r="2.2" fill="'+m.c+'" stroke="none"/><circle cx="20" cy="22" r="2.2" fill="'+m.c+'" stroke="none"/>','🧾':'<path d="M4 2 h11 l5 5 v17 h-16 z"/><path d="M15 2 v5 h5"/><path d="M8 13 h8 M8 18 h8"/>'}[code]||'';
+  return{label:m.l,color:m.c,svg:'<svg width="22" height="22" viewBox="0 0 26 26" fill="none" stroke="'+m.c+'" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>'};
+}
+const AICON={};const ALABEL={};
+['🚚','🛍','🛒','🧾'].forEach(k=>{const m=typeMeta(k);AICON[k]=m.svg;ALABEL[k]=m.label;});
 function assignBadge(ingId,assign){
   const a=assign[String(ingId)];if(!a)return '';
   const key=typeof a==='object'&&a.t==='🧾'?'🧾':a;
@@ -429,11 +430,12 @@ async function renderBuy(){
   updSpend();
   if(!low.length){$('buy-list').innerHTML=`<div class="empty-full"><svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg><b>Всё в наличии</b><p>Ниже минимума ничего нет — докупать нечего.</p></div>`;return;}
   $('buy-list').innerHTML=low.map(i=>{const loc=i.location||'workshop',need=needQty(i),pr=prices[i.name];const est=pr?' · ≈'+money(need*pr):'';
-    return `<div class="buyrow" onclick="openPurch('${i.id}')">
+      const at=assign[String(i.id)]||null;const atype=(at&&typeof at==='object'&&at.t==='🧾')?'🧾':at;
+      return `<div class="buyrow" onclick="openPurch('${i.id}')">
       <div class="loc ${loc==='kitchen'?'ic-blue':'ic-teal'}">${locEmoji(loc)}</div>
       <div class="bi"><div class="bn">${i.name}</div><div class="bs">Сейчас ${parseFloat(i.qty.toFixed(2))}${i.unit} · мин ${i.min}${i.unit}${est}</div>${assignBadge(i.id,assign)}</div>
       <div class="bneed"><div class="q">+${need}</div><div class="u">${i.unit}</div></div>
-      ${assign[String(i.id)]==='🚚'?`<button class="add" style="background:var(--green-soft);color:var(--green)" onclick="event.stopPropagation();quickDeliver('${i.id}')">🚚</button>`:''}<button class="add" onclick="event.stopPropagation();openPurch('${i.id}')">＋</button></div>`;
+      ${atype==='🚚'||atype==='🛍'||atype==='🧾'?`<button class="add" style="background:var(--green-soft);color:var(--green)" onclick="event.stopPropagation();quickDeliver('${i.id}')">${AICON[atype]}</button>`:''}<button class="add" onclick="event.stopPropagation();openPurch('${i.id}')">＋</button></div>`;
   }).join('');
 }
 
@@ -527,14 +529,16 @@ async function savePurch(){
 
 /* ПРОСТАЯ ОТПРАВКА ПОСТАВКИ (🚚) */
 let _deliverIngId=null,_deliverBusy=false;
-function quickDeliver(id){
+async function quickDeliver(id){
   const it=getStock().find(x=>x.id===id);
   if(!it)return;
   _deliverIngId=id;
   $('dl-title').textContent=it.name;
   const prices=lastPrices();const pr=prices[it.name]||0;
+  const a=await fetchJsonAssign();const atype=a[id]?(typeof a[id]==='object'&&a[id].t==='🧾'?'🧾':a[id]):null;
+  const basePr=(atype==='🧾'&&a[id]&&a[id].sum)?a[id].sum:pr;
   $('dl-qty').value='';
-  $('dl-price').value=pr;
+  $('dl-price').value=basePr;
   openSheet('sh-deliver');
   setTimeout(()=>$('dl-qty').focus(),300);
 }
