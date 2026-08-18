@@ -736,7 +736,7 @@ async function renderSupplyLog(){
       <button class="dnext" onclick="dShift(1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
     <div class="dlabel"><b>${dLabel(_dCursor)}</b>${dIsCurrent(_dCursor)?'':' · <a onclick="dToday()">сегодня</a>'}</div>
-  </div>`;
+  </div><div class="chips"><div class="chip ${_slTab==='assigned'?'on':''}" onclick="slTabSwitch('assigned')">Назначения</div><div class="chip ${_slTab==='delivered'?'on':''}" onclick="slTabSwitch('delivered')">Поступления</div></div>`;
   const el=$('sub-body');el.innerHTML='<div class="empty-mini">Загрузка…</div>';
   const token=localStorage.getItem('yaya_key')||'';
   const fromIso=new Date(from).toISOString(),toIso=new Date(to).toISOString();
@@ -744,29 +744,36 @@ async function renderSupplyLog(){
     const r=await fetch(DED_API+'/supply-log?from='+fromIso+'&to='+toIso,{headers:{'X-Admin-Token':token},cache:'no-store'});
     const d=await r.json();
     if(!(d&&d.ok&&Array.isArray(d.entries))){el.innerHTML='<div class="empty-mini">Нет доступа к серверу</div>';return;}
-    if(!d.entries.length){el.innerHTML='<div class="empty-mini">Нет записей за период</div>';return;}
-    el.innerHTML=d.entries.map(e=>{
-      if(e.stage==='assigned'){
-        const t=new Date(e.at);const tm=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
-        const tpCode=e.assign_type==='🧾'?'🧾':e.assign_type;
-        const tp=tpCode?typeMeta(tpCode):null;
-        const tpSum=e.assign_type==='🧾'&&e.assign_sum?' · '+money(e.assign_sum):'';
-        return `<div class="prow"><div class="phead"><div class="pi"><div class="pn">${tp?'<span class="astype">'+tp.svg+'</span>':''}Назначено · ${e.ing||''}</div><div class="pt">${dstr(t)} ${tm} · ${tp?tp.label:''}${tpSum}${e.by?' · '+e.by:''}</div></div></div></div>`;
-      }
-      const t=new Date(e.created_at);const tm=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
-      const stMap={pending:'заявлено',accepted:'принято',rejected:'отклонено'};
-      const st=stMap[e.status]||e.status||'';
-      const stExtra=e.status==='rejected'&&e.reject_reason?' · '+e.reject_reason:'';
-      const who=e.accepted_by?e.accepted_by:e.created_by||'';
-      const dtpCode=e.assign_type==='🧾'?'🧾':e.assign_type;
-      const dtp=dtpCode?typeMeta(dtpCode):null;
-      const locLabel=e.location?' · → '+e.location:'';
-      return `<div class="prow"><div class="phead"><div class="pi"><div class="pn">${dtp?'<span class="astype">'+dtp.svg+'</span>':''}Приехало · ${e.ing||''}</div><div class="pt">${dstr(t)} ${tm} · ${e.qty||''} ${e.unit||''} · ${e.total?money(e.total):'—'}${e.supplier?' · '+e.supplier:''}${locLabel}</div><div class="pt">${st}${stExtra} · ${who}</div></div></div></div>`;
-    }).join('');
+    _slEntries=d.entries;
+    renderSupplyLogBody();
   }catch(e){el.innerHTML='<div class="empty-mini">Сервер недоступен</div>';}
 }
+function slTabSwitch(tab){_slTab=tab;renderSupplyLogBody();}
+function renderSupplyLogBody(){
+  const el=$('sub-body');
+  const entries=(_slEntries||[]).filter(e=>_slTab==='assigned'?e.stage==='assigned':e.stage!=='assigned');
+  if(!entries.length){el.innerHTML='<div class="empty-mini">Нет записей за период</div>';return;}
+  el.innerHTML=entries.map(e=>{
+    if(e.stage==='assigned'){
+      const t=new Date(e.at);const tm=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+      const tpCode=e.assign_type==='🧾'?'🧾':e.assign_type;
+      const tp=tpCode?typeMeta(tpCode):null;
+      const tpSum=e.assign_type==='🧾'&&e.assign_sum?' · '+money(e.assign_sum):'';
+      return `<div class="prow"><div class="phead"><div class="pi"><div class="pn">${tp?'<span class="astype">'+tp.svg+'</span>':''}Назначено · ${e.ing||''}</div><div class="pt">${dstr(t)} ${tm} · ${tp?tp.label:''}${tpSum}${e.by?' · '+e.by:''}</div></div></div></div>`;
+    }
+    const t=new Date(e.created_at);const tm=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+    const stMap={pending:'заявлено',accepted:'принято',rejected:'отклонено'};
+    const st=stMap[e.status]||e.status||'';
+    const stExtra=e.status==='rejected'&&e.reject_reason?' · '+e.reject_reason:'';
+    const who=e.accepted_by?e.accepted_by:e.created_by||'';
+    const dtpCode=e.assign_type==='🧾'?'🧾':e.assign_type;
+    const dtp=dtpCode?typeMeta(dtpCode):null;
+    const locLabel=e.location?' · → '+locEmoji(e.location)+' '+locName(e.location):'';
+    return `<div class="prow"><div class="phead"><div class="pi"><div class="pn">${dtp?'<span class="astype">'+dtp.svg+'</span>':''}Приехало · ${e.ing||''}</div><div class="pt">${dstr(t)} ${tm} · ${e.qty||''} ${e.unit||''} · ${e.total?money(e.total):'—'}${e.supplier?' · '+e.supplier:''}${locLabel}</div><div class="pt">${st}${stExtra} · ${who}</div></div></div></div>`;
+  }).join('');
+}
 
-let _assignMap=null;
+let _assignMap=null;let _slTab='assigned',_slEntries=null;
 async function fetchAssign(){try{const r=await fetch(DED_API+'/purchase-assign',{headers:{'X-Admin-Token':localStorage.getItem('yaya_key')||''},cache:'no-store'});const d=await r.json();return (r.ok&&d&&d.ok&&d.assign&&typeof d.assign==='object')?d.assign:{};}catch(e){return{};}}
 function typeMeta(code){
   const m={'🚚':{l:'Привезёт поставщик',c:'#2563eb'},'🛍':{l:'Привезёт закупщик',c:'#059669'},'🛒':{l:'Куплю сам',c:'#d97706'},'🧾':{l:'По счёту',c:'#7c3aed'}}[code]||{l:'',c:'#888'};
@@ -775,6 +782,8 @@ function typeMeta(code){
 }
 const AICON={};const ALABEL={};
 ['🚚','🛍','🛒','🧾'].forEach(k=>{const m=typeMeta(k);AICON[k]=m.svg;ALABEL[k]=m.label;});
+function locName(l){return l==='kitchen'?'Кухня':'Цех';}
+function locEmoji(l){return l==='kitchen'?'🍳':'🏭';}
 let _buyMode='assign',_dMode='day',_dCursor=Date.now(),_subCtx='buy';
 function buyMode(m){_buyMode=m;renderBuy();}
 function dStartOfDay(t){const d=new Date(t);d.setHours(0,0,0,0);return d.getTime();}
