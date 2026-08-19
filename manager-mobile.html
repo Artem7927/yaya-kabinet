@@ -748,10 +748,10 @@ async function renderSupplyLog(){
     renderSupplyLogBody();
   }catch(e){el.innerHTML='<div class="empty-mini">Сервер недоступен</div>';}
 }
-function slTabSwitch(tab){_slTab=tab;renderSupplyLogBody();}
+function slTabSwitch(tab){_slTab=tab;const chips=$('sub-chips').querySelectorAll('.chip');chips.forEach((c,i)=>c.classList.toggle('on',i===(tab==='assigned'?0:1)));renderSupplyLogBody();}
 function renderSupplyLogBody(){
   const el=$('sub-body');
-  const entries=(_slEntries||[]).filter(e=>_slTab==='assigned'?e.stage==='assigned':e.stage!=='assigned');
+  const entries=(_slEntries||[]).filter(e=>_slTab==='assigned'?e.stage==='assigned':e.stage==='delivered');
   if(!entries.length){el.innerHTML='<div class="empty-mini">Нет записей за период</div>';return;}
   el.innerHTML=entries.map(e=>{
     if(e.stage==='assigned'){
