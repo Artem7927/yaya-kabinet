@@ -774,6 +774,14 @@ function renderSupplyLogBody(){
     return `<div class="prow"><div class="phead"><div class="pi"><div class="pn">${dtp?'<span class="astype">'+dtp.svg+'</span>':''}${title} · ${e.ing||''}</div><div class="pt">${line}</div></div></div></div>`;
   }).join('');
 }
+async function refreshSupplyLog(){
+  try{
+    const [from,to]=dStep(_dCursor);
+    const r=await fetch(DED_API+'/supply-log?from='+new Date(from).toISOString()+'&to='+new Date(to).toISOString(),{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+    const d=await r.json();
+    if(d&&d.ok&&Array.isArray(d.entries)){_slEntries=d.entries;if(subKind==='supplylog')renderSupplyLogBody();}
+  }catch(e){}
+}
 
 let _assignMap=null;let _slTab='assigned',_slEntries=null;
 async function fetchAssign(){try{const r=await fetch(DED_API+'/purchase-assign',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();return (r.ok&&d&&d.ok&&d.assign&&typeof d.assign==='object')?d.assign:{};}catch(e){return{};}}
@@ -1467,6 +1475,8 @@ document.addEventListener('click',e=>{
 function boot(){ renderOrders(); }
 boot();
 setInterval(()=>{if(curTab==='orders'&&!subKind)renderOrders();},15000);
+setInterval(()=>{if(subKind==='supplylog')refreshSupplyLog();},15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&subKind==='supplylog')refreshSupplyLog();});
 window.addEventListener('yaya-menu-ready',function(){
   if(subKind==='tech')renderTech();
   else if(subKind==='stop')renderStop();
