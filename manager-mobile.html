@@ -764,14 +764,14 @@ function renderSupplyLogBody(){
       return `<div class="prow"><div class="phead"><div class="pi"><div class="pn">${tp?'<span class="astype">'+tp.svg+'</span>':''}Назначено · ${e.ing||''}</div><div class="pt">${dstr(t)} ${tm} · ${tp?tp.label:''}${tpSum}${e.by?' · '+roleRu(e.by):''}</div></div></div></div>`;
     }
     const t=new Date(e.created_at);const tm=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
-    const stMap={pending:'заявлено',accepted:'принято',rejected:'отклонено'};
-    const st=stMap[e.status]||e.status||'';
-    const stExtra=e.status==='rejected'&&e.reject_reason?' · '+e.reject_reason:'';
-    const who=roleRu(e.accepted_by?e.accepted_by:e.created_by||'');
     const dtpCode=e.assign_type==='🧾'?'🧾':e.assign_type;
     const dtp=dtpCode?typeMeta(dtpCode):null;
     const locLabel=e.location?' · → '+locEmoji(e.location)+' '+locName(e.location):'';
-    return `<div class="prow"><div class="phead"><div class="pi"><div class="pn">${dtp?'<span class="astype">'+dtp.svg+'</span>':''}Приехало · ${e.ing||''}</div><div class="pt">${dstr(t)} ${tm} · ${e.qty||''} ${e.unit||''} · ${e.total?money(e.total):'—'}${e.supplier?' · '+e.supplier:''}${locLabel}</div><div class="pt">${st}${stExtra} · ${who}${e.performer?' · привёз '+roleRu(e.performer):''}</div></div></div></div>`;
+    let title='',line=`${dstr(t)} ${tm} · ${e.qty||''} ${e.unit||''} · ${e.total?money(e.total):'—'}${locLabel}`;
+    if(e.status==='pending'){title='В пути';}
+    else if(e.status==='rejected'){title='Отклонено';line+=`${e.performer?' · привёз '+roleRu(e.performer):''}${e.reject_reason?' · '+e.reject_reason:''}`;}
+    else{title='Принято';line+=`${e.performer?' · привёз '+roleRu(e.performer):''} · принял ${locName(e.location)}`;}
+    return `<div class="prow"><div class="phead"><div class="pi"><div class="pn">${dtp?'<span class="astype">'+dtp.svg+'</span>':''}${title} · ${e.ing||''}</div><div class="pt">${line}</div></div></div></div>`;
   }).join('');
 }
 
