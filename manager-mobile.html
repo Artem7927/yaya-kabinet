@@ -761,13 +761,13 @@ function renderSupplyLogBody(){
       const tpCode=e.assign_type==='🧾'?'🧾':e.assign_type;
       const tp=tpCode?typeMeta(tpCode):null;
       const tpSum=e.assign_type==='🧾'&&e.assign_sum?' · '+money(e.assign_sum):'';
-      return `<div class="prow"><div class="phead"><div class="pi"><div class="pn">${tp?'<span class="astype">'+tp.svg+'</span>':''}Назначено · ${e.ing||''}</div><div class="pt">${dstr(t)} ${tm} · ${tp?tp.label:''}${tpSum}${e.by?' · '+e.by:''}</div></div></div></div>`;
+      return `<div class="prow"><div class="phead"><div class="pi"><div class="pn">${tp?'<span class="astype">'+tp.svg+'</span>':''}Назначено · ${e.ing||''}</div><div class="pt">${dstr(t)} ${tm} · ${tp?tp.label:''}${tpSum}${e.by?' · '+roleRu(e.by):''}</div></div></div></div>`;
     }
     const t=new Date(e.created_at);const tm=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
     const stMap={pending:'заявлено',accepted:'принято',rejected:'отклонено'};
     const st=stMap[e.status]||e.status||'';
     const stExtra=e.status==='rejected'&&e.reject_reason?' · '+e.reject_reason:'';
-    const who=e.accepted_by?e.accepted_by:e.created_by||'';
+    const who=roleRu(e.accepted_by?e.accepted_by:e.created_by||'');
     const dtpCode=e.assign_type==='🧾'?'🧾':e.assign_type;
     const dtp=dtpCode?typeMeta(dtpCode):null;
     const locLabel=e.location?' · → '+locEmoji(e.location)+' '+locName(e.location):'';
@@ -777,6 +777,8 @@ function renderSupplyLogBody(){
 
 let _assignMap=null;let _slTab='assigned',_slEntries=null;
 async function fetchAssign(){try{const r=await fetch(DED_API+'/purchase-assign',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();return (r.ok&&d&&d.ok&&d.assign&&typeof d.assign==='object')?d.assign:{};}catch(e){return{};}}
+const ROLE_RU={MANAGER:'Менеджер',SUPERVISOR:'Супервайзер',ASSEMBLER:'Сборщик',WORKSHOP:'Цех',KITCHEN:'Кухня',BUYER:'Закупщик',COURIER:'Курьер'};
+function roleRu(c){return ROLE_RU[c]||c||'';}
 function typeMeta(code){
   const m={'🚚':{l:'Привезёт поставщик',c:'#2563eb'},'🛍':{l:'Привезёт закупщик',c:'#059669'},'🛒':{l:'Куплю сам',c:'#d97706'},'🧾':{l:'По счёту',c:'#7c3aed'}}[code]||{l:'',c:'#888'};
   const p={'🚚':'<path d="M3 6 h13 v14 h-13 z"/><path d="M16 11 h6 l4 4 v5 h-10 z"/><circle cx="8" cy="22" r="2.4" fill="'+m.c+'" stroke="none"/><circle cx="21" cy="22" r="2.4" fill="'+m.c+'" stroke="none"/>','🛍':'<path d="M4 9 h18 l-1.5 15 h-15 z"/><path d="M8 9 v-2 a5 5 0 0 1 10 0 v2"/>','🛒':'<path d="M2 4 h4 l3 13 h12 l3 -9 h-16"/><circle cx="10" cy="22" r="2.2" fill="'+m.c+'" stroke="none"/><circle cx="20" cy="22" r="2.2" fill="'+m.c+'" stroke="none"/>','🧾':'<path d="M4 2 h11 l5 5 v17 h-16 z"/><path d="M15 2 v5 h5"/><path d="M8 13 h8 M8 18 h8"/>'}[code]||'';
