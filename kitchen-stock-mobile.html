@@ -343,6 +343,7 @@ input:focus,select:focus{border-color:var(--orange)}
     window.fmt=n=>Number(n||0).toLocaleString('ru');window.nowStr=()=>new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});window.todayStr=()=>new Date().toLocaleDateString('ru',{day:'numeric',month:'short'});window.findMenuItem=id=>MENU.find(m=>m.id===id);
   }
 })();
+const YKEY='yaya_key_kitchen';
 function getCookLog(){try{return JSON.parse(localStorage.getItem('yaya_cooklog'))||[]}catch{return[]}}
 function setCookLog(v){try{localStorage.setItem('yaya_cooklog',JSON.stringify(v))}catch{}}
 const CAT_NAMES={sets:'🎁 Сеты',wings:'🍗 Крылышки',snacks:'🍟 Снеки',burgers:'🍔 Бургеры',doners:'🌯 Донеры',pizza:'🍕 Пицца',bliny:'🥞 Блины',drinks:'🥤 Напитки',coffee:'☕ Кофе',cocktails:'🍦 Коктейли',mohito:'🍹 Мохито',lemonade:'🍋 Лимонад',sauces:'🫙 Соусы'};
@@ -355,7 +356,7 @@ function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.cl
 function openSub(k){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+k).classList.add('active');$('ab-title').textContent=$('s-'+k).dataset.title;if(k==='ing')renderIng('');}
 function openExt(u){location.href=u}
 function openDrawer(){$('dw-date').textContent=new Date().toLocaleDateString('ru',{day:'numeric',month:'long'});$('drawer').classList.add('show');$('drawer-bg').classList.add('show')}
-function setToken(){const t=prompt('Вставьте токен доступа:',localStorage.getItem('yaya_key')||'');if(t!==null){localStorage.setItem('yaya_key',t.trim());location.reload();}}
+function setToken(){const t=prompt('Вставьте токен доступа:',localStorage.getItem(YKEY)||'');if(t!==null){localStorage.setItem(YKEY,t.trim());location.reload();}}
 function closeDrawer(){$('drawer').classList.remove('show');$('drawer-bg').classList.remove('show')}
 function openSheet(id){$(id).classList.add('show');$('sheet-bg').classList.add('show')}
 function closeSheet(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'));$('sheet-bg').classList.remove('show')}
@@ -366,7 +367,7 @@ function stockRow(i,tap){const st=statusOf(i),pct=Math.min(100,(i.qty/(i.max||Ma
 
 /* СЕРВЕР — источник остатков (фолбэк на локальный кэш) */
 const YAYA_API=window.YAYA_API||'https://yaya-db-production.up.railway.app';
-const yTok=()=>localStorage.getItem('yaya_key')||'';
+const yTok=()=>localStorage.getItem(YKEY)||'';
 let _stockCache=null,_stockCacheT=0,_pfCache=null,_pfCacheT=0,_adjBusy=false;
 async function fetchJson(url){
   const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),10000);
@@ -552,6 +553,6 @@ renderCook();
 window.addEventListener('yaya-menu-ready', () => { renderCook(); renderTechAll(); renderCalc(); });
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});}</script>
-<script>if('serviceWorker' in navigator&&'Notification' in window){var API=window.YAYA_API||'https://yaya-db-production.up.railway.app';function b64u(u){u=u.replace(/-/g,'+').replace(/_/g,'/');while(u.length%4)u+='=';var bin=atob(u),arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr;}function sTok(){return localStorage.getItem('yaya_key')||'';}function doSub(reg){fetch(API+'/push/public-key',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(!(d&&d.ok&&d.key))return;return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(d.key)});}).then(sub=>{if(!sub)return;return fetch(API+'/push/subscribe',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':sTok()},body:JSON.stringify({role:'kitchen',sub:sub.toJSON()})});}).catch(function(){});}navigator.serviceWorker.ready.then(reg=>{if(Notification.permission==='denied')return;if(Notification.permission==='granted'){reg.pushManager.getSubscription().then(s=>{if(!s)doSub(reg);});}else{Notification.requestPermission().then(p=>{if(p==='granted')doSub(reg);});}});}</script>
+<script>if('serviceWorker' in navigator&&'Notification' in window){var API=window.YAYA_API||'https://yaya-db-production.up.railway.app';function b64u(u){u=u.replace(/-/g,'+').replace(/_/g,'/');while(u.length%4)u+='=';var bin=atob(u),arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr;}function sTok(){return localStorage.getItem(YKEY)||'';}function doSub(reg){fetch(API+'/push/public-key',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(!(d&&d.ok&&d.key))return;return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(d.key)});}).then(sub=>{if(!sub)return;return fetch(API+'/push/subscribe',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':sTok()},body:JSON.stringify({role:'kitchen',sub:sub.toJSON()})});}).catch(function(){});}navigator.serviceWorker.ready.then(reg=>{if(Notification.permission==='denied')return;if(Notification.permission==='granted'){reg.pushManager.getSubscription().then(s=>{if(!s)doSub(reg);});}else{Notification.requestPermission().then(p=>{if(p==='granted')doSub(reg);});}});}</script>
 </body>
 </html>

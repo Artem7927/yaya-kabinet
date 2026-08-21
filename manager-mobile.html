@@ -634,6 +634,8 @@ const STATUS={new:{l:'Новый',c:'b-new'},cook:{l:'Готовится',c:'b-c
 const $=id=>document.getElementById(id);
 let cart=[], orderType='delivery', curTab='orders', subKind='', subArg='', helpOn=false;
 const SETTINGS_KEY='yaya_settings';
+const YKEY='yaya_key_manager';
+function yTok(){return localStorage.getItem(YKEY)||'';}
 function getSettings(){try{return JSON.parse(localStorage.getItem(SETTINGS_KEY))||{}}catch{return{}}}
 function setSettings(v){localStorage.setItem(SETTINGS_KEY,JSON.stringify(v))}
 function managerPw(){return getSettings().pw||'1234'}
@@ -680,7 +682,7 @@ function go(tab){
 function appbarLeft(){ if(subKind) go(curTab); else openDrawer(); }
 function openExt(u){ location.href=u; }
 function openDrawer(){ renderDrawer(); $('drawer').classList.add('show'); $('drawer-bg').classList.add('show'); }
-function setToken(){const t=prompt('Вставьте токен доступа:',localStorage.getItem('yaya_key')||'');if(t!==null){localStorage.setItem('yaya_key',t.trim());location.reload();}}
+function setToken(){const t=prompt('Вставьте токен доступа:',yTok());if(t!==null){localStorage.setItem(YKEY,t.trim());location.reload();}}
 function closeDrawer(){ $('drawer').classList.remove('show'); $('drawer-bg').classList.remove('show'); }
 
 /* ── SUB SCREENS ── */
@@ -708,7 +710,7 @@ async function renderPurchases(loc){
     <div class="dlabel"><b>${dLabel(_dCursor)}</b>${dIsCurrent(_dCursor)?'':' · <a onclick="dToday()">сегодня</a>'}</div>
   </div><div class="chips"><div class="chip ${loc==='workshop'?'on':''}" onclick="renderPurchases('workshop')">Цех</div><div class="chip ${loc==='kitchen'?'on':''}" onclick="renderPurchases('kitchen')">Кухня</div></div>`;
   const el=$('sub-body');el.innerHTML='<div class="empty-mini">Загрузка…</div>';
-  const token=localStorage.getItem('yaya_key')||'';
+  const token=yTok();
   try{
     const r=await fetch(DED_API+'/purchases?from='+from+'&to='+to+'&location='+loc,{headers:{'X-Admin-Token':token},cache:'no-store'});
     const d=await r.json();
@@ -738,7 +740,7 @@ async function renderSupplyLog(){
     <div class="dlabel"><b>${dLabel(_dCursor)}</b>${dIsCurrent(_dCursor)?'':' · <a onclick="dToday()">сегодня</a>'}</div>
   </div><div class="chips"><div class="chip ${_slTab==='assigned'?'on':''}" onclick="slTabSwitch('assigned')">Назначения</div><div class="chip ${_slTab==='delivered'?'on':''}" onclick="slTabSwitch('delivered')">Поступления</div></div>`;
   const el=$('sub-body');el.innerHTML='<div class="empty-mini">Загрузка…</div>';
-  const token=localStorage.getItem('yaya_key')||'';
+  const token=yTok();
   const fromIso=new Date(from).toISOString(),toIso=new Date(to).toISOString();
   try{
     const r=await fetch(DED_API+'/supply-log?from='+fromIso+'&to='+toIso,{headers:{'X-Admin-Token':token},cache:'no-store'});
@@ -774,7 +776,7 @@ function renderSupplyLogBody(){
 }
 
 let _assignMap=null;let _slTab='assigned',_slEntries=null;
-async function fetchAssign(){try{const r=await fetch(DED_API+'/purchase-assign',{headers:{'X-Admin-Token':localStorage.getItem('yaya_key')||''},cache:'no-store'});const d=await r.json();return (r.ok&&d&&d.ok&&d.assign&&typeof d.assign==='object')?d.assign:{};}catch(e){return{};}}
+async function fetchAssign(){try{const r=await fetch(DED_API+'/purchase-assign',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();return (r.ok&&d&&d.ok&&d.assign&&typeof d.assign==='object')?d.assign:{};}catch(e){return{};}}
 function typeMeta(code){
   const m={'🚚':{l:'Привезёт поставщик',c:'#2563eb'},'🛍':{l:'Привезёт закупщик',c:'#059669'},'🛒':{l:'Куплю сам',c:'#d97706'},'🧾':{l:'По счёту',c:'#7c3aed'}}[code]||{l:'',c:'#888'};
   const p={'🚚':'<path d="M3 6 h13 v14 h-13 z"/><path d="M16 11 h6 l4 4 v5 h-10 z"/><circle cx="8" cy="22" r="2.4" fill="'+m.c+'" stroke="none"/><circle cx="21" cy="22" r="2.4" fill="'+m.c+'" stroke="none"/>','🛍':'<path d="M4 9 h18 l-1.5 15 h-15 z"/><path d="M8 9 v-2 a5 5 0 0 1 10 0 v2"/>','🛒':'<path d="M2 4 h4 l3 13 h12 l3 -9 h-16"/><circle cx="10" cy="22" r="2.2" fill="'+m.c+'" stroke="none"/><circle cx="20" cy="22" r="2.2" fill="'+m.c+'" stroke="none"/>','🧾':'<path d="M4 2 h11 l5 5 v17 h-16 z"/><path d="M15 2 v5 h5"/><path d="M8 13 h8 M8 18 h8"/>'}[code]||'';
@@ -840,7 +842,7 @@ async function renderBuyDates(){
     </div>
     <div class="dlabel"><b>${dLabel(_dCursor)}</b>${dIsCurrent(_dCursor)?'':' · <a onclick="dToday()">сегодня</a>'}</div>
   </div><div id="dbuylist"><div class="empty-mini">Загрузка…</div></div>`;
-  const token=localStorage.getItem('yaya_key')||'';
+  const token=yTok();
   try{
     const r=await fetch(DED_API+'/purchases?from='+s+'&to='+e,{headers:{'X-Admin-Token':token},cache:'no-store'});
     const d=await r.json();
@@ -858,7 +860,7 @@ async function renderBuy(){
   $('sub-chips').innerHTML=`<div class="chips"><div class="chip on">Назначение</div></div>`;
   const el=$('sub-body');
   el.innerHTML='<div class="empty-mini">Загрузка…</div>';
-  const token=localStorage.getItem('yaya_key')||'';
+  const token=yTok();
   try{
     const [sr,ar]=await Promise.all([
       fetch(DED_API+'/stock',{headers:{'X-Admin-Token':token},cache:'no-store'}),
@@ -910,7 +912,7 @@ async function setAssign(ingId,v){
 }
 async function saveAssign(a){
   try{
-    const r=await fetch(DED_API+'/purchase-assign',{method:'PUT',headers:{'Content-Type':'application/json','X-Admin-Token':localStorage.getItem('yaya_key')||''},body:JSON.stringify({assign:a}),cache:'no-store'});
+    const r=await fetch(DED_API+'/purchase-assign',{method:'PUT',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({assign:a}),cache:'no-store'});
     const d=await r.json();
     if(r.ok&&d&&d.ok)toast('success','Назначение сохранено','');
     else toast('warn','Не сохранено',(d&&d.error)||'');
@@ -979,7 +981,7 @@ function setStatus(id,st){
 }
 async function syncStatus(id,st){
   try{
-    const r=await fetch(DED_API+'/orders/'+encodeURIComponent(id)+'/status',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':localStorage.getItem('yaya_key')||''},body:JSON.stringify({status:st}),cache:'no-store'});
+    const r=await fetch(DED_API+'/orders/'+encodeURIComponent(id)+'/status',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({status:st}),cache:'no-store'});
     const d=await r.json();
     if(!(r.ok&&d&&d.ok))toast('warn','Сервер не применил статус',(d&&d.error)||'');
   }catch(e){toast('warn','Ошибка сети — статус только локально','');}
@@ -1063,7 +1065,7 @@ function mergeDed(){
   return out.sort((a,b)=>(b.ts||0)-(a.ts||0));
 }
 function loadDeductions(){
-  const token=localStorage.getItem('yaya_key')||'';
+  const token=yTok();
   fetch(DED_API+'/deductions',{headers:{'X-Admin-Token':token},cache:'no-store'})
     .then(r=>r.ok?r.json():Promise.reject(r.status))
     .then(d=>{_dedServer=(d&&Array.isArray(d.items))?d.items:[];})
@@ -1073,7 +1075,7 @@ function loadDeductions(){
 let _ordersSrv=null,_ordersLoading=false,_ordersSynced=false;
 async function loadOrdersSrv(){
   if(_ordersLoading)return;_ordersLoading=true;
-  const token=localStorage.getItem('yaya_key')||'';
+  const token=yTok();
   try{
     const r=await fetch(DED_API+'/orders?limit=500',{headers:{'X-Admin-Token':token},cache:'no-store'});
     if(r.ok){const d=await r.json();if(d&&d.ok&&Array.isArray(d.orders)){
@@ -1084,7 +1086,7 @@ async function loadOrdersSrv(){
   _ordersLoading=false;renderReports();
 }
 async function syncOrdersFromServer(){
-  const token=localStorage.getItem('yaya_key')||'';
+  const token=yTok();
   try{
     const r=await fetch(DED_API+'/orders?limit=300',{headers:{'X-Admin-Token':token},cache:'no-store'});
     if(!r.ok)return false;
@@ -1112,9 +1114,9 @@ function renderDed(){
       <div class="jval" style="color:${inc?'var(--green)':'var(--red)'}">${inc?'+':'−'}${q} ${d.unit||''}</div></div>`;
   }).join(''):emptyMini('Журнал пуст');
 }
-function viewPurchasePhoto(id){fetch(DED_API+'/purchases/'+encodeURIComponent(id)+'/media',{headers:{'X-Admin-Token':localStorage.getItem('yaya_key')||''},cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(r.status)).then(d=>{const imgs=((d&&Array.isArray(d.items))?d.items:[]).filter(m=>m&&m.url).map(m=>m.url);if(!imgs.length){toast('warn','Нет фото','');return;}_zoomUrls=imgs;dedOpenZoom(0);}).catch(()=>toast('warn','Ошибка загрузки фото',''));}
+function viewPurchasePhoto(id){fetch(DED_API+'/purchases/'+encodeURIComponent(id)+'/media',{headers:{'X-Admin-Token':yTok()},cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(r.status)).then(d=>{const imgs=((d&&Array.isArray(d.items))?d.items:[]).filter(m=>m&&m.url).map(m=>m.url);if(!imgs.length){toast('warn','Нет фото','');return;}_zoomUrls=imgs;dedOpenZoom(0);}).catch(()=>toast('warn','Ошибка загрузки фото',''));}
 function viewDedPhoto(id){
-  fetch(DED_API+'/deductions/'+encodeURIComponent(id)+'/media',{headers:{'X-Admin-Token':localStorage.getItem('yaya_key')||''},cache:'no-store'})
+  fetch(DED_API+'/deductions/'+encodeURIComponent(id)+'/media',{headers:{'X-Admin-Token':yTok()},cache:'no-store'})
     .then(r=>r.ok?r.json():Promise.reject(r.status))
     .then(d=>{
       const imgs=((d&&Array.isArray(d.items))?d.items:[]).filter(m=>m&&m.url).map(m=>m.url);
@@ -1179,7 +1181,7 @@ async function purchMedia(id,p){
   if(p.status==='accepted'&&p.recv_qty!=null)f.push(`<div class="pfield"><span>Принято по факту</span><b>+${Number(p.recv_qty).toFixed(2)} ${p.unit}</b></div>`);
   if(p.status==='rejected'&&p.reject_reason)f.push(`<div class="pfield"><span>Причина отказа</span><b>${p.reject_reason}</b></div>`);
   el.innerHTML=f.join('')+`<div class="plabel">📷 Фото товара/чека</div><div class="pphotos" id="pm-${id}"><div class="plabel muted">Загрузка…</div></div>`;
-  const token=localStorage.getItem('yaya_key')||'';
+  const token=yTok();
   try{
     const r=await fetch(DED_API+'/purchases/'+encodeURIComponent(id)+'/media',{headers:{'X-Admin-Token':token},cache:'no-store'});
     if(!r.ok)throw 0;

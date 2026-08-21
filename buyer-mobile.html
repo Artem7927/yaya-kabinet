@@ -310,6 +310,7 @@ input:focus,select:focus{border-color:var(--orange)}
 const $=id=>document.getElementById(id);
 let curTab='buy', buyLoc='all', purchLocation='workshop';
 const SUP_KEY='yaya_suppliers';
+const YKEY='yaya_key_buyer';
 function getSuppliers(){try{return JSON.parse(localStorage.getItem(SUP_KEY))||[]}catch{return[]}}
 function setSuppliers(v){localStorage.setItem(SUP_KEY,JSON.stringify(v))}
 function money(n){return fmt(Math.round(n))+' ₸'}
@@ -323,7 +324,7 @@ function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.cl
 function openSub(k){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+k).classList.add('active');$('ab-title').textContent=$('s-'+k).dataset.title;if(k==='suppliers')renderSuppliers();}
 function openExt(u){location.href=u}
 function openDrawer(){$('dw-date').textContent=new Date().toLocaleDateString('ru',{day:'numeric',month:'long'});$('drawer').classList.add('show');$('drawer-bg').classList.add('show')}
-function setToken(){const t=prompt('Вставьте токен доступа:',localStorage.getItem('yaya_key')||'');if(t!==null){localStorage.setItem('yaya_key',t.trim());location.reload();}}
+function setToken(){const t=prompt('Вставьте токен доступа:',localStorage.getItem(YKEY)||'');if(t!==null){localStorage.setItem(YKEY,t.trim());location.reload();}}
 function closeDrawer(){$('drawer').classList.remove('show');$('drawer-bg').classList.remove('show')}
 function openSheet(id){$(id).classList.add('show');$('sheet-bg').classList.add('show')}
 function closeSheet(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'));$('sheet-bg').classList.remove('show')}
@@ -334,7 +335,7 @@ function needQty(i){const t=(i.max!=null?i.max:i.min);return Math.max(0,Math.rou
 
 /* СЕРВЕР — источник заявки (фолбэк на локальный кэш) */
 const YAYA_API=window.YAYA_API||'https://yaya-db-production.up.railway.app';
-const yTok=()=>localStorage.getItem('yaya_key')||'';
+const yTok=()=>localStorage.getItem(YKEY)||'';
 
 async function loadPurchasesSrv(){
   try{
@@ -569,6 +570,6 @@ function exportCsv(){
 renderBuy();
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});}</script>
-<script>if('serviceWorker' in navigator&&'Notification' in window){var API=window.YAYA_API||'https://yaya-db-production.up.railway.app';function b64u(u){u=u.replace(/-/g,'+').replace(/_/g,'/');while(u.length%4)u+='=';var bin=atob(u),arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr;}function sTok(){return localStorage.getItem('yaya_key')||'';}function doSub(reg){fetch(API+'/push/public-key',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(!(d&&d.ok&&d.key))return;return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(d.key)});}).then(sub=>{if(!sub)return;return fetch(API+'/push/subscribe',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':sTok()},body:JSON.stringify({role:'buyer',sub:sub.toJSON()})});}).catch(function(){});}navigator.serviceWorker.ready.then(reg=>{if(Notification.permission==='denied')return;if(Notification.permission==='granted'){reg.pushManager.getSubscription().then(s=>{if(!s)doSub(reg);});}else{Notification.requestPermission().then(p=>{if(p==='granted')doSub(reg);});}});}</script>
+<script>if('serviceWorker' in navigator&&'Notification' in window){var API=window.YAYA_API||'https://yaya-db-production.up.railway.app';function b64u(u){u=u.replace(/-/g,'+').replace(/_/g,'/');while(u.length%4)u+='=';var bin=atob(u),arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr;}function sTok(){return localStorage.getItem(YKEY)||'';}function doSub(reg){fetch(API+'/push/public-key',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(!(d&&d.ok&&d.key))return;return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(d.key)});}).then(sub=>{if(!sub)return;return fetch(API+'/push/subscribe',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':sTok()},body:JSON.stringify({role:'buyer',sub:sub.toJSON()})});}).catch(function(){});}navigator.serviceWorker.ready.then(reg=>{if(Notification.permission==='denied')return;if(Notification.permission==='granted'){reg.pushManager.getSubscription().then(s=>{if(!s)doSub(reg);});}else{Notification.requestPermission().then(p=>{if(p==='granted')doSub(reg);});}});}</script>
 </body>
 </html>
