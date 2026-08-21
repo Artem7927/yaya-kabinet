@@ -11,7 +11,7 @@ Vanilla HTML/CSS/JS, без сборки и зависимостей (кроме
 ## 3. Структура
 - data.js — общий data-слой (MENU из живого /kv/yaya_menu, склады, техкарты, рецептуры, getters/setters localStorage, автосписание).
 - yaya-sync.js — слой синхронизации localStorage ↔ KV (подключается только в десктопных экранах).
-- sw.js — единый service worker (push + network-first), CACHE='yaya-v30'.
+- sw.js — единый service worker (push + network-first), CACHE='yaya-v42'.
 - Десктоп: manager.html (оболочка менеджера + iframe цеха/кухни), kitchen.html (готовка), workshop.html (склад цеха + AI-распознавание закупок).
 - Мобильные: manager-mobile.html, kitchen-stock-mobile.html, workshop-mobile.html, buyer-mobile.html.
 - index.html — статический макет-дашборд «Админ»: без серверных вызовов, не подключает data.js/yaya-sync.js/sw.js — мёртвый код.
@@ -19,7 +19,7 @@ Vanilla HTML/CSS/JS, без сборки и зависимостей (кроме
 - Иконки: icon-{kabinet,manager,kitchen,workshop,buyer,assembler}-{192,512}.png.
 
 ## 4. Публичные интерфейсы (внешние связи)
-Сервер один (yaya-db). Роль-токен: localStorage 'yaya_key' → заголовок X-Admin-Token. Базовый URL везде: window.YAYA_API || 'https://yaya-db-production.up.railway.app'.
+Сервер один (yaya-db). Роль-токен: localStorage per-role ключ yaya_key_manager / yaya_key_buyer / yaya_key_kitchen / yaya_key_workshop (const YKEY зашит в каждый *-mobile.html + helper yTok()); общий 'yaya_key' больше не читается и не мигрируется. Заголовок X-Admin-Token, базовый URL: window.YAYA_API || 'https://yaya-db-production.up.railway.app' — без изменений.
 
 data.js:
 - loadLiveMenu() — GET /kv/yaya_menu (публичный) → MENU (категории витрины → вкладки, карта MENU_CAT_MAP/MENU_CAT_EMOJI); MENU_FALLBACK — офлайн-дефолт; кэш ключа yaya_menu_v3; событие 'yaya-menu-ready'.
@@ -44,15 +44,16 @@ yaya-sync.js (только десктоп):
 - kitchen-stock-mobile.html (роль KITCHEN): GET /stock?location=kitchen, GET /pf-stock, GET /purchases?status=pending&location=kitchen, POST /deliveries/:id/accept|reject, PATCH /stock/:id, push-подписка role:'kitchen'. Вкладки: Готовка/Склад кухни/Техкарты/Отчёты/Калькулятор. Ссылка «Экран кухни» → openExt('kitchen.html').
 - workshop-mobile.html (роль WORKSHOP): GET /kv/yaya_wsrecipes_v3, POST /produce {recipeId,batches}, POST /transfer {dir:'ws-ks',fromId,qty}, PATCH /stock/:id, POST /deliveries/:id/accept|reject, push role:'workshop'; RECV_LOC='workshop'. Ссылка → openExt('kitchen.html').
 - buyer-mobile.html (роль BUYER): GET /purchases, GET /purchase-assign, POST /stock/:id/deliver, POST /deliveries/:id/cancel, push role:'buyer'; поставщики — localStorage yaya_suppliers.
-- manager-mobile.html (роль MANAGER): по контексту системы — /purchases, /purchase-assign (GET|PUT), /stock, POST /order (публичный приём заказа), POST /orders/:id/status, GET /deductions, GET /orders?limit=500|300, /purchases/:id/media, /deductions/:id/media; сотрудники и пароль — localStorage (yaya_users, yaya_settings.pw). sw.js регистрирует, но push-подписку НЕ ставит. Ссылки «Экран кухни» → openExt('kitchen.html').
+- manager-mobile.html (роль MANAGER): по контексту системы — /purchases, /purchase-assign (GET|PUT), /stock, GET /supply-log?from=&to= (подэкран openSub('supplylog') — журнал поставок: 3 вкладки Назначения/В пути/Поступления; строки по статусу записи: pending→«В пути» без исполнителя, accepted→«Принято» + привёз(performer) + принял(location: workshop→Цех, kitchen→Кухня), rejected→«Отклонено» + причина; авто-рефетч 15с + visibilitychange пока subKind==='supplylog'), POST /order (публичный приём заказа), POST /orders/:id/status, GET /deductions, GET /orders?limit=500|300 (поллинг 15с при !subKind), /purchases/:id/media, /deductions/:id/media; сотрудники и пароль — localStorage (yaya_users, yaya_settings.pw). sw.js регистрирует, но push-подписку НЕ ставит. Ссылки «Экран кухни» → openExt('kitchen.html').
 
 ## 5. Готчи
 - index.html — мёртвый макет; рабочие «установки» — отдельные html со своими манифестами. manifest-kabinet.json также не используется ни одной страницей.
 - yaya-sync.js НЕ синкает yaya_orders: заказ, принятый вручную в manager.html (orderPlace), и заказы кухни живут только в localStorage и не доезжают до сервера/витрины (серверные заказы только читаются).
 - yaya_tech_v3, yaya_wsstock_v3, yaya_stoplist, yaya_deductions, yaya_transfers, yaya_wslog НЕ в KEYS yaya-sync — их правки остаются на устройстве (в отличие от yaya_stock_v3 / yaya_purchases / yaya_wsrecipes_v3).
 - Два параллельных канала закупок: десктоп — yaya_purchases через KV (yaya-sync), мобильные — таблицы purchases/поставки сервера (/purchases, /deliveries/:id/...). Не смешивать при правках.
+- Кросс-экранный контракт KV yaya_purchase_assign_v1 (назначения закупок): manager-mobile пишет значение позиции — строку '🚚'|'🛍'|'🛒' или {t:'🧾',sum,performer:'BUYER'|'MANAGER'|'SUPPLIER'}; buyer-mobile читает только t/sum (лишние поля игнорирует); сервер (PUT /purchase-assign) режет белым списком. Этот ключ НЕ синкается yaya-sync (в KEYS его нет).
 - Пароль менеджера — локальная заглушка, НЕ токен: десктоп захардкожен '1234' (manager.html MANAGER_PASSWORD); мобильный — yaya_settings.pw (localStorage).
-- sw.js: CACHE='yaya-v30' (в CANON встречается устаревший 'yaya-v28' — код говорит v30), API_HOST='yaya-db-production.up.railway.app' — данные API никогда не кэшируются; network-first с кэш-фолбэком. После правки любого html — бампить версию кэша в sw.js.
+- sw.js: CACHE='yaya-v42' (в CANON встречается устаревший 'yaya-v28' — код говорит v42), API_HOST='yaya-db-production.up.railway.app' — данные API никогда не кэшируются; network-first с кэш-фолбэком. После правки любого html — бампить версию кэша в sw.js.
 - В шапке yaya-sync.js написано, что он подключается и в kitchen-stock, но kitchen-stock-mobile.html его НЕ подключает — работает прямым REST.
 - workshop.html ходит напрямую в Anthropic с ключом пользователя (опасный-но-рабочий способ через dangerous-direct-browser-access); серверный ключ здесь не предусмотрен.
 - assembler.webmanifest + icon-assembler-* осиротели: страницы сборщика в этом репо нет. Роль ASSEMBLER живёт в yaya-chicken-admin (index.html:844 — гейт входа admin|MANAGER|SUPERVISOR|ASSEMBLER; отдельного экрана сборщика и там нет).
