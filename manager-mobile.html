@@ -738,7 +738,7 @@ async function renderSupplyLog(){
       <button class="dnext" onclick="dShift(1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
     <div class="dlabel"><b>${dLabel(_dCursor)}</b>${dIsCurrent(_dCursor)?'':' · <a onclick="dToday()">сегодня</a>'}</div>
-  </div><div class="chips"><div class="chip ${_slTab==='assigned'?'on':''}" onclick="slTabSwitch('assigned')">Назначения</div><div class="chip ${_slTab==='delivered'?'on':''}" onclick="slTabSwitch('delivered')">Поступления</div></div>`;
+  </div><div class="chips"><div class="chip ${_slTab==='assigned'?'on':''}" onclick="slTabSwitch('assigned')">Назначения</div><div class="chip ${_slTab==='transit'?'on':''}" onclick="slTabSwitch('transit')">В пути</div><div class="chip ${_slTab==='delivered'?'on':''}" onclick="slTabSwitch('delivered')">Поступления</div></div>`;
   const el=$('sub-body');el.innerHTML='<div class="empty-mini">Загрузка…</div>';
   const token=yTok();
   const fromIso=new Date(from).toISOString(),toIso=new Date(to).toISOString();
@@ -750,10 +750,10 @@ async function renderSupplyLog(){
     renderSupplyLogBody();
   }catch(e){el.innerHTML='<div class="empty-mini">Сервер недоступен</div>';}
 }
-function slTabSwitch(tab){_slTab=tab;const chips=$('sub-chips').querySelectorAll('.chip');chips.forEach((c,i)=>c.classList.toggle('on',i===(tab==='assigned'?0:1)));renderSupplyLogBody();}
+function slTabSwitch(tab){_slTab=tab;const chips=$('sub-chips').querySelectorAll('.chip');chips.forEach((c,i)=>c.classList.toggle('on',i===({assigned:0,transit:1,delivered:2}[tab]||0)));renderSupplyLogBody();}
 function renderSupplyLogBody(){
   const el=$('sub-body');
-  const entries=(_slEntries||[]).filter(e=>_slTab==='assigned'?e.stage==='assigned':e.stage==='delivered');
+  const entries=(_slEntries||[]).filter(e=>{if(_slTab==='assigned')return e.stage==='assigned';if(e.stage!=='delivered')return false;return _slTab==='transit'?e.status==='pending':(e.status==='accepted'||e.status==='rejected');});
   if(!entries.length){el.innerHTML='<div class="empty-mini">Нет записей за период</div>';return;}
   el.innerHTML=entries.map(e=>{
     if(e.stage==='assigned'){
