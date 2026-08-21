@@ -771,13 +771,13 @@ function renderSupplyLogBody(){
     const dtpCode=e.assign_type==='🧾'?'🧾':e.assign_type;
     const dtp=dtpCode?typeMeta(dtpCode):null;
     const locLabel=e.location?' · → '+locEmoji(e.location)+' '+locName(e.location):'';
-    return `<div class="prow"><div class="phead"><div class="pi"><div class="pn">${dtp?'<span class="astype">'+dtp.svg+'</span>':''}Приехало · ${e.ing||''}</div><div class="pt">${dstr(t)} ${tm} · ${e.qty||''} ${e.unit||''} · ${e.total?money(e.total):'—'}${e.supplier?' · '+e.supplier:''}${locLabel}</div><div class="pt">${st}${stExtra} · ${who}</div></div></div></div>`;
+    return `<div class="prow"><div class="phead"><div class="pi"><div class="pn">${dtp?'<span class="astype">'+dtp.svg+'</span>':''}Приехало · ${e.ing||''}</div><div class="pt">${dstr(t)} ${tm} · ${e.qty||''} ${e.unit||''} · ${e.total?money(e.total):'—'}${e.supplier?' · '+e.supplier:''}${locLabel}</div><div class="pt">${st}${stExtra} · ${who}${e.performer?' · привёз '+roleRu(e.performer):''}</div></div></div></div>`;
   }).join('');
 }
 
 let _assignMap=null;let _slTab='assigned',_slEntries=null;
 async function fetchAssign(){try{const r=await fetch(DED_API+'/purchase-assign',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();return (r.ok&&d&&d.ok&&d.assign&&typeof d.assign==='object')?d.assign:{};}catch(e){return{};}}
-const ROLE_RU={MANAGER:'Менеджер',SUPERVISOR:'Супервайзер',ASSEMBLER:'Сборщик',WORKSHOP:'Цех',KITCHEN:'Кухня',BUYER:'Закупщик',COURIER:'Курьер'};
+const ROLE_RU={MANAGER:'Менеджер',SUPERVISOR:'Супервайзер',ASSEMBLER:'Сборщик',WORKSHOP:'Цех',KITCHEN:'Кухня',BUYER:'Закупщик',COURIER:'Курьер',SUPPLIER:'Поставщик'};
 function roleRu(c){return ROLE_RU[c]||c||'';}
 function typeMeta(code){
   const m={'🚚':{l:'Привезёт поставщик',c:'#2563eb'},'🛍':{l:'Привезёт закупщик',c:'#059669'},'🛒':{l:'Куплю сам',c:'#d97706'},'🧾':{l:'По счёту',c:'#7c3aed'}}[code]||{l:'',c:'#888'};
@@ -906,7 +906,11 @@ async function setAssign(ingId,v){
     if(s===null)return;
     const sum=parseFloat(String(s).replace(/[^\d.]/g,''));
     if(!(sum>0)){toast('warn','Некорректная сумма','');return;}
-    a[ingId]={t:'🧾',sum:Math.round(sum)};
+    const pe=prompt('Исполнитель:\n1 — Закупщик\n2 — Менеджер\n3 — Поставщик','1');
+    if(pe===null)return;
+    const perf={'1':'BUYER','2':'MANAGER','3':'SUPPLIER'}[String(pe).trim()];
+    if(!perf){toast('warn','Исполнитель: введите 1, 2 или 3','');return;}
+    a[ingId]={t:'🧾',sum:Math.round(sum),performer:perf};
   } else { a[ingId]=v; }
   _assignMap=a;
   await saveAssign(a);
