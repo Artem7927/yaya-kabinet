@@ -147,11 +147,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sy
   display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
 /* transfers */
-.tr-forms{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-.tr-card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:13px}
-.tr-card .th{font-size:13px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:5px;justify-content:center}
-.tr-card label{font-size:10px;color:var(--muted);font-weight:600;display:block;margin:8px 0 5px}
-.tr-card select{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 10px;color:var(--text);font-size:12px;font-family:inherit;outline:none}
 .arw{color:var(--orange)}
 .arw.g{color:var(--green)}
 
@@ -461,28 +456,6 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
     <!-- ═══ ПЕРЕМЕЩЕНИЯ ═══ -->
     <section class="screen" id="s-move" data-title="Перемещения">
       <div class="scroll">
-        <div class="tr-forms">
-          <div class="tr-card">
-            <div class="th">Цех <span class="arw">→</span> Кухня</div>
-            <label>Полуфабрикат</label>
-            <select id="mv-ws-from"></select>
-            <label>Куда (кухня)</label>
-            <select id="mv-ws-to"></select>
-            <label>Количество</label>
-            <select id="mv-ws-qty"></select>
-            <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="doMove('ws')">Переместить</button>
-          </div>
-          <div class="tr-card">
-            <div class="th">Кухня <span class="arw g">→</span> Цех</div>
-            <label>Ингредиент</label>
-            <select id="mv-ks-from"></select>
-            <label>Куда (цех)</label>
-            <select id="mv-ks-to"></select>
-            <label>Количество</label>
-            <select id="mv-ks-qty"></select>
-            <button class="btn btn-green btn-block" style="margin-top:12px" onclick="doMove('ks')">Переместить</button>
-          </div>
-        </div>
         <div class="card">
           <div class="ttl" style="font-size:14px;margin-bottom:6px">Журнал перемещений</div>
           <div id="mv-log"></div>
@@ -620,7 +593,6 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
     window.getWsStock=()=>g('yaya_wsstock_v3',[]);window.setWsStock=v=>s('yaya_wsstock_v3',v);
     window.getStopList=()=>g('yaya_stoplist',[]);window.setStopList=v=>s('yaya_stoplist',v);
     window.getDeductions=()=>g('yaya_deductions',[]);window.setDeductions=v=>s('yaya_deductions',v);
-    window.getTransfers=()=>g('yaya_transfers',[]);window.setTransfers=v=>s('yaya_transfers',v);
     window.getTechCards=()=>{const l=g('yaya_tech_v3',null)||{};const out={...DEFAULT_TECH_CARDS};for(const k in l){if(Array.isArray(l[k])&&l[k].length)out[k]=l[k];}return out;};
     window.fmt=n=>Number(n||0).toLocaleString('ru');
     window.nowStr=()=>new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
@@ -1226,51 +1198,20 @@ function saveDed(){
 }
 
 /* ── ПЕРЕМЕЩЕНИЯ ── */
-function qtyOpts(){let o='';[0.5,1,1.5,2,3,5,10,20,30].forEach(v=>o+=`<option value="${v}">${v}</option>`);return o;}
-function renderMove(){
-  const ws=getWsStock(), stock=getStock(), kitchen=stock.filter(i=>i.location==='kitchen');
-  $('mv-ws-from').innerHTML=ws.map(i=>`<option value="${i.id}">${i.name} (${fmtQty(i.qty)}${i.unit})</option>`).join('')||'<option>нет</option>';
-  $('mv-ws-to').innerHTML='<option value="">— не приходовать —</option>'+kitchen.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
-  $('mv-ws-qty').innerHTML=qtyOpts();
-  $('mv-ks-from').innerHTML=kitchen.map(i=>`<option value="${i.id}">${i.name} (${fmtQty(i.qty)}${i.unit})</option>`).join('')||'<option>нет</option>';
-  $('mv-ks-to').innerHTML='<option value="">— не приходовать —</option>'+stock.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
-  $('mv-ks-qty').innerHTML=qtyOpts();
-  renderMoveLog();
-}
-function renderMoveLog(){
-  const t=[...getTransfers()].reverse().slice(0,40);
-  $('mv-log').innerHTML=t.length?t.map(x=>{
-    const ws=x.dir==='ws-ks';
+function renderMove(){renderMoveLog();}
+async function renderMoveLog(){
+  let items=null;
+  try{const r=await fetch(YAYA_API+'/transfers',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();items=(d&&d.ok&&Array.isArray(d.items))?d.items:null;}catch(e){}
+  if(!items){$('mv-log').innerHTML=emptyMini('Перемещений пока нет');return;}
+  const stRu=s=>s==='pending'?'в пути':s==='accepted'?'принято':s==='rejected'?'отклонено':(s||'—');
+  $('mv-log').innerHTML=items.slice(0,50).map(x=>{
+    const ws=x.dir==='ws-ks',when=new Date(Number(x.ts)).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     return `<div class="jrow">
       <span class="jdot" style="background:${ws?'var(--orange)':'var(--green)'}"></span>
-      <div class="jinfo"><div class="jname">${x.from}${x.to&&x.to!=='—'?' → '+x.to:''}</div>
-        <div class="jtime">${x.date} ${x.time} · ${ws?'Цех → Кухня':'Кухня → Цех'}</div></div>
-      <div class="jval">${x.qty} ${x.unit||''}</div></div>`;
-  }).join(''):emptyMini('Перемещений пока нет');
-}
-function doMove(kind){
-  const qty=parseFloat((kind==='ws'?$('mv-ws-qty'):$('mv-ks-qty')).value)||0;
-  if(qty<=0){toast('warn','Выберите количество','');return;}
-  if(kind==='ws'){
-    const fromId=$('mv-ws-from').value, toId=$('mv-ws-to').value;
-    const ws=getWsStock(), w=ws.find(i=>i.id===fromId); if(!w)return;
-    if(w.qty<qty){toast('error','Мало на складе цеха',w.name+': '+w.qty+w.unit);return;}
-    w.qty=Math.max(0,w.qty-qty); setWsStock(ws);
-    let toName='—'; if(toId){const st=getStock(),ing=st.find(i=>i.id===toId);if(ing){ing.qty+=qty;if(ing.qty>(ing.max||0))ing.max=ing.qty;setStock(st);toName=ing.name;}}
-    pushTransfer('ws-ks',w.name,toName,qty,w.unit); toast('success','Цех → Кухня',w.name+' +'+qty+w.unit);
-  } else {
-    const fromId=$('mv-ks-from').value, toId=$('mv-ks-to').value;
-    const st=getStock(), from=st.find(i=>i.id===fromId); if(!from)return;
-    if(from.qty<qty){toast('error','Мало на складе кухни',from.name+': '+from.qty.toFixed(2)+from.unit);return;}
-    from.qty=Math.max(0,from.qty-qty); let toName='—';
-    if(toId){const to=st.find(i=>i.id===toId);if(to){to.qty+=qty;if(to.qty>(to.max||0))to.max=to.qty;toName=to.name;}}
-    setStock(st); pushTransfer('ks-ws',from.name,toName,qty,from.unit); toast('success','Кухня → Цех',from.name+' +'+qty+from.unit);
-  }
-  renderMove();
-}
-function pushTransfer(dir,from,to,qty,unit){
-  const t=getTransfers(); t.push({date:todayStr(),time:nowStr(),dir,from,to,qty:qty.toFixed(2),unit,note:'',emp:'Менеджер'}); setTransfers(t);
-  const ded=getDeductions(); ded.push({date:todayStr(),time:nowStr(),ing:'['+(dir==='ws-ks'?'ЦЕХ→КУХНЯ':'КУХНЯ→ЦЕХ')+'] '+from,qty:'+'+qty.toFixed(2),unit,reason:'Передача',emp:'Менеджер'}); setDeductions(ded);
+      <div class="jinfo"><div class="jname">${x.from_name||'—'}${x.to_name&&x.to_name!=='—'?' → '+x.to_name:''} · ${Number(x.qty).toFixed(2)}${x.unit||''}</div>
+        <div class="jtime">${when} · ${ws?'Цех → Кухня':'Кухня → Цех'} · ${stRu(x.status)}${x.performer?' · привёз '+roleRu(x.performer):''}${x.emp?' · оформил '+roleRu(x.emp):''}</div></div>
+    </div>`;
+  }).join('');
 }
 
 /* ── ОТЧЁТЫ ── */
@@ -1475,6 +1416,7 @@ document.addEventListener('click',e=>{
 function boot(){ renderOrders(); }
 boot();
 setInterval(()=>{if(curTab==='orders'&&!subKind)renderOrders();},15000);
+setInterval(()=>{if(curTab==='move')renderMoveLog();},15000);
 setInterval(()=>{if(subKind==='supplylog')refreshSupplyLog();},15000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&subKind==='supplylog')refreshSupplyLog();});
 window.addEventListener('yaya-menu-ready',function(){
