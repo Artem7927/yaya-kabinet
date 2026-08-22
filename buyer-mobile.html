@@ -331,7 +331,7 @@ function closeSheet(){document.querySelectorAll('.sheet').forEach(s=>s.classList
 
 /* last known price per ingredient name (из истории закупок) */
 function lastPrices(){const map={};[...getPurchases()].reverse().forEach(p=>{const pr=parseFloat(p.price)||0;if(pr>0&&map[p.ing]==null)map[p.ing]=pr;});return map;}
-function needQty(i){const t=(i.max!=null?i.max:i.min);return Math.max(0,Math.round((t-i.qty)*100)/100);}
+function needQty(i){const t=(i.max!=null?i.max:i.min*1.5);return Math.max(0,Math.round((t-i.qty)*100)/100);}
 
 /* СЕРВЕР — источник заявки (фолбэк на локальный кэш) */
 const YAYA_API=window.YAYA_API||'https://yaya-db-production.up.railway.app';
@@ -414,7 +414,7 @@ async function renderBuy(){
   }
   const stock=src;
   const pend=await pendingIngIds(); const assign=await fetchJsonAssign();
-  const lowAll=stock.filter(i=>i.qty<i.min&&!pend.has(String(i.id)));
+  const lowAll=stock.filter(i=>i.qty<i.min*1.5&&!pend.has(String(i.id)));
   const low=buyLoc==='all'?lowAll:lowAll.filter(i=>(i.location||'workshop')===buyLoc);
   low.sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));
   const estAll=lowAll.reduce((s,i)=>s+needQty(i)*(prices[i.name]||0),0);
