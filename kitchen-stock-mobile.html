@@ -445,6 +445,17 @@ async function _deliv(url,body){try{const r=await fetch(YAYA_API+url,{method:'PO
 async function acceptDelivery(id){const d=await _deliv('/deliveries/'+id+'/accept',{});if(d){toast('success','Принято','Склад пополнен');_stockCache=null;renderStock();}else toast('warn','Не удалось','Повторите');}
 async function acceptCorrect(id,def){const v=prompt('Принять по факту, количество:',String(def));if(v===null)return;const q=parseFloat(v);if(!(q>0)){toast('warn','Неверное число','');return;}const d=await _deliv('/deliveries/'+id+'/accept',{recv_qty:q});if(d){toast('success','Принято по факту','+'+q);_stockCache=null;renderStock();}else toast('warn','Не удалось','Повторите');}
 async function rejectDelivery(id){const reason=prompt('Причина отказа (необязательно):','')||'';const d=await _deliv('/deliveries/'+id+'/reject',{reason});if(d){toast('info','Отклонено','');renderStock();}else toast('warn','Не удалось','Повторите');}
+async function reqPf(id){
+  try{
+    const r=await fetch(YAYA_API+'/pf-requests',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({item_id:id}),cache:'no-store'});
+    const d=await r.json();
+    if(r.ok&&d&&d.ok){
+      if(d.skip){toast('info','Уже в норме','Заявка не нужна');}
+      else{toast('success','Заявка отправлена',(d.name||'')+' · '+d.qty);}
+      _pfCache=null; renderPf();
+    } else toast('warn','Не удалось','Повторите');
+  }catch(e){toast('error','Ошибка сети','Повторите');}
+}
 const PF_ROLE_RU={BUYER:'Закупщик',MANAGER:'Менеджер',WORKSHOP:'Цех',KITCHEN:'Кухня'};
 async function renderPfIncoming(){
   const box=$('pf-incoming');if(!box)return;
@@ -492,7 +503,20 @@ async function doKsTransfer(){
   }finally{_ksBusy=false;}
 }
 async function renderRaw(q){window._rawQ=q||'';q=(q||'').toLowerCase();const stock=(await fetchStockSrv())||getStock().filter(i=>(i.location||'')==='kitchen');let items=stock;if(q)items=items.filter(i=>i.name.toLowerCase().includes(q));items.sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));$('raw-list').innerHTML=items.map(i=>stockRow(i,`openAdj('${i.id}')`)).join('')||'<div class="empty-mini">Ничего не найдено</div>';}
-async function renderPf(){const ws=(await fetchPfSrv())||getWsStock();$('pf-list').innerHTML=ws.length?ws.map(w=>{const col=w.qty<=0?'var(--red)':w.qty<10?'var(--amber)':'var(--teal)';return `<div class="irow"><div class="top"><div class="inm">${w.name}</div><div class="iq" style="color:${col}">${parseFloat(w.qty.toFixed(2))}${w.unit}</div><div class="ist muted">от цеха</div></div></div>`;}).join(''):'<div class="empty-mini">Нет полуфабрикатов</div>';}
+async function renderPf(){
+  const ws=(await fetchPfSrv())||getWsStock();
+  let openReq=new Set();
+  try{const r=await fetch(YAYA_API+'/pf-requests?status=open',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();if(d&&d.ok)openReq=new Set(d.items.map(x=>String(x.item_id)));}catch(e){}
+  $('pf-list').innerHTML=ws.length?ws.map(w=>{
+    const min=Number(w.min)||0,crit=min>0&&w.qty<min,low=min>0&&w.qty<min*1.5;
+    const col=crit?'var(--red)':low?'var(--amber)':'var(--teal)';
+    let btn='';
+    if(low){btn=openReq.has(String(w.id))
+      ?'<button class="btn" style="width:100%;margin-top:8px;padding:10px;opacity:.5" disabled>Запрошено</button>'
+      :`<button class="btn" style="width:100%;margin-top:8px;padding:10px" onclick="reqPf('${w.id}')">Запросить у цеха</button>`;}
+    return `<div class="irow"><div class="top"><div class="inm">${w.name}</div><div class="iq" style="color:${col}">${parseFloat(w.qty.toFixed(2))}${w.unit}</div><div class="ist muted">от цеха</div></div>${btn}</div>`;
+  }).join(''):'<div class="empty-mini">Нет полуфабрикатов</div>';
+}
 async function openAdj(id){const st=(await fetchStockSrv())||getStock().filter(i=>(i.location||'')==='kitchen');$('adj-item').innerHTML=st.map(i=>`<option value="${i.id}">${i.name} (${i.qty.toFixed(1)}${i.unit})</option>`).join('');if(id)$('adj-item').value=id;$('adj-qty').value=1;$('adj-reason').value='Внутренний приход';_adjPhoto=null;clearAdjPhoto();{const n=$('adj-note');if(n)n.value='';}adjHint();openSheet('sh-adj');}
 function adjHint(){const r=$('adj-reason').value,l=$('adj-qlbl'),h=$('adj-hint');const sp=(r!=='Внутренний приход'&&r!=='Пересчёт');const nf=$('adj-note-f'),pf=$('adj-photo-f');if(nf)nf.style.display=sp?'':'none';if(pf)pf.style.display=sp?'':'none';if(r==='Внутренний приход'){l.textContent='Количество для добавления';h.textContent='Добавится на склад кухни';h.style.color='var(--green)';}else if(r==='Пересчёт'){l.textContent='Новое точное количество';h.textContent='Установит точный остаток';h.style.color='var(--blue)';}else{l.textContent='Количество для списания';h.textContent='Спишется со склада кухни';h.style.color='var(--red)';}}
 function clearAdjPhoto(){_adjPhoto=null;var pv=$('adj-photo-prev'),bt=$('adj-photo-btn'),inp=$('adj-photo');if(pv)pv.style.display='none';if(bt)bt.style.display='flex';if(inp)inp.value='';} let _adjPhoto=null;
