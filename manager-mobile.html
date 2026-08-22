@@ -1201,7 +1201,7 @@ function saveDed(){
 function renderMove(){renderMoveLog();}
 async function renderMoveLog(){
   let items=null;
-  try{const r=await fetch(YAYA_API+'/transfers',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();items=(d&&d.ok&&Array.isArray(d.items))?d.items:null;}catch(e){}
+  try{const r=await fetch(DED_API+'/transfers',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();items=(d&&d.ok&&Array.isArray(d.items))?d.items:null;}catch(e){}
   if(!items){$('mv-log').innerHTML=emptyMini('Перемещений пока нет');return;}
   const stRu=s=>s==='pending'?'в пути':s==='accepted'?'принято':s==='rejected'?'отклонено':(s||'—');
   $('mv-log').innerHTML=items.slice(0,50).map(x=>{
