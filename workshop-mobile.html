@@ -106,6 +106,7 @@ input:focus,select:focus{border-color:var(--orange)}
 .irow{padding:11px 12px;background:var(--card);border:1px solid var(--line);border-radius:13px;margin-bottom:8px}
 .irow .top{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center}
 .irow.tap{cursor:pointer}.irow.tap:active{background:var(--card2)}
+.tr-qi{width:84px;padding:8px;text-align:right;font-weight:700}
 .inm{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .iq{font-size:13px;font-weight:800;text-align:right}
 .ist{font-size:10px;font-weight:800;text-align:right;text-transform:uppercase;letter-spacing:.3px}
@@ -292,9 +293,7 @@ input:focus,select:focus{border-color:var(--orange)}
 
   <div class="sheet" id="sh-transfer">
     <div class="sheet-h"></div><div class="sheet-t">Передать на кухню</div>
-    <div class="field"><label>Полуфабрикат</label><select id="tr-item"></select></div>
-    <div class="field"><label>Куда на склад кухни (опц.)</label><select id="tr-main"></select></div>
-    <div class="field"><label>Количество</label><input id="tr-qty" type="number" step="0.01" value="1"></div>
+    <div id="tr-list"></div>
     <button class="btn btn-teal btn-block" style="padding:14px" onclick="doTransfer()">Передать</button>
   </div>
 
@@ -479,20 +478,26 @@ async function applyAdj(){
     else{toast('warn','Не сохранено на сервере',errMsg+' — повторите');}
   }finally{_adjBusy=false;}
 }
-async function openTransfer(){const pf=(await fetchPfSrv())||getWsStock();$('tr-item').innerHTML=pf.map(w=>`<option value="${w.id}">${w.name} (${parseFloat(w.qty.toFixed(2))}${w.unit})</option>`).join('');const kit=getStock().filter(i=>i.location==='kitchen');$('tr-main').innerHTML='<option value="">— не добавлять —</option>'+kit.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');$('tr-qty').value=1;openSheet('sh-transfer');}
+async function openTransfer(){const pf=(await fetchPfSrv())||getWsStock();$('tr-list').innerHTML=pf.length?pf.map(w=>`<div class="irow"><div class="top"><div class="inm">${w.name}</div><div class="iq muted">${parseFloat(w.qty.toFixed(2))}${w.unit}</div><input class="tr-qi" type="number" step="0.01" min="0" placeholder="0" data-id="${w.id}" data-max="${w.qty}" data-name="${w.name}"></div></div>`).join(''):'<div class="empty-mini">Нет полуфабрикатов</div>';openSheet('sh-transfer');}
 async function doTransfer(){
-  const id=$('tr-item').value,qty=parseFloat($('tr-qty').value)||0;
-  if(qty<=0){toast('warn','Введите количество','');return;}
+  const items=[];
+  for(const inp of document.querySelectorAll('input.tr-qi')){
+    const q=parseFloat(inp.value)||0;
+    if(q<=0)continue;
+    if(q>parseFloat(inp.dataset.max)){toast('warn','Больше остатка',inp.dataset.name);return;}
+    items.push({fromId:inp.dataset.id,qty:q});
+  }
+  if(!items.length){toast('warn','Укажите количество хотя бы для одной позиции','');return;}
   if(_trBusy)return;_trBusy=true;
   try{
     let ok=false,errMsg='';
     try{
-      const res=await fetch(YAYA_API+'/transfer',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({dir:'ws-ks',fromId:id,qty}),cache:'no-store'});
+      const res=await fetch(YAYA_API+'/transfer',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({dir:'ws-ks',items}),cache:'no-store'});
       let d=null;try{d=await res.json();}catch(e){}
       ok=!!(res.ok&&d&&d.ok);
       if(!ok)errMsg=(d&&d.error)||('HTTP '+res.status);
     }catch(e){errMsg=e.message||String(e);}
-    if(ok){_pfCache=null;closeSheet();renderStock();toast('success','Передано на кухню',qty+' шт.');}
+    if(ok){_pfCache=null;closeSheet();renderStock();toast('success','Передано на кухню',items.length+' поз.');}
     else{toast('warn','Не передано',errMsg);}
   }finally{_trBusy=false;}
 }
