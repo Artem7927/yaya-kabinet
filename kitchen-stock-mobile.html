@@ -213,6 +213,7 @@ input:focus,select:focus{border-color:var(--orange)}
         </div>
         <div id="stock-pf" style="display:none">
           <div class="note" style="text-align:left;padding:0 4px 12px">Полуфабрикаты приходят из цеха (передача Цех → Кухня).</div>
+          <div id="pf-incoming"></div>
           <div id="pf-list"></div>
         </div>
       </div>
@@ -411,7 +412,7 @@ function cook(){
 
 /* СКЛАД */
 function stockSeg(v){stockView=v;$('sg-raw').classList.toggle('on',v==='raw');$('sg-pf').classList.toggle('on',v==='pf');$('stock-raw').style.display=v==='raw'?'':'none';$('stock-pf').style.display=v==='pf'?'':'none';renderStock();}
-function renderStock(){if(stockView==='raw')renderRaw(window._rawQ||'');else renderPf();updCrit();renderIncoming();}
+function renderStock(){if(stockView==='raw')renderRaw(window._rawQ||'');else{renderPf();renderPfIncoming();}updCrit();renderIncoming();}
 const RECV_LOC='kitchen';   // в kitchen-stock-mobile.html поставить 'kitchen'
 async function renderIncoming(){
   const box=$('incoming');if(!box)return;
@@ -436,6 +437,29 @@ async function _deliv(url,body){try{const r=await fetch(YAYA_API+url,{method:'PO
 async function acceptDelivery(id){const d=await _deliv('/deliveries/'+id+'/accept',{});if(d){toast('success','Принято','Склад пополнен');_stockCache=null;renderStock();}else toast('warn','Не удалось','Повторите');}
 async function acceptCorrect(id,def){const v=prompt('Принять по факту, количество:',String(def));if(v===null)return;const q=parseFloat(v);if(!(q>0)){toast('warn','Неверное число','');return;}const d=await _deliv('/deliveries/'+id+'/accept',{recv_qty:q});if(d){toast('success','Принято по факту','+'+q);_stockCache=null;renderStock();}else toast('warn','Не удалось','Повторите');}
 async function rejectDelivery(id){const reason=prompt('Причина отказа (необязательно):','')||'';const d=await _deliv('/deliveries/'+id+'/reject',{reason});if(d){toast('info','Отклонено','');renderStock();}else toast('warn','Не удалось','Повторите');}
+const PF_ROLE_RU={BUYER:'Закупщик',MANAGER:'Менеджер',WORKSHOP:'Цех',KITCHEN:'Кухня'};
+async function renderPfIncoming(){
+  const box=$('pf-incoming');if(!box)return;
+  let d=null;try{const r=await fetch(YAYA_API+'/transfers/incoming',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});d=await r.json();}catch(e){}
+  const ts=(d&&d.ok&&Array.isArray(d.transfers))?d.transfers:[];
+  if(!ts.length){box.innerHTML='';return;}
+  box.innerHTML=`<div class="itbl-head" style="margin-top:2px"><span>Входящие передачи</span><span>${ts.length}</span></div>`+ts.map(t=>{
+    const who=t.performer?(' · привёз '+(PF_ROLE_RU[t.performer]||t.performer)):'',when=new Date(Number(t.ts)).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const rows=(t.items||[]).map(i=>`<div style="font-size:12px;color:var(--muted)">${i.name} × ${parseFloat(Number(i.qty).toFixed(2))}${i.unit||''}</div>`).join('');
+    return `<div class="jitem" style="padding:10px 12px;margin-bottom:8px;border:1px solid var(--line);border-radius:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div><b style="font-size:14px">Пачка #${t.id}</b><div style="font-size:11px;color:var(--muted)">Цех${who} · ${when}</div></div>
+      </div>
+      <div style="margin-top:6px">${rows}</div>
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button class="btn btn-primary" style="flex:1;padding:10px" onclick="acceptTransfer(${t.id})">Принять</button>
+        <button class="btn" style="flex:1;padding:10px;color:var(--red)" onclick="rejectTransfer(${t.id})">Отклонить</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function acceptTransfer(id){const d=await _deliv('/transfers/'+id+'/accept',{});if(d){toast('success','Принято','ПФ зачислены на кухню');_pfCache=null;_stockCache=null;renderStock();renderPfIncoming();}else toast('warn','Не удалось','Повторите');}
+async function rejectTransfer(id){const d=await _deliv('/transfers/'+id+'/reject',{});if(d){toast('info','Отклонено','Возвращено цеху');renderPfIncoming();}else toast('warn','Не удалось','Повторите');}
 async function renderRaw(q){window._rawQ=q||'';q=(q||'').toLowerCase();const stock=(await fetchStockSrv())||getStock().filter(i=>(i.location||'')==='kitchen');let items=stock;if(q)items=items.filter(i=>i.name.toLowerCase().includes(q));items.sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));$('raw-list').innerHTML=items.map(i=>stockRow(i,`openAdj('${i.id}')`)).join('')||'<div class="empty-mini">Ничего не найдено</div>';}
 async function renderPf(){const ws=(await fetchPfSrv())||getWsStock();$('pf-list').innerHTML=ws.length?ws.map(w=>{const col=w.qty<=0?'var(--red)':w.qty<10?'var(--amber)':'var(--teal)';return `<div class="irow"><div class="top"><div class="inm">${w.name}</div><div class="iq" style="color:${col}">${parseFloat(w.qty.toFixed(2))}${w.unit}</div><div class="ist muted">от цеха</div></div></div>`;}).join(''):'<div class="empty-mini">Нет полуфабрикатов</div>';}
 async function openAdj(id){const st=(await fetchStockSrv())||getStock().filter(i=>(i.location||'')==='kitchen');$('adj-item').innerHTML=st.map(i=>`<option value="${i.id}">${i.name} (${i.qty.toFixed(1)}${i.unit})</option>`).join('');if(id)$('adj-item').value=id;$('adj-qty').value=1;$('adj-reason').value='Внутренний приход';_adjPhoto=null;clearAdjPhoto();{const n=$('adj-note');if(n)n.value='';}adjHint();openSheet('sh-adj');}
