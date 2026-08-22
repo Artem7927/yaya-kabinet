@@ -219,6 +219,10 @@ input:focus,select:focus{border-color:var(--orange)}
           <button class="btn btn-primary btn-block" style="margin-top:6px;padding:13px" onclick="openAdj()">＋ Корректировка склада</button>
         </div>
         <div id="stock-pf" style="display:none">
+          <div id="pf-req-wrap" style="display:none;margin-bottom:12px">
+            <div style="font-weight:600;margin-bottom:6px">Заявки от кухни</div>
+            <div id="pf-req-list"></div>
+          </div>
           <div id="pf-list"></div>
           <button class="btn btn-teal btn-block" style="margin-top:6px;padding:13px" onclick="openTransfer()">Передать на кухню →</button>
         </div>
@@ -425,7 +429,7 @@ async function produce(){
 
 /* СКЛАД */
 function stockSeg(v){stockView=v;$('sg-raw').classList.toggle('on',v==='raw');$('sg-pf').classList.toggle('on',v==='pf');$('stock-raw').style.display=v==='raw'?'':'none';$('stock-pf').style.display=v==='pf'?'':'none';renderStock();}
-function renderStock(){if(stockView==='raw')renderRaw(window._rawQ||'');else renderPf();updCrit();renderIncoming();}
+function renderStock(){if(stockView==='raw')renderRaw(window._rawQ||'');else{renderPf();renderPfReq();}updCrit();renderIncoming();}
 const RECV_LOC='workshop';   // в kitchen-stock-mobile.html поставить 'kitchen'
 async function renderIncoming(){
   const box=$('incoming');if(!box)return;
@@ -452,6 +456,17 @@ async function acceptCorrect(id,def){const v=prompt('Принять по фак�
 async function rejectDelivery(id){const reason=prompt('Причина отказа (необязательно):','')||'';const d=await _deliv('/deliveries/'+id+'/reject',{reason});if(d){toast('info','Отклонено','');renderStock();}else toast('warn','Не удалось','Повторите');}
 async function renderRaw(q){window._rawQ=q||'';q=(q||'').toLowerCase();const stock=(await fetchStockSrv())||getStock().filter(i=>(!i.location||i.location==='workshop'));let items=stock;if(q)items=items.filter(i=>i.name.toLowerCase().includes(q));items.sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));$('raw-list').innerHTML=items.map(i=>stockRow(i,`openAdj('${i.id}')`)).join('')||'<div class="empty-mini">Ничего не найдено</div>';}
 async function renderPf(){const ws=(await fetchPfSrv())||getWsStock();$('pf-list').innerHTML=ws.length?ws.map(w=>{const col=w.qty<=0?'var(--red)':w.qty<10?'var(--amber)':'var(--teal)';return `<div class="irow"><div class="top"><div class="inm">${w.name}</div><div class="iq" style="color:${col}">${parseFloat(w.qty.toFixed(2))}${w.unit}</div><div class="ist muted">полуф.</div></div></div>`;}).join(''):'<div class="empty-mini">Нет полуфабрикатов</div>';}
+async function renderPfReq(){
+  let items=[];
+  try{const r=await fetch(YAYA_API+'/pf-requests?status=open',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();if(d&&d.ok&&Array.isArray(d.items))items=d.items;}catch(e){}
+  const wrap=$('pf-req-wrap');
+  if(!items.length){wrap.style.display='none';$('pf-req-list').innerHTML='';return;}
+  wrap.style.display='';
+  $('pf-req-list').innerHTML=items.map(x=>{
+    const ago=(()=>{const ms=Date.now()-new Date(x.created_at).getTime();const m=Math.floor(ms/60000);if(m<1)return 'только что';if(m<60)return m+' мин назад';const h=Math.floor(m/60);if(h<24)return h+' ч назад';return Math.floor(h/24)+' дн назад';})();
+    return `<div class="irow"><div class="top"><div class="inm">${x.name}</div><div class="iq" style="color:var(--orange)">${parseFloat(Number(x.qty).toFixed(2))}${x.unit||''}</div><div class="ist muted">${ago}</div></div></div>`;
+  }).join('');
+}
 async function openAdj(id){const raw=(await fetchStockSrv())||getStock().filter(i=>(!i.location||i.location==='workshop'));$('adj-item').innerHTML=raw.map(i=>`<option value="${i.id}">${i.name} (${i.qty.toFixed(1)}${i.unit})</option>`).join('');if(id)$('adj-item').value=id;$('adj-qty').value=1;_adjPhoto=null;clearAdjPhoto();{const n=$('adj-note');if(n)n.value='';}adjHint();openSheet('sh-adj');}
 function adjHint(){const r=$('adj-reason').value;const l=$('adj-qlbl'),h=$('adj-hint');const sp=(r!=='Внутренний приход'&&r!=='Пересчёт');const nf=$('adj-note-f'),pf=$('adj-photo-f');if(nf)nf.style.display=sp?'':'none';if(pf)pf.style.display=sp?'':'none';if(r==='Внутренний приход'){l.textContent='Количество для добавления';h.textContent='Добавится на склад цеха';h.style.color='var(--green)';}else if(r==='Пересчёт'){l.textContent='Новое точное количество';h.textContent='Установит точный остаток';h.style.color='var(--blue)';}else{l.textContent='Количество для списания';h.textContent='Спишется со склада цеха';h.style.color='var(--red)';}}
 function clearAdjPhoto(){_adjPhoto=null;var pv=$('adj-photo-prev'),bt=$('adj-photo-btn'),inp=$('adj-photo');if(pv)pv.style.display='none';if(bt)bt.style.display='flex';if(inp)inp.value='';} let _adjPhoto=null;
