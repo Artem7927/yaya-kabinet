@@ -1203,13 +1203,19 @@ async function renderMoveLog(){
   let items=null;
   try{const r=await fetch(DED_API+'/transfers',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();items=(d&&d.ok&&Array.isArray(d.items))?d.items:null;}catch(e){}
   if(!items){$('mv-log').innerHTML=emptyMini('Перемещений пока нет');return;}
-  const stRu=s=>s==='pending'?'в пути':s==='accepted'?'принято':s==='rejected'?'отклонено':(s||'—');
+  const stRu=s=>s==='accepted'?'принято':s==='rejected'?'отклонено':(s||'—');
   $('mv-log').innerHTML=items.slice(0,50).map(x=>{
     const ws=x.dir==='ws-ks',when=new Date(Number(x.ts)).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const comp=(x.pf_items&&x.pf_items.length)
+      ?x.pf_items.map(i=>`<div style="font-size:12px;color:var(--muted)">${i.name} × ${parseFloat(Number(i.qty).toFixed(2))}${i.unit||''}</div>`).join('')
+      :`<div style="font-size:12px;color:var(--muted)">${x.from_name||'—'} · ${Number(x.qty).toFixed(2)}${x.unit||''}</div>`;
     return `<div class="jrow">
       <span class="jdot" style="background:${ws?'var(--orange)':'var(--green)'}"></span>
-      <div class="jinfo"><div class="jname">${x.from_name||'—'}${x.to_name&&x.to_name!=='—'?' → '+x.to_name:''} · ${Number(x.qty).toFixed(2)}${x.unit||''}</div>
-        <div class="jtime">${when} · ${ws?'Цех → Кухня':'Кухня → Цех'} · ${stRu(x.status)}${x.performer?' · привёз '+roleRu(x.performer):''}${x.emp?' · оформил '+roleRu(x.emp):''}</div></div>
+      <div class="jinfo">
+        <div class="jname">${ws?'Цех → Кухня':'Кухня → Цех'} · ${stRu(x.status)}${x.performer?' · привёз '+roleRu(x.performer):''}</div>
+        <div class="jtime">${when}${x.emp?' · оформил '+roleRu(x.emp):''}</div>
+        <div>${comp}</div>
+      </div>
     </div>`;
   }).join('');
 }
