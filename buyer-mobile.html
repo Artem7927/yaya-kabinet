@@ -195,7 +195,7 @@ input:focus,select:focus{border-color:var(--orange)}
           <div class="stat"><div class="ic ic-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div><div class="val" id="bs-cnt">0</div><div class="lab">Позиций докупить</div></div>
           <div class="stat"><div class="ic ic-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="val" id="bs-sum">≈ 0 ₸</div><div class="lab">Ориентир. сумма</div></div>
         </div>
-        <div class="seg" id="buy-dates" style="display:none"><button class="on" onclick="buySetDate(null)">Сегодня</button></div>
+        <div class="seg" id="buy-dates"><button class="${buyDate===null?'on':''}" onclick="buySetDate(null)">Сегодня</button></div>
         <div class="seg"><button id="bg-all" class="on" onclick="buySeg('all')">Всё</button><button id="bg-workshop" onclick="buySeg('workshop')">Цех</button><button id="bg-kitchen" onclick="buySeg('kitchen')">Кухня</button></div>
         <button class="btn btn-primary btn-block" style="margin-bottom:12px;padding:14px" onclick="openPurch()">＋ Записать закупку</button>
         <div id="buy-list"></div>
@@ -387,7 +387,7 @@ async function fetchPfStock(){
 /* ЧТО КУПИТЬ */
 function buySeg(v){buyLoc=v;['all','workshop','kitchen'].forEach(x=>$('bg-'+x).classList.toggle('on',x===v));renderBuy();}
 function buySetDate(d){buyDate=d;const el=$('buy-dates');el.querySelectorAll('button').forEach(b=>b.classList.toggle('on',!d&&b.textContent==='Сегодня'||d&&b.dataset.d===d));renderBuy();}
-async function loadDates(){try{const r=await fetch(YAYA_API+'/buy-snapshots/dates',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();if(!d.ok||!Array.isArray(d.dates)||!d.dates.length)return;const el=$('buy-dates');el.style.display='';const btns=d.dates.map(dt=>{const p=dt.split('-');const label=p[2]+'.'+p[1];return `<button data-d="${dt}" onclick="buySetDate('${dt}')">${label}</button>`;}).join('');el.innerHTML=`<button class="${buyDate===null?'on':''}" onclick="buySetDate(null)">Сегодня</button>${btns}`;}catch(e){}}
+async function loadDates(){const el=$('buy-dates');let btns=`<button class="${buyDate===null?'on':''}" onclick="buySetDate(null)">Сегодня</button>`;try{const r=await fetch(YAYA_API+'/buy-snapshots/dates',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();if(d.ok&&Array.isArray(d.dates)&&d.dates.length){btns+=d.dates.map(dt=>{const p=dt.split('-');return `<button data-d="${dt}" class="${buyDate===dt?'on':''}" onclick="buySetDate('${dt}')">${p[2]}.${p[1]}</button>`;}).join('');}}catch(e){}el.innerHTML=btns;}
 async function pendingIngIds(){try{const items=await fetchJson('/purchases?status=pending');if(!Array.isArray(items))return new Set();return new Set(items.map(p=>String(p.ing_id)));}catch(e){return new Set();}}
 async function fetchJsonAssign(){try{const r=await fetch(YAYA_API+'/purchase-assign',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});if(!r.ok)return{};const d=await r.json();return (d&&d.ok&&d.assign&&typeof d.assign==='object')?d.assign:{};}catch(e){return{};}}
 function typeMeta(code){
