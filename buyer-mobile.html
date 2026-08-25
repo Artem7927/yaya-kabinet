@@ -195,6 +195,7 @@ input:focus,select:focus{border-color:var(--orange)}
           <div class="stat"><div class="ic ic-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div><div class="val" id="bs-cnt">0</div><div class="lab">Позиций докупить</div></div>
           <div class="stat"><div class="ic ic-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="val" id="bs-sum">≈ 0 ₸</div><div class="lab">Ориентир. сумма</div></div>
         </div>
+        <div class="seg" id="buy-dates" style="display:none"><button class="on" onclick="buySetDate(null)">Сегодня</button></div>
         <div class="seg"><button id="bg-all" class="on" onclick="buySeg('all')">Всё</button><button id="bg-workshop" onclick="buySeg('workshop')">Цех</button><button id="bg-kitchen" onclick="buySeg('kitchen')">Кухня</button></div>
         <button class="btn btn-primary btn-block" style="margin-bottom:12px;padding:14px" onclick="openPurch()">＋ Записать закупку</button>
         <div id="buy-list"></div>
@@ -308,7 +309,7 @@ input:focus,select:focus{border-color:var(--orange)}
   }
 })();
 const $=id=>document.getElementById(id);
-let curTab='buy', buyLoc='all', purchLocation='workshop';
+let curTab='buy', buyLoc='all', buyDate=null, purchLocation='workshop';
 const SUP_KEY='yaya_suppliers';
 const YKEY='yaya_key_buyer';
 function getSuppliers(){try{return JSON.parse(localStorage.getItem(SUP_KEY))||[]}catch{return[]}}
@@ -320,7 +321,7 @@ function locEmoji(l){return l==='kitchen'?'🍳':'🏭'}
 function locName(l){return l==='kitchen'?'Кухня':'Цех'}
 
 /* nav */
-function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+tab).classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));$('ab-title').textContent=$('s-'+tab).dataset.title;({buy:renderBuy,shop:renderWsReq,log:renderLog,spend:renderSpend}[tab]||(()=>{}))();if(tab==='log'||tab==='spend')loadPurchasesSrv().then(()=>{(tab==='log'?renderLog:renderSpend)();});const sc=$('s-'+tab).querySelector('.scroll');if(sc)sc.scrollTop=0;}
+function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+tab).classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));$('ab-title').textContent=$('s-'+tab).dataset.title;({buy:()=>{loadDates();renderBuy()},shop:renderWsReq,log:renderLog,spend:renderSpend}[tab]||(()=>{}))();if(tab==='log'||tab==='spend')loadPurchasesSrv().then(()=>{(tab==='log'?renderLog:renderSpend)();});const sc=$('s-'+tab).querySelector('.scroll');if(sc)sc.scrollTop=0;}
 function openSub(k){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+k).classList.add('active');$('ab-title').textContent=$('s-'+k).dataset.title;if(k==='suppliers')renderSuppliers();}
 function openExt(u){location.href=u}
 function openDrawer(){$('dw-date').textContent=new Date().toLocaleDateString('ru',{day:'numeric',month:'long'});$('drawer').classList.add('show');$('drawer-bg').classList.add('show')}
@@ -385,6 +386,8 @@ async function fetchPfStock(){
 
 /* ЧТО КУПИТЬ */
 function buySeg(v){buyLoc=v;['all','workshop','kitchen'].forEach(x=>$('bg-'+x).classList.toggle('on',x===v));renderBuy();}
+function buySetDate(d){buyDate=d;const el=$('buy-dates');el.querySelectorAll('button').forEach(b=>b.classList.toggle('on',!d&&b.textContent==='Сегодня'||d&&b.dataset.d===d));renderBuy();}
+async function loadDates(){try{const r=await fetch(YAYA_API+'/buy-snapshots/dates',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();if(!d.ok||!Array.isArray(d.dates)||!d.dates.length)return;const el=$('buy-dates');el.style.display='';const btns=d.dates.map(dt=>{const p=dt.split('-');const label=p[2]+'.'+p[1];return `<button data-d="${dt}" onclick="buySetDate('${dt}')">${label}</button>`;}).join('');el.innerHTML=`<button class="${buyDate===null?'on':''}" onclick="buySetDate(null)">Сегодня</button>${btns}`;}catch(e){}}
 async function pendingIngIds(){try{const items=await fetchJson('/purchases?status=pending');if(!Array.isArray(items))return new Set();return new Set(items.map(p=>String(p.ing_id)));}catch(e){return new Set();}}
 async function fetchJsonAssign(){try{const r=await fetch(YAYA_API+'/purchase-assign',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});if(!r.ok)return{};const d=await r.json();return (d&&d.ok&&d.assign&&typeof d.assign==='object')?d.assign:{};}catch(e){return{};}}
 function typeMeta(code){
@@ -402,6 +405,26 @@ function assignBadge(ingId,assign){
   return `<span class="astat"><span class="astic">${AICON[key]}</span><span>${ALABEL[key]}${sum}</span></span>`;
 }
 async function renderBuy(){
+  if(buyDate){
+    try{
+      const r=await fetch(YAYA_API+'/buy-snapshots?date='+buyDate,{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+      const d=await r.json();
+      if(!d.ok||!Array.isArray(d.items)||!d.items.length){$('buy-list').innerHTML='<div class="empty-full"><b>Дефицита нет</b><p>За этот день дефицита не зафиксировано.</p></div>';$('bs-cnt').textContent='0';$('bs-sum').textContent='—';const b=$('tab-badge');b.textContent='';b.style.display='none';return;}
+      let items=d.items;
+      if(buyLoc!=='all')items=items.filter(i=>(i.location||'workshop')===buyLoc);
+      $('bs-cnt').textContent=items.length;
+      $('bs-sum').textContent='—';
+      if(!items.length){$('buy-list').innerHTML='<div class="empty-full"><b>Нет по локации</b><p>В этом снимке позиций по выбранной локации нет.</p></div>';return;}
+      $('buy-list').innerHTML=items.map(i=>{
+        const loc=i.location||'workshop';
+        return `<div class="buyrow">
+        <div class="loc ${loc==='kitchen'?'ic-blue':'ic-teal'}">${locEmoji(loc)}</div>
+        <div class="bi"><div class="bn">${i.name}</div><div class="bs">Остаток ${parseFloat(Number(i.qty).toFixed(2))}${i.unit} · мин ${Number(i.min)}${i.unit} · нужно +${Number(i.need)}${i.unit}</div></div>
+        <div class="bneed"><div class="q">+${Number(i.need)}</div><div class="u">${i.unit}</div></div></div>`;
+      }).join('');
+    }catch(e){$('buy-list').innerHTML='<div class="empty-full"><b>Ошибка</b><p>Не удалось загрузить снимок.</p></div>';}
+    return;
+  }
   const prices=lastPrices();
   const src=await fetchStock();
   if(!src){
