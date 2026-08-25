@@ -195,7 +195,7 @@ input:focus,select:focus{border-color:var(--orange)}
           <div class="stat"><div class="ic ic-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div><div class="val" id="bs-cnt">0</div><div class="lab">Позиций докупить</div></div>
           <div class="stat"><div class="ic ic-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="val" id="bs-sum">≈ 0 ₸</div><div class="lab">Ориентир. сумма</div></div>
         </div>
-        <div class="seg" id="buy-dates"><button class="${buyDate===null?'on':''}" onclick="buySetDate(null)">Сегодня</button></div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><button class="btn" style="flex:0 0 auto;padding:8px 14px;font-size:12px" onclick="$('buy-date-picker').value='';buyDate=null;renderBuy();">Сегодня</button><input type="date" id="buy-date-picker" style="flex:1;background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:8px 12px;font-size:13px" onchange="buyDate=this.value||null;renderBuy();"></div>
         <div class="seg"><button id="bg-all" class="on" onclick="buySeg('all')">Всё</button><button id="bg-workshop" onclick="buySeg('workshop')">Цех</button><button id="bg-kitchen" onclick="buySeg('kitchen')">Кухня</button></div>
         <button class="btn btn-primary btn-block" style="margin-bottom:12px;padding:14px" onclick="openPurch()">＋ Записать закупку</button>
         <div id="buy-list"></div>
@@ -321,7 +321,7 @@ function locEmoji(l){return l==='kitchen'?'🍳':'🏭'}
 function locName(l){return l==='kitchen'?'Кухня':'Цех'}
 
 /* nav */
-function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+tab).classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));$('ab-title').textContent=$('s-'+tab).dataset.title;({buy:()=>{loadDates();renderBuy()},shop:renderWsReq,log:renderLog,spend:renderSpend}[tab]||(()=>{}))();if(tab==='log'||tab==='spend')loadPurchasesSrv().then(()=>{(tab==='log'?renderLog:renderSpend)();});const sc=$('s-'+tab).querySelector('.scroll');if(sc)sc.scrollTop=0;}
+function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+tab).classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));$('ab-title').textContent=$('s-'+tab).dataset.title;({buy:renderBuy,shop:renderWsReq,log:renderLog,spend:renderSpend}[tab]||(()=>{}))();if(tab==='log'||tab==='spend')loadPurchasesSrv().then(()=>{(tab==='log'?renderLog:renderSpend)();});const sc=$('s-'+tab).querySelector('.scroll');if(sc)sc.scrollTop=0;}
 function openSub(k){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+k).classList.add('active');$('ab-title').textContent=$('s-'+k).dataset.title;if(k==='suppliers')renderSuppliers();}
 function openExt(u){location.href=u}
 function openDrawer(){$('dw-date').textContent=new Date().toLocaleDateString('ru',{day:'numeric',month:'long'});$('drawer').classList.add('show');$('drawer-bg').classList.add('show')}
@@ -386,8 +386,6 @@ async function fetchPfStock(){
 
 /* ЧТО КУПИТЬ */
 function buySeg(v){buyLoc=v;['all','workshop','kitchen'].forEach(x=>$('bg-'+x).classList.toggle('on',x===v));renderBuy();}
-function buySetDate(d){buyDate=d;const el=$('buy-dates');el.querySelectorAll('button').forEach(b=>b.classList.toggle('on',!d&&b.textContent==='Сегодня'||d&&b.dataset.d===d));renderBuy();}
-async function loadDates(){const el=$('buy-dates');let btns=`<button class="${buyDate===null?'on':''}" onclick="buySetDate(null)">Сегодня</button>`;try{const r=await fetch(YAYA_API+'/buy-snapshots/dates',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();if(d.ok&&Array.isArray(d.dates)&&d.dates.length){btns+=d.dates.map(dt=>{const p=dt.split('-');return `<button data-d="${dt}" class="${buyDate===dt?'on':''}" onclick="buySetDate('${dt}')">${p[2]}.${p[1]}</button>`;}).join('');}}catch(e){}el.innerHTML=btns;}
 async function pendingIngIds(){try{const items=await fetchJson('/purchases?status=pending');if(!Array.isArray(items))return new Set();return new Set(items.map(p=>String(p.ing_id)));}catch(e){return new Set();}}
 async function fetchJsonAssign(){try{const r=await fetch(YAYA_API+'/purchase-assign',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});if(!r.ok)return{};const d=await r.json();return (d&&d.ok&&d.assign&&typeof d.assign==='object')?d.assign:{};}catch(e){return{};}}
 function typeMeta(code){
