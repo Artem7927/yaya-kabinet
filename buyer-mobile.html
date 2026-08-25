@@ -175,6 +175,15 @@ input:focus,select:focus{border-color:var(--orange)}
 .astat{display:inline-flex;align-items:center;gap:6px;margin-top:5px;padding:4px 10px;border:1px solid var(--orange);border-radius:99px;background:var(--orange-soft);color:var(--orange);font-size:10.5px;font-weight:700;line-height:1}
 .astat .astic{display:flex}
 .astat .astic svg{width:14px;height:14px}
+.ptabs{display:flex;background:var(--card2);border-radius:11px;padding:3px;margin-bottom:10px}
+.ptab{flex:1;border:none;background:none;color:var(--muted);font-size:12px;font-weight:600;padding:8px 4px;border-radius:8px;cursor:pointer;font-family:inherit;transition:.15s}
+.ptab.on{background:var(--orange);color:#fff}
+.arow{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.arow .ab{width:36px;height:36px;border-radius:10px;border:none;background:var(--orange-soft);color:var(--orange);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.arow .ab:active{transform:scale(.95)}
+.arow .ab[disabled]{opacity:.25;pointer-events:none}
+.arow .ac{font-size:15px;font-weight:700;letter-spacing:-.2px}
+.plabel{font-size:11.5px;color:var(--muted);text-align:center;margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -195,7 +204,9 @@ input:focus,select:focus{border-color:var(--orange)}
           <div class="stat"><div class="ic ic-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div><div class="val" id="bs-cnt">0</div><div class="lab">Позиций докупить</div></div>
           <div class="stat"><div class="ic ic-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="val" id="bs-sum">≈ 0 ₸</div><div class="lab">Ориентир. сумма</div></div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><button class="btn" style="flex:0 0 auto;padding:8px 14px;font-size:12px" onclick="$('buy-date-picker').value='';buyDate=null;renderBuy();">Сегодня</button><input type="date" id="buy-date-picker" style="flex:1;background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:8px 12px;font-size:13px" onchange="buyDate=this.value||null;renderBuy();"></div>
+        <div class="ptabs"><button id="pt-day" class="ptab on" onclick="buySetMode('day')">День</button><button id="pt-month" class="ptab" onclick="buySetMode('month')">Месяц</button><button id="pt-year" class="ptab" onclick="buySetMode('year')">Год</button></div>
+        <div class="arow"><button class="ab" onclick="buyStep(-1)">◄</button><span class="ac" id="buy-period-center"></span><button class="ab" id="buy-next-btn" onclick="buyStep(1)">►</button></div>
+        <div class="plabel" id="buy-period-label"></div>
         <div class="seg"><button id="bg-all" class="on" onclick="buySeg('all')">Всё</button><button id="bg-workshop" onclick="buySeg('workshop')">Цех</button><button id="bg-kitchen" onclick="buySeg('kitchen')">Кухня</button></div>
         <button class="btn btn-primary btn-block" style="margin-bottom:12px;padding:14px" onclick="openPurch()">＋ Записать закупку</button>
         <div id="buy-list"></div>
@@ -309,7 +320,7 @@ input:focus,select:focus{border-color:var(--orange)}
   }
 })();
 const $=id=>document.getElementById(id);
-let curTab='buy', buyLoc='all', buyDate=null, purchLocation='workshop';
+let curTab='buy', buyLoc='all', buyDate=null, purchLocation='workshop', buyMode='day', buyCursor=(()=>{const t=new Date();return{y:t.getFullYear(),m:t.getMonth(),d:t.getDate()}})();
 const SUP_KEY='yaya_suppliers';
 const YKEY='yaya_key_buyer';
 function getSuppliers(){try{return JSON.parse(localStorage.getItem(SUP_KEY))||[]}catch{return[]}}
@@ -402,16 +413,79 @@ function assignBadge(ingId,assign){
   const sum=typeof a==='object'&&a.t==='🧾'&&a.sum?' · '+money(a.sum):'';
   return `<span class="astat"><span class="astic">${AICON[key]}</span><span>${ALABEL[key]}${sum}</span></span>`;
 }
+
+/* ПЕРИОД: День / Месяц / Год */
+function _buyToday(){return new Date();}
+function _isFuturePeriod(){
+  const t=_buyToday();
+  if(buyMode==='day')return buyCursor.y===t.getFullYear()&&buyCursor.m===t.getMonth()&&buyCursor.d===t.getDate();
+  if(buyMode==='month')return buyCursor.y===t.getFullYear()&&buyCursor.m===t.getMonth();
+  return buyCursor.y===t.getFullYear();
+}
+function buySetMode(m){
+  buyMode=m;const t=_buyToday();
+  if(m==='day')buyCursor={y:t.getFullYear(),m:t.getMonth(),d:t.getDate()};
+  else if(m==='month')buyCursor={y:t.getFullYear(),m:t.getMonth()};
+  else buyCursor={y:t.getFullYear()};
+  ['day','month','year'].forEach(x=>$('pt-'+x).classList.toggle('on',x===m));
+  $('buy-next-btn').disabled=_isFuturePeriod();
+  renderBuy();
+}
+function buyStep(dir){
+  const c=buyCursor,t=_buyToday();
+  if(buyMode==='day'){
+    const d=new Date(c.y,c.m,c.d+dir);
+    if(dir>0&&d>t)return;
+    buyCursor={y:d.getFullYear(),m:d.getMonth(),d:d.getDate()};
+  }else if(buyMode==='month'){
+    if(dir>0&&c.y===t.getFullYear()&&c.m===t.getMonth())return;
+    let nm=c.m+dir,ny=c.y;
+    if(nm<0){nm=11;ny--;}else if(nm>11){nm=0;ny++;}
+    buyCursor={y:ny,m:nm};
+  }else{
+    if(dir>0&&c.y===t.getFullYear())return;
+    buyCursor={y:c.y+dir};
+  }
+  $('buy-next-btn').disabled=_isFuturePeriod();
+  renderBuy();
+}
+function buyPeriodLabel(){
+  const mths=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  const wdays=['вс','пн','вт','ср','чт','пт','сб'];
+  if(buyMode==='day'){
+    const d=new Date(buyCursor.y,buyCursor.m,buyCursor.d);
+    const wd=wdays[d.getDay()];
+    return wd+', '+buyCursor.d+' '+mths[buyCursor.m]+' '+buyCursor.y+' г.';
+  }
+  if(buyMode==='month')return mths[buyCursor.m].charAt(0).toUpperCase()+mths[buyCursor.m].slice(1)+' '+buyCursor.y;
+  return String(buyCursor.y);
+}
+function _centerText(){
+  if(buyMode==='day')return buyCursor.d+' '+( ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][buyCursor.m])+' '+buyCursor.y;
+  if(buyMode==='month')return ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'][buyCursor.m]+' '+buyCursor.y;
+  return String(buyCursor.y);
+}
+function _histUrl(){
+  if(buyMode==='day')return YAYA_API+'/buy-snapshots?period=day&date='+buyCursor.y+'-'+String(buyCursor.m+1).padStart(2,'0')+'-'+String(buyCursor.d).padStart(2,'0');
+  if(buyMode==='month')return YAYA_API+'/buy-snapshots?period=month&ym='+buyCursor.y+'-'+String(buyCursor.m+1).padStart(2,'0');
+  return YAYA_API+'/buy-snapshots?period=year&y='+buyCursor.y;
+}
+
 async function renderBuy(){
-  if(buyDate){
+  $('buy-period-center').textContent=_centerText();
+  $('buy-period-label').textContent=buyPeriodLabel();
+  $('buy-next-btn').disabled=_isFuturePeriod();
+  const isToday=buyMode==='day'&&buyCursor.y===_buyToday().getFullYear()&&buyCursor.m===_buyToday().getMonth()&&buyCursor.d===_buyToday().getDate();
+  if(!isToday){
     try{
-      const r=await fetch(YAYA_API+'/buy-snapshots?date='+buyDate,{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+      const r=await fetch(_histUrl(),{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
       const d=await r.json();
-      if(!d.ok||!Array.isArray(d.items)||!d.items.length){$('buy-list').innerHTML='<div class="empty-full"><b>Дефицита нет</b><p>За этот день дефицита не зафиксировано.</p></div>';$('bs-cnt').textContent='0';$('bs-sum').textContent='—';const b=$('tab-badge');b.textContent='';b.style.display='none';return;}
+      $('bs-cnt').textContent='0';$('bs-sum').textContent='—';
+      const b=$('tab-badge');b.textContent='';b.style.display='none';
+      if(!d.ok||!Array.isArray(d.items)||!d.items.length){$('buy-list').innerHTML='<div class="empty-full"><b>Дефицита нет</b><p>За этот период дефицита не зафиксировано.</p></div>';return;}
       let items=d.items;
       if(buyLoc!=='all')items=items.filter(i=>(i.location||'workshop')===buyLoc);
       $('bs-cnt').textContent=items.length;
-      $('bs-sum').textContent='—';
       if(!items.length){$('buy-list').innerHTML='<div class="empty-full"><b>Нет по локации</b><p>В этом снимке позиций по выбранной локации нет.</p></div>';return;}
       $('buy-list').innerHTML=items.map(i=>{
         const loc=i.location||'workshop';
@@ -588,7 +662,7 @@ function exportCsv(){
   toast('success','Экспорт готов',p.length+' записей');
 }
 
-renderBuy();
+buySetMode('day');
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});}</script>
 <script>if('serviceWorker' in navigator&&'Notification' in window){var API=window.YAYA_API||'https://yaya-db-production.up.railway.app';function b64u(u){u=u.replace(/-/g,'+').replace(/_/g,'/');while(u.length%4)u+='=';var bin=atob(u),arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr;}function sTok(){return localStorage.getItem(YKEY)||'';}function doSub(reg){fetch(API+'/push/public-key',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(!(d&&d.ok&&d.key))return;return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(d.key)});}).then(sub=>{if(!sub)return;return fetch(API+'/push/subscribe',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':sTok()},body:JSON.stringify({role:'buyer',sub:sub.toJSON()})});}).catch(function(){});}navigator.serviceWorker.ready.then(reg=>{if(Notification.permission==='denied')return;if(Notification.permission==='granted'){reg.pushManager.getSubscription().then(s=>{if(!s)doSub(reg);});}else{Notification.requestPermission().then(p=>{if(p==='granted')doSub(reg);});}});}</script>
