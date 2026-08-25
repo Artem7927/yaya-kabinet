@@ -372,6 +372,15 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
 .dlabel{font-size:11px;color:var(--muted);text-align:center;margin-top:9px}
 .dlabel b{color:var(--text);font-weight:700}
 .dlabel a{color:var(--orange);cursor:pointer;font-weight:700}
+.ptabs{display:flex;background:var(--card2);border-radius:11px;padding:3px;margin-bottom:10px}
+.ptab{flex:1;border:none;background:none;color:var(--muted);font-size:12px;font-weight:600;padding:8px 4px;border-radius:8px;cursor:pointer;font-family:inherit;transition:.15s}
+.ptab.on{background:var(--orange);color:#fff}
+.arow{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.arow .ab{width:36px;height:36px;border-radius:10px;border:none;background:var(--orange-soft);color:var(--orange);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.arow .ab:active{transform:scale(.95)}
+.arow .ab[disabled]{opacity:.25;pointer-events:none}
+.arow .ac{font-size:15px;font-weight:700;letter-spacing:-.2px}
+.plabel{font-size:11.5px;color:var(--muted);text-align:center;margin-bottom:0}
 </style>
 </head>
 <body>
@@ -772,8 +781,64 @@ const AICON={};const ALABEL={};
 ['🚚','🛍','🛒','🧾'].forEach(k=>{const m=typeMeta(k);AICON[k]=m.svg;ALABEL[k]=m.label;});
 function locName(l){return l==='kitchen'?'Кухня':'Цех';}
 function locEmoji(l){return l==='kitchen'?'🍳':'🏭';}
-let _buyMode='assign',_dMode='day',_dCursor=Date.now(),_subCtx='buy';
+let _buyMode='assign',_dMode='day',_dCursor=Date.now(),_subCtx='buy',_buyPeriod='day',buyCursor=(()=>{const t=new Date();return{y:t.getFullYear(),m:t.getMonth(),d:t.getDate()}})();
 function buyMode(m){_buyMode=m;renderBuy();}
+/* ПЕРИОД: День / Месяц / Год (Buy widget) */
+function _buyToday(){return new Date();}
+function _isFuturePeriod(){
+  const t=_buyToday();
+  if(_buyPeriod==='day')return buyCursor.y===t.getFullYear()&&buyCursor.m===t.getMonth()&&buyCursor.d===t.getDate();
+  if(_buyPeriod==='month')return buyCursor.y===t.getFullYear()&&buyCursor.m===t.getMonth();
+  return buyCursor.y===t.getFullYear();
+}
+function buySetMode(m){
+  _buyPeriod=m;const t=_buyToday();
+  if(m==='day')buyCursor={y:t.getFullYear(),m:t.getMonth(),d:t.getDate()};
+  else if(m==='month')buyCursor={y:t.getFullYear(),m:t.getMonth()};
+  else buyCursor={y:t.getFullYear()};
+  renderBuy();
+}
+function buyStep(dir){
+  const c=buyCursor,t=_buyToday();
+  if(_buyPeriod==='day'){
+    const d=new Date(c.y,c.m,c.d+dir);
+    if(dir>0&&d>t)return;
+    buyCursor={y:d.getFullYear(),m:d.getMonth(),d:d.getDate()};
+  }else if(_buyPeriod==='month'){
+    if(dir>0&&c.y===t.getFullYear()&&c.m===t.getMonth())return;
+    let nm=c.m+dir,ny=c.y;
+    if(nm<0){nm=11;ny--;}else if(nm>11){nm=0;ny++;}
+    buyCursor={y:ny,m:nm};
+  }else{
+    if(dir>0&&c.y===t.getFullYear())return;
+    buyCursor={y:c.y+dir};
+  }
+  renderBuy();
+}
+function buyPeriodLabel(){
+  const mths=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  const wdays=['вс','пн','вт','ср','чт','пт','сб'];
+  if(_buyPeriod==='day'){
+    const d=new Date(buyCursor.y,buyCursor.m,buyCursor.d);
+    const wd=wdays[d.getDay()];
+    return wd+', '+buyCursor.d+' '+mths[buyCursor.m]+' '+buyCursor.y+' г.';
+  }
+  if(_buyPeriod==='month')return mths[buyCursor.m].charAt(0).toUpperCase()+mths[buyCursor.m].slice(1)+' '+buyCursor.y;
+  return String(buyCursor.y);
+}
+function _buyCenterText(){
+  if(_buyPeriod==='day')return buyCursor.d+' '+(['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][buyCursor.m])+' '+buyCursor.y;
+  if(_buyPeriod==='month')return ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'][buyCursor.m]+' '+buyCursor.y;
+  return String(buyCursor.y);
+}
+function _buyHistUrl(){
+  if(_buyPeriod==='day')return DED_API+'/buy-snapshots?period=day&date='+buyCursor.y+'-'+String(buyCursor.m+1).padStart(2,'0')+'-'+String(buyCursor.d).padStart(2,'0');
+  if(_buyPeriod==='month')return DED_API+'/buy-snapshots?period=month&ym='+buyCursor.y+'-'+String(buyCursor.m+1).padStart(2,'0');
+  return DED_API+'/buy-snapshots?period=year&y='+buyCursor.y;
+}
+function _buyWidgetHtml(){
+  return `<div class="ptabs"><button id="pt-day" class="ptab ${_buyPeriod==='day'?'on':''}" onclick="buySetMode('day')">День</button><button id="pt-month" class="ptab ${_buyPeriod==='month'?'on':''}" onclick="buySetMode('month')">Месяц</button><button id="pt-year" class="ptab ${_buyPeriod==='year'?'on':''}" onclick="buySetMode('year')">Год</button></div><div class="arow"><button class="ab" onclick="buyStep(-1)">◄</button><span class="ac">${_buyCenterText()}</span><button class="ab" ${_isFuturePeriod()?'disabled':''} onclick="buyStep(1)">►</button></div><div class="plabel">${buyPeriodLabel()}</div>`;
+}
 function dStartOfDay(t){const d=new Date(t);d.setHours(0,0,0,0);return d.getTime();}
 function dStep(t){
   let s;
@@ -843,8 +908,22 @@ async function renderBuyDates(){
 async function renderBuy(){
   _subCtx='buy';
   $('s-sub').dataset.title='Купить';
-  $('sub-chips').innerHTML=`<div class="chips"><div class="chip on">Назначение</div></div>`;
+  $('sub-chips').innerHTML=_buyWidgetHtml();
   const el=$('sub-body');
+  const isToday=_buyPeriod==='day'&&buyCursor.y===_buyToday().getFullYear()&&buyCursor.m===_buyToday().getMonth()&&buyCursor.d===_buyToday().getDate();
+  if(!isToday){
+    el.innerHTML='<div class="empty-mini">Загрузка…</div>';
+    try{
+      const r=await fetch(_buyHistUrl(),{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+      const d=await r.json();
+      if(!d.ok||!Array.isArray(d.items)||!d.items.length){el.innerHTML='<div class="empty-full"><b>Дефицита нет</b><p>За этот период дефицита не зафиксировано.</p></div>';return;}
+      el.innerHTML=d.items.map(i=>{
+        const loc=i.location||'workshop';
+        return `<div class="abuyrow" style="cursor:default"><div class="abhead"><div class="an"><b>${i.name}</b><span>Остаток ${parseFloat(Number(i.qty).toFixed(2))}${i.unit} · мин ${Number(i.min)}${i.unit} · нужно +${Number(i.need)}${i.unit}</span></div><div class="astatus"><span style="color:var(--muted2);font-size:10px">${locEmoji(loc)} ${locName(loc)}</span></div></div></div>`;
+      }).join('');
+    }catch(e){el.innerHTML='<div class="empty-full"><b>Ошибка</b><p>Не удалось загрузить снимок.</p></div>';}
+    return;
+  }
   el.innerHTML='<div class="empty-mini">Загрузка…</div>';
   const token=yTok();
   try{
