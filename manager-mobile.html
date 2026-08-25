@@ -456,6 +456,10 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
     <!-- ═══ ПЕРЕМЕЩЕНИЯ ═══ -->
     <section class="screen" id="s-move" data-title="Перемещения">
       <div class="scroll">
+        <div id="pf-req-wrap" style="display:none;margin-bottom:14px">
+          <div style="font-weight:600;margin-bottom:6px">Кухня просит у цеха</div>
+          <div id="pf-req-list"></div>
+        </div>
         <div class="card">
           <div class="ttl" style="font-size:14px;margin-bottom:6px">Журнал перемещений</div>
           <div id="mv-log"></div>
@@ -1198,7 +1202,7 @@ function saveDed(){
 }
 
 /* ── ПЕРЕМЕЩЕНИЯ ── */
-function renderMove(){renderMoveLog();}
+function renderMove(){renderMoveLog();renderPfReq();}
 async function renderMoveLog(){
   let items=null;
   try{const r=await fetch(DED_API+'/transfers',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();items=(d&&d.ok&&Array.isArray(d.items))?d.items:null;}catch(e){}
@@ -1217,6 +1221,18 @@ async function renderMoveLog(){
         <div>${comp}</div>
       </div>
     </div>`;
+  }).join('');
+}
+
+async function renderPfReq(){
+  let items=[];
+  try{const r=await fetch(DED_API+'/pf-requests?status=open',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();if(d&&d.ok&&Array.isArray(d.items))items=d.items;}catch(e){}
+  const wrap=$('pf-req-wrap');
+  if(!items.length){wrap.style.display='none';$('pf-req-list').innerHTML='';return;}
+  wrap.style.display='';
+  $('pf-req-list').innerHTML=items.map(x=>{
+    const when=new Date(x.created_at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return `<div class="jrow"><span class="jdot" style="background:var(--orange)"></span><div class="jinfo"><div class="jname">${x.name} · ${parseFloat(Number(x.qty).toFixed(2))}${x.unit||''}</div><div class="jtime">${when}</div></div></div>`;
   }).join('');
 }
 
@@ -1423,6 +1439,7 @@ function boot(){ renderOrders(); }
 boot();
 setInterval(()=>{if(curTab==='orders'&&!subKind)renderOrders();},15000);
 setInterval(()=>{if(curTab==='move')renderMoveLog();},15000);
+setInterval(()=>{if(curTab==='move')renderPfReq();},15000);
 setInterval(()=>{if(subKind==='supplylog')refreshSupplyLog();},15000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&subKind==='supplylog')refreshSupplyLog();});
 window.addEventListener('yaya-menu-ready',function(){
