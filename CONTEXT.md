@@ -11,7 +11,7 @@ Vanilla HTML/CSS/JS, без сборки и зависимостей (кроме
 ## 3. Структура
 - data.js — общий data-слой (MENU из живого /kv/yaya_menu, склады, техкарты, рецептуры, getters/setters localStorage, автосписание).
 - yaya-sync.js — слой синхронизации localStorage ↔ KV (подключается только в десктопных экранах).
-- sw.js — единый service worker (push + network-first), CACHE='yaya-v59'.
+- sw.js — единый service worker (push + network-first), CACHE='yaya-v60'.
 - Десктоп: manager.html (оболочка менеджера + iframe цеха/кухни), kitchen.html (готовка), workshop.html (склад цеха + AI-распознавание закупок).
 - Мобильные: manager-mobile.html, kitchen-stock-mobile.html, workshop-mobile.html, buyer-mobile.html.
 - index.html — статический макет-дашборд «Админ»: без серверных вызовов, не подключает data.js/yaya-sync.js/sw.js — мёртвый код.
@@ -54,7 +54,7 @@ yaya-sync.js (только десктоп):
 - Два параллельных канала закупок: десктоп — yaya_purchases через KV (yaya-sync), мобильные — таблицы purchases/поставки сервера (/purchases, /deliveries/:id/...). Не смешивать при правках.
 - Кросс-экранный контракт KV yaya_purchase_assign_v1 (назначения закупок): manager-mobile пишет значение позиции — строку '🚚'|'🛍'|'🛒' или {t:'🧾',sum,performer:'BUYER'|'MANAGER'|'SUPPLIER'}; buyer-mobile читает только t/sum (лишние поля игнорирует); сервер (PUT /purchase-assign) режет белым списком. Этот ключ НЕ синкается yaya-sync (в KEYS его нет).
 - Пароль менеджера — локальная заглушка, НЕ токен: десктоп захардкожен '1234' (manager.html MANAGER_PASSWORD); мобильный — yaya_settings.pw (localStorage).
-- sw.js: CACHE='yaya-v59' (в CANON встречаются устаревшие 'yaya-v28'/'yaya-v44' — код говорит v59), API_HOST='yaya-db-production.up.railway.app' — данные API никогда не кэшируются; network-first с кэш-фолбэком. После правки любого html — бампить версию кэша в sw.js.
+- sw.js: CACHE='yaya-v60' (в CANON встречаются устаревшие 'yaya-v28'/'yaya-v44' — код говорит v60), API_HOST='yaya-db-production.up.railway.app' — данные API никогда не кэшируются; network-first с кэш-фолбэком. После правки любого html — бампить версию кэша в sw.js.
 - В шапке yaya-sync.js написано, что он подключается и в kitchen-stock, но kitchen-stock-mobile.html его НЕ подключает — работает прямым REST.
 - workshop.html ходит напрямую в Anthropic с ключом пользователя (опасный-но-рабочий способ через dangerous-direct-browser-access); серверный ключ здесь не предусмотрен.
 - assembler.webmanifest + icon-assembler-* осиротели: страницы сборщика в этом репо нет. Роль ASSEMBLER живёт в yaya-chicken-admin (index.html:844 — гейт входа admin|MANAGER|SUPERVISOR|ASSEMBLER; отдельного экрана сборщика и там нет).
