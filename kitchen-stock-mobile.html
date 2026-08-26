@@ -413,14 +413,25 @@ async function cook(){
   if(!r||!r.length){toast('warn','Нет техкарты','Заполните в разделе Техкарты');return;}
   const dish=findMenuItem(id);
   const [srvStock,srvPf]=await Promise.all([fetchStockSrv(),fetchPfSrv()]);
-  const all=[...(srvStock||[]),...(srvPf||[])];const ded=getDeductions();let spentKg=0;
+  const stockMap=srvStock?new Map(srvStock.map(i=>[i.id,i])):new Map();
+  const pfMap=srvPf?new Map(srvPf.map(i=>[i.id,i])):new Map();
+  const ded=getDeductions();let spentKg=0;
   const rows=Array.isArray(r)?r:[];
-  for(const it of rows){const need=it.qty*cookQty,ing=all.find(i=>i.id===it.ingId);if(!ing||ing.qty<need){toast('error','Недостаточно',(ing?ing.name:it.ingId));return;}}
+  for(const it of rows){const need=it.qty*cookQty;const src=stockMap.get(it.ingId)||pfMap.get(it.ingId);if(!src||src.qty<need){toast('error','Недостаточно',(src?src.name:it.ingId));return;}}
   const res=[];
   for(const it of rows){
-    const need=it.qty*cookQty,ing=all.find(i=>i.id===it.ingId);if(!ing)continue;
+    const need=it.qty*cookQty;
+    const raw=stockMap.get(it.ingId);
+    const pf=pfMap.get(it.ingId);
+    const ing=raw||pf;if(!ing)continue;
     try{
-      const resp=await fetch(YAYA_API+'/stock/'+encodeURIComponent(ing.id),{method:'PATCH',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({delta:-need,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'}),cache:'no-store'});
+      let resp;
+      if(raw){
+        resp=await fetch(YAYA_API+'/stock/'+encodeURIComponent(raw.id),{method:'PATCH',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({delta:-need,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'}),cache:'no-store'});
+      }else{
+        const freshQty=Math.max(0,pf.qty-need);
+        resp=await fetch(YAYA_API+'/pf-stock/'+encodeURIComponent(pf.id),{method:'PATCH',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({qty:freshQty,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'}),cache:'no-store'});
+      }
       let d=null;try{d=await resp.json();}catch(e){}
       if(resp.ok&&d&&d.ok){if(it.unit==='кг'||it.unit==='л')spentKg+=need;ded.push({date:todayStr(),time:nowStr(),ing:ing.name,qty:(-need).toFixed(3),unit:it.unit,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'});res.push({ok:true,name:ing.name});}
       else res.push({ok:false,name:ing.name,err:(d&&d.error)||'HTTP '+resp.status});
