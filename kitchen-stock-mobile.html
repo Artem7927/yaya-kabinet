@@ -191,9 +191,9 @@ input:focus,select:focus{border-color:var(--orange)}
         <div class="card">
           <div class="ttl" style="margin-bottom:12px">Приготовить блюдо</div>
           <label class="lbl">Блюдо (только с техкартой)</label>
-          <select id="cook-dish" onchange="await cookPreview()"></select>
+          <select id="cook-dish" onchange="cookPreview()"></select>
           <label class="lbl">Порций</label>
-          <div class="stepper"><button onclick="await qtyStep(-1)">−</button><div class="n" id="cook-qty">1</div><button onclick="await qtyStep(1)">＋</button></div>
+          <div class="stepper"><button onclick="qtyStep(-1)">−</button><div class="n" id="cook-qty">1</div><button onclick="qtyStep(1)">＋</button></div>
           <div class="prev" id="cook-prev"></div>
           <button class="btn btn-primary btn-block" style="margin-top:14px;padding:14px" onclick="cook()">Приготовить</button>
         </div>
@@ -408,15 +408,30 @@ async function cookPreview(){
   el.innerHTML=`<div class="h">Потребуется (${cookQty} порц.)</div>${rows}<div class="out"><span>Выход</span><span>${cookQty} порц.</span></div>`;
   el.style.borderLeftColor=ok?'var(--green)':'var(--red)';
 }
-function cook(){
+async function cook(){
   const tc=getTechCards(),id=$('cook-dish').value,r=tc[id];
   if(!r||!r.length){toast('warn','Нет техкарты','Заполните в разделе Техкарты');return;}
-  const dish=findMenuItem(id),stock=getStock(),ws=getWsStock(),ded=getDeductions();let spentKg=0;
-  for(const it of (Array.isArray(r)?r:[])){const need=it.qty*cookQty,ing=stock.find(i=>i.id===it.ingId)||ws.find(w=>w.id===it.ingId);if(!ing||ing.qty<need){toast('error','Недостаточно',(ing?ing.name:it.ingId));return;}}
-  (Array.isArray(r)?r:[]).forEach(it=>{const need=it.qty*cookQty,w=ws.find(x=>x.id===it.ingId);if(w){w.qty=Math.max(0,w.qty-need);if(it.unit==='кг'||it.unit==='л')spentKg+=need;ded.push({date:todayStr(),time:nowStr(),ing:'[ПФ] '+w.name,qty:(-need).toFixed(3),unit:it.unit,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'});return;}const raw=stock.find(i=>i.id===it.ingId);if(raw){raw.qty=Math.max(0,raw.qty-need);if(it.unit==='кг'||it.unit==='л')spentKg+=need;ded.push({date:todayStr(),time:nowStr(),ing:raw.name,qty:(-need).toFixed(3),unit:it.unit,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'});}});
-  setStock(stock);setWsStock(ws);setDeductions(ded);
+  const dish=findMenuItem(id);
+  const [srvStock,srvPf]=await Promise.all([fetchStockSrv(),fetchPfSrv()]);
+  const all=[...(srvStock||[]),...(srvPf||[])];const ded=getDeductions();let spentKg=0;
+  const rows=Array.isArray(r)?r:[];
+  for(const it of rows){const need=it.qty*cookQty,ing=all.find(i=>i.id===it.ingId);if(!ing||ing.qty<need){toast('error','Недостаточно',(ing?ing.name:it.ingId));return;}}
+  const res=[];
+  for(const it of rows){
+    const need=it.qty*cookQty,ing=all.find(i=>i.id===it.ingId);if(!ing)continue;
+    try{
+      const resp=await fetch(YAYA_API+'/stock/'+encodeURIComponent(ing.id),{method:'PATCH',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({delta:-need,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'}),cache:'no-store'});
+      let d=null;try{d=await resp.json();}catch(e){}
+      if(resp.ok&&d&&d.ok){if(it.unit==='кг'||it.unit==='л')spentKg+=need;ded.push({date:todayStr(),time:nowStr(),ing:ing.name,qty:(-need).toFixed(3),unit:it.unit,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'});res.push({ok:true,name:ing.name});}
+      else res.push({ok:false,name:ing.name,err:(d&&d.error)||'HTTP '+resp.status});
+    }catch(e){res.push({ok:false,name:ing.name,err:e.message||String(e)});}
+  }
+  const fail=res.filter(x=>!x.ok);
+  if(fail.length)toast('warn','Частичное списание',fail.map(f=>f.name+': '+f.err).join('; '));
+  else toast('success','Приготовлено',(dish.emoji||'')+' '+dish.name+' ×'+cookQty);
+  _stockCache=null;_pfCache=null;setDeductions(ded);
   const log=getCookLog();log.unshift({date:todayStr(),time:nowStr(),dishId:id,name:dish.name,emoji:dish.emoji,qty:cookQty,spentKg});setCookLog(log);
-  toast('success','Приготовлено',(dish.emoji||'')+' '+dish.name+' ×'+cookQty);renderCook();
+  renderCook();
 }
 
 /* СКЛАД */
