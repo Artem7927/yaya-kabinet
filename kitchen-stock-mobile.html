@@ -180,8 +180,19 @@ input:focus,select:focus{border-color:var(--orange)}
 
   <div class="screens">
 
+    <!-- ЗАКАЗЫ -->
+    <section class="screen active" id="s-orders" data-title="Заказы">
+      <div class="scroll">
+        <div class="stats2">
+          <div class="stat"><div class="ic ic-orange"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/></svg></div><div class="val" id="ord-cnt">0</div><div class="lab">Активных</div></div>
+          <div class="stat"><div class="ic ic-teal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></div><div class="val" id="ord-done">0</div><div class="lab">Готово сегодня</div></div>
+        </div>
+        <div id="ord-list"></div>
+      </div>
+    </section>
+
     <!-- ПРИГОТОВЛЕНИЕ -->
-    <section class="screen active" id="s-cook" data-title="Приготовление">
+    <section class="screen" id="s-cook" data-title="Приготовление">
       <div class="scroll">
         <div class="stats3">
           <div class="stat"><div class="ic ic-orange"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg></div><div class="val" id="ck-total">0</div><div class="lab">Пригот. шт</div></div>
@@ -282,7 +293,8 @@ input:focus,select:focus{border-color:var(--orange)}
   </div>
 
   <nav class="tabbar">
-    <button class="tab on" data-tab="cook" onclick="go('cook')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg><span class="tl">Готовка</span></button>
+    <button class="tab on" data-tab="orders" onclick="go('orders')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg><span class="tl">Заказы</span></button>
+    <button class="tab" data-tab="cook" onclick="go('cook')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg><span class="tl">Готовка</span></button>
     <button class="tab" data-tab="stock" onclick="go('stock')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9 12 3l9 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 21V12h6v9"/></svg><span class="tl">Склад</span></button>
     <button class="tab" data-tab="tech" onclick="go('tech')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><span class="tl">Техкарты</span></button>
     <button class="tab" data-tab="reports" onclick="go('reports')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/></svg><span class="tl">Отчёты</span></button>
@@ -361,7 +373,7 @@ let curTab='cook', cookQty=1, stockView='raw', tcCat='all', tcEditId=null;
 const TICON={success:'✓',error:'✕',warn:'!',info:'i'};
 function toast(type,title,sub){const el=document.createElement('div');el.className='tst '+type;el.innerHTML=`<div class="ti">${TICON[type]||'i'}</div><div class="tc"><b>${title}</b>${sub?`<span>${sub}</span>`:''}</div>`;$('toasts').appendChild(el);requestAnimationFrame(()=>el.classList.add('show'));setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),260)},3200);}
 
-function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+tab).classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));$('ab-title').textContent=$('s-'+tab).dataset.title;({cook:renderCook,stock:renderStock,tech:renderTechAll,reports:renderReports,calc:renderCalc}[tab]||(()=>{}))();const sc=$('s-'+tab).querySelector('.scroll');if(sc)sc.scrollTop=0;}
+function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+tab).classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));$('ab-title').textContent=$('s-'+tab).dataset.title;({orders:renderOrders,cook:renderCook,stock:renderStock,tech:renderTechAll,reports:renderReports,calc:renderCalc}[tab]||(()=>{}))();const sc=$('s-'+tab).querySelector('.scroll');if(sc)sc.scrollTop=0;}
 function openSub(k){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+k).classList.add('active');$('ab-title').textContent=$('s-'+k).dataset.title;if(k==='ing')renderIng('');}
 function openExt(u){location.href=u}
 function openDrawer(){$('dw-date').textContent=new Date().toLocaleDateString('ru',{day:'numeric',month:'long'});$('drawer').classList.add('show');$('drawer-bg').classList.add('show')}
@@ -399,6 +411,48 @@ async function renderCook(){
   $('cook-log').innerHTML=log.length?log.slice(0,25).map(l=>`<div class="jrow"><span class="jdot" style="background:var(--orange)"></span><div class="jinfo"><div class="jname">${l.emoji||''} ${l.name}</div><div class="jtime">${l.date} ${l.time}</div></div><div class="jval" style="color:var(--orange)">×${l.qty} порц.</div></div>`).join(''):'<div class="empty-mini">Приготовлений ещё не было</div>';
   updCrit();
 }
+
+/* ЗАКАЗЫ */
+let _ordCache=null;
+async function fetchOrdersKitchen(){
+  try{
+    const r=await fetch(YAYA_API+'/orders?status=new,cook&limit=50',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+    const d=await r.json();
+    if(d&&d.ok&&Array.isArray(d.orders))_ordCache=d.orders;
+  }catch(e){}
+}
+async function renderOrders(){
+  await fetchOrdersKitchen();
+  const orders=_ordCache||[],el=$('ord-list');
+  const today=todayStr();
+  el.innerHTML=orders.length?orders.map(o=>{
+    const num=o.num||'?',when=new Date(Number(o.ts)||Date.now()).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+    const items=(Array.isArray(o.data&&o.data.items)?o.data.items:[]).map(i=>i.name+' ×'+i.qty).join(', ');
+    const st=o.status==='cook'?'Готовится':'Новый',sc=o.status==='cook'?'var(--orange)':'var(--blue)';
+    return `<div class="irow"><div class="top"><div class="inm">#${num} · ${when}</div><div class="iq" style="color:${sc};font-size:11px;font-weight:600">${st}</div></div><div style="font-size:12px;color:var(--muted);margin-top:6px">${items||'—'}</div><div style="display:flex;gap:6px;margin-top:10px"><button class="btn btn-primary" style="flex:1;padding:10px" onclick="takeOrder(${o.id})">Взять</button><button class="btn btn-green" style="flex:1;padding:10px" onclick="markDone(${o.id})">Готово</button></div></div>`;
+  }).join(''):'<div class="empty-mini">Заказов нет</div>';
+  const doneToday=_ordCache?_ordCache.filter(o=>o.status==='done').length:0;
+  $('ord-cnt').textContent=orders.length;
+  $('ord-done').textContent=doneToday;
+}
+async function takeOrder(id){
+  try{
+    const r=await fetch(YAYA_API+'/orders/'+encodeURIComponent(id)+'/status',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({status:'cook'}),cache:'no-store'});
+    const d=await r.json();
+    if(r.ok&&d&&d.ok){toast('success','Взято в работу','');await renderOrders();}else toast('warn','Не удалось',(d&&d.error)||'');
+  }catch(e){toast('error','Ошибка сети','');}
+}
+async function markDone(id){
+  try{
+    const r=await fetch(YAYA_API+'/orders/'+encodeURIComponent(id)+'/status',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({status:'done'}),cache:'no-store'});
+    const d=await r.json();
+    if(r.ok&&d&&d.ok){
+      if(d.shortage&&d.shortage.length)toast('warn','Недостаточно ПФ',d.shortage.map(s=>s.name).join(', '));
+      else toast('success','Заказ готов','');_stockCache=null;_pfCache=null;await renderOrders();
+    }else toast('warn','Не удалось',(d&&d.error)||'');
+  }catch(e){toast('error','Ошибка сети','');}
+}
+
 async function cookPreview(){
   const tc=getTechCards(),id=$('cook-dish').value,r=tc[id],el=$('cook-prev');
   if(!r){el.innerHTML='<div class="empty-mini">Нет техкарты</div>';el.style.borderLeftColor='var(--muted2)';return;}
@@ -657,6 +711,8 @@ function saveAddIng(){const name=$('ai-name').value.trim();if(!name){toast('warn
 
 renderCook();
 window.addEventListener('yaya-menu-ready', () => { renderCook(); renderTechAll(); renderCalc(); });
+fetchOrdersKitchen();
+setInterval(()=>{if(curTab==='orders')renderOrders();},15000);
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});}</script>
 <script>if('serviceWorker' in navigator&&'Notification' in window){var API=window.YAYA_API||'https://yaya-db-production.up.railway.app';function b64u(u){u=u.replace(/-/g,'+').replace(/_/g,'/');while(u.length%4)u+='=';var bin=atob(u),arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr;}function sTok(){return localStorage.getItem(YKEY)||'';}function doSub(reg){fetch(API+'/push/public-key',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(!(d&&d.ok&&d.key))return;return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(d.key)});}).then(sub=>{if(!sub)return;return fetch(API+'/push/subscribe',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':sTok()},body:JSON.stringify({role:'kitchen',sub:sub.toJSON()})});}).catch(function(){});}navigator.serviceWorker.ready.then(reg=>{if(Notification.permission==='denied')return;if(Notification.permission==='granted'){reg.pushManager.getSubscription().then(s=>{if(!s)doSub(reg);});}else{Notification.requestPermission().then(p=>{if(p==='granted')doSub(reg);});}});}</script>
