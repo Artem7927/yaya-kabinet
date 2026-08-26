@@ -418,7 +418,7 @@ async function cook(){
   const ded=getDeductions();let spentKg=0;
   const rows=Array.isArray(r)?r:[];
   for(const it of rows){const need=it.qty*cookQty;const src=stockMap.get(it.ingId)||pfMap.get(it.ingId);if(!src||src.qty<need){toast('error','Недостаточно',(src?src.name:it.ingId));return;}}
-  const res=[];const pfUsed=[];
+  const res=[];
   for(const it of rows){
     const need=it.qty*cookQty;
     const raw=stockMap.get(it.ingId);
@@ -431,7 +431,6 @@ async function cook(){
       }else{
         const freshQty=Math.max(0,pf.qty-need);
         resp=await fetch(YAYA_API+'/pf-stock/'+encodeURIComponent(pf.id),{method:'PATCH',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({qty:freshQty,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'}),cache:'no-store'});
-        pfUsed.push({item_id:pf.id,qty:need});
       }
       let d=null;try{d=await resp.json();}catch(e){}
       if(resp.ok&&d&&d.ok){if(it.unit==='кг'||it.unit==='л')spentKg+=need;ded.push({date:todayStr(),time:nowStr(),ing:ing.name,qty:(-need).toFixed(3),unit:it.unit,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'});res.push({ok:true,name:ing.name});}
@@ -441,10 +440,6 @@ async function cook(){
   const fail=res.filter(x=>!x.ok);
   if(fail.length)toast('warn','Частичное списание',fail.map(f=>f.name+': '+f.err).join('; '));
   else toast('success','Приготовлено',(dish.emoji||'')+' '+dish.name+' ×'+cookQty);
-  if(!fail.length&&pfUsed.length){
-    for(const p of pfUsed){try{await fetch(YAYA_API+'/pf-requests',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify(p),cache:'no-store'});}catch(e){console.warn('pf-requests failed for',p.item_id,e);}}
-    _pfCache=null;
-  }
   _stockCache=null;_pfCache=null;setDeductions(ded);
   const log=getCookLog();log.unshift({date:todayStr(),time:nowStr(),dishId:id,name:dish.name,emoji:dish.emoji,qty:cookQty,spentKg});setCookLog(log);
   renderCook();
