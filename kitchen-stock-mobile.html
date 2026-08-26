@@ -191,9 +191,9 @@ input:focus,select:focus{border-color:var(--orange)}
         <div class="card">
           <div class="ttl" style="margin-bottom:12px">Приготовить блюдо</div>
           <label class="lbl">Блюдо (только с техкартой)</label>
-          <select id="cook-dish" onchange="cookPreview()"></select>
+          <select id="cook-dish" onchange="await cookPreview()"></select>
           <label class="lbl">Порций</label>
-          <div class="stepper"><button onclick="qtyStep(-1)">−</button><div class="n" id="cook-qty">1</div><button onclick="qtyStep(1)">＋</button></div>
+          <div class="stepper"><button onclick="await qtyStep(-1)">−</button><div class="n" id="cook-qty">1</div><button onclick="await qtyStep(1)">＋</button></div>
           <div class="prev" id="cook-prev"></div>
           <button class="btn btn-primary btn-block" style="margin-top:14px;padding:14px" onclick="cook()">Приготовить</button>
         </div>
@@ -388,21 +388,22 @@ async function fetchStockSrv(){const now=Date.now();if(_stockCache&&now-_stockCa
 async function fetchPfSrv(){const now=Date.now();if(_pfCache&&now-_pfCacheT<15000)return _pfCache;const it=await fetchJson('/pf-stock');if(it&&it.length){_pfCache=normItems(it).filter(x=>(x.location||'')==='kitchen');_pfCacheT=now;return _pfCache;}return null;}
 
 /* ПРИГОТОВЛЕНИЕ */
-function qtyStep(d){cookQty=Math.max(1,cookQty+d);$('cook-qty').textContent=cookQty;cookPreview();}
-function renderCook(){
+async function qtyStep(d){cookQty=Math.max(1,cookQty+d);$('cook-qty').textContent=cookQty;await cookPreview();}
+async function renderCook(){
   const tc=getTechCards(),sel=$('cook-dish'),prev=sel.value,withTC=MENU.filter(m=>tc[m.id]&&tc[m.id].length);
   sel.innerHTML=withTC.length?withTC.map(m=>`<option value="${m.id}">${m.emoji||''} ${m.name}</option>`).join(''):'<option value="">Нет блюд с техкартой</option>';
   if(prev&&withTC.find(m=>m.id===prev))sel.value=prev;
-  cookPreview();
+  await cookPreview();
   const log=getCookLog(),today=todayStr(),tl=log.filter(l=>l.date===today);
   $('ck-total').textContent=tl.reduce((s,l)=>s+l.qty,0);$('ck-batch').textContent=tl.length;$('ck-spent').textContent=tl.reduce((s,l)=>s+(l.spentKg||0),0).toFixed(1);
   $('cook-log').innerHTML=log.length?log.slice(0,25).map(l=>`<div class="jrow"><span class="jdot" style="background:var(--orange)"></span><div class="jinfo"><div class="jname">${l.emoji||''} ${l.name}</div><div class="jtime">${l.date} ${l.time}</div></div><div class="jval" style="color:var(--orange)">×${l.qty} порц.</div></div>`).join(''):'<div class="empty-mini">Приготовлений ещё не было</div>';
   updCrit();
 }
-function cookPreview(){
+async function cookPreview(){
   const tc=getTechCards(),id=$('cook-dish').value,r=tc[id],el=$('cook-prev');
   if(!r){el.innerHTML='<div class="empty-mini">Нет техкарты</div>';el.style.borderLeftColor='var(--muted2)';return;}
-  const all=[...getStock(),...getWsStock()];let ok=true;
+  const [srvStock,srvPf]=await Promise.all([fetchStockSrv(),fetchPfSrv()]);
+  const all=[...(srvStock||[]),...(srvPf||[])];let ok=true;
   const rows=(Array.isArray(r)?r:[]).map(it=>{const ing=all.find(i=>i.id===it.ingId),need=it.qty*cookQty,en=ing&&ing.qty>=need;if(!en)ok=false;return `<div class="r" style="color:${en?'var(--text)':'var(--red)'}"><span>${ing?ing.name:it.ingId}</span><span>${need.toFixed(3)} ${it.unit} ${en?'✓':'⚠ мало'}</span></div>`;}).join('');
   el.innerHTML=`<div class="h">Потребуется (${cookQty} порц.)</div>${rows}<div class="out"><span>Выход</span><span>${cookQty} порц.</span></div>`;
   el.style.borderLeftColor=ok?'var(--green)':'var(--red)';
