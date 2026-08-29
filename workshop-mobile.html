@@ -356,7 +356,7 @@ function openDrawer(){$('dw-date').textContent=new Date().toLocaleDateString('ru
 function setToken(){const t=prompt('Вставьте токен доступа:',localStorage.getItem(YKEY)||'');if(t!==null){localStorage.setItem(YKEY,t.trim());location.reload();}}
 function closeDrawer(){$('drawer').classList.remove('show');$('drawer-bg').classList.remove('show')}
 function openSheet(id){$(id).classList.add('show');$('sheet-bg').classList.add('show')}
-function closeSheet(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'));$('sheet-bg').classList.remove('show')}
+function closeSheet(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'));$('sheet-bg').classList.remove('show');if(window.wsPollTick)setTimeout(wsPollTick,0);}
 async function critCount(){const st=(await fetchStockSrv())||getStock();return st.filter(i=>(!i.location||i.location==='workshop')&&i.qty<i.min).length}
 async function updCrit(){const c=await critCount(),b=$('crit-badge');b.textContent=c+' крит.';b.style.display=c?'inline-block':'none';}
 
@@ -533,6 +533,24 @@ function renderIng(q){window._ingQ=q||'';q=(q||'').toLowerCase();const rec=getWs
 function delIng(id){if(!confirm('Удалить позицию?'))return;setStock(getStock().filter(i=>i.id!==id));renderIng(window._ingQ||'');toast('info','Удалено','');}
 function openAddIng(){$('ai-name').value='';$('ai-qty').value=0;$('ai-unit').value='кг';$('ai-min').value=1;openSheet('sh-adding');}
 function saveAddIng(){const name=$('ai-name').value.trim();if(!name){toast('warn','Введите название','');return;}const stock=getStock();stock.push({id:'i'+Date.now(),name,qty:parseFloat($('ai-qty').value)||0,unit:$('ai-unit').value.trim()||'кг',min:parseFloat($('ai-min').value)||1,location:'workshop'});setStock(stock);closeSheet();renderIng('');toast('success','Ингредиент добавлен',name);}
+
+/* АВТО-РЕФЕТЧ (как manager-mobile: 15с + visibilitychange, read-only) */
+function _wsPollActive(){
+  if(_adjBusy||_trBusy||_prodBusy)return false;
+  if(document.querySelector('.sheet.show'))return false;
+  const a=document.activeElement;
+  if(a&&(a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA'))return false;
+  return true;
+}
+function wsPollTick(){
+  if(!_wsPollActive())return;
+  const sc=document.querySelector('.screen.active');
+  const id=sc?sc.id.replace('s-',''):curTab;
+  const fn={prod:()=>renderProd(),stock:renderStock,recipes:renderRecipes,reports:renderReports,ing:()=>renderIng(window._ingQ||'')}[id];
+  if(fn)fn();
+}
+setInterval(()=>{if(!document.hidden)wsPollTick();},15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)wsPollTick();});
 
 (async()=>{await syncWsRecipes();renderProd();})();
 </script>

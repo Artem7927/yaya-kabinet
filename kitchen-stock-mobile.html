@@ -368,7 +368,7 @@ function openDrawer(){$('dw-date').textContent=new Date().toLocaleDateString('ru
 function setToken(){const t=prompt('Вставьте токен доступа:',localStorage.getItem(YKEY)||'');if(t!==null){localStorage.setItem(YKEY,t.trim());location.reload();}}
 function closeDrawer(){$('drawer').classList.remove('show');$('drawer-bg').classList.remove('show')}
 function openSheet(id){$(id).classList.add('show');$('sheet-bg').classList.add('show')}
-function closeSheet(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'));$('sheet-bg').classList.remove('show')}
+function closeSheet(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'));$('sheet-bg').classList.remove('show');if(window.kitPollTick)setTimeout(kitPollTick,0);}
 async function critCount(){const st=(await fetchStockSrv())||getStock();return st.filter(i=>i.location==='kitchen'&&i.qty<i.min).length}
 async function updCrit(){const c=await critCount(),b=$('crit-badge');b.textContent=c+' крит.';b.style.display=c?'inline-block':'none';}
 function statusOf(i){const crit=i.qty<i.min,low=i.qty<i.min*1.5;return crit?['Критично','var(--red)']:low?['Мало','var(--amber)']:['Норма','var(--green)'];}
@@ -655,6 +655,24 @@ function renderIng(q){window._ingQ=q||'';q=(q||'').toLowerCase();const tc=getTec
 function delIng(id){if(!confirm('Удалить позицию?'))return;setStock(getStock().filter(i=>i.id!==id));renderIng(window._ingQ||'');toast('info','Удалено','');}
 function openAddIng(){$('ai-name').value='';$('ai-qty').value=0;$('ai-unit').value='шт.';$('ai-min').value=1;openSheet('sh-adding');}
 function saveAddIng(){const name=$('ai-name').value.trim();if(!name){toast('warn','Введите название','');return;}const stock=getStock();stock.push({id:'i'+Date.now(),name,qty:parseFloat($('ai-qty').value)||0,unit:$('ai-unit').value.trim()||'шт.',min:parseFloat($('ai-min').value)||1,location:'kitchen'});setStock(stock);closeSheet();renderIng('');toast('success','Ингредиент добавлен',name);}
+
+/* АВТО-РЕФЕТЧ (как manager-mobile: 15с + visibilitychange, read-only) */
+function _kitPollActive(){
+  if(_adjBusy||_ksBusy)return false;
+  if(document.querySelector('.sheet.show'))return false;
+  const a=document.activeElement;
+  if(a&&(a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA'))return false;
+  return true;
+}
+function kitPollTick(){
+  if(!_kitPollActive())return;
+  const sc=document.querySelector('.screen.active');
+  const id=sc?sc.id.replace('s-',''):curTab;
+  const fn={cook:renderCook,stock:renderStock,tech:renderTechAll,reports:renderReports,calc:renderCalc,ing:()=>renderIng(window._ingQ||'')}[id];
+  if(fn)fn();
+}
+setInterval(()=>{if(!document.hidden)kitPollTick();},15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)kitPollTick();});
 
 renderCook();
 window.addEventListener('yaya-menu-ready', () => { renderCook(); renderTechAll(); renderCalc(); });
