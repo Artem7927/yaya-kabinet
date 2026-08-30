@@ -465,6 +465,10 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
     <!-- ═══ ПЕРЕМЕЩЕНИЯ ═══ -->
     <section class="screen" id="s-move" data-title="Перемещения">
       <div class="scroll">
+        <div id="buy-req-wrap" style="display:none;margin-bottom:14px">
+          <div style="font-weight:600;margin-bottom:6px;color:var(--red)">Нужно докупить (закупщик)</div>
+          <div id="buy-req-list"></div>
+        </div>
         <div id="pf-req-wrap" style="display:none;margin-bottom:14px">
           <div style="font-weight:600;margin-bottom:6px">Кухня просит у цеха</div>
           <div id="pf-req-list"></div>
@@ -1281,7 +1285,7 @@ function saveDed(){
 }
 
 /* ── ПЕРЕМЕЩЕНИЯ ── */
-function renderMove(){renderMoveLog();renderPfReq();}
+function renderMove(){renderMoveLog();renderPfReq();renderBuyReq();}
 async function renderMoveLog(){
   let items=null;
   try{const r=await fetch(DED_API+'/transfers',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();items=(d&&d.ok&&Array.isArray(d.items))?d.items:null;}catch(e){}
@@ -1312,6 +1316,21 @@ async function renderPfReq(){
   $('pf-req-list').innerHTML=items.map(x=>{
     const when=new Date(x.created_at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     return `<div class="jrow"><span class="jdot" style="background:var(--orange)"></span><div class="jinfo"><div class="jname">${x.name} · ${parseFloat(Number(x.qty).toFixed(2))}${x.unit||''}</div><div class="jtime">${when}</div></div></div>`;
+  }).join('');
+}
+
+async function renderBuyReq(){
+  let items=[];
+  try{const r=await fetch(DED_API+'/buy-requests?status=open',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();if(d&&d.ok&&Array.isArray(d.items))items=d.items;}catch(e){}
+  const wrap=$('buy-req-wrap');
+  if(!items.length){wrap.style.display='none';$('buy-req-list').innerHTML='';return;}
+  wrap.style.display='';
+  $('buy-req-list').innerHTML=items.map(x=>{
+    const when=new Date(x.created_at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const sev=(Number(x.qty)<Number(x.min))?'критично':(Number(x.qty)<Number(x.min)*1.5?'мало':'');
+    const badge=sev?`<span style="font-size:10px;color:${sev==='критично'?'var(--red)':'var(--amber)'}"> · ${sev}</span>`:'';
+    const loc=x.location==='kitchen'?'Кухня':'Цех';
+    return `<div class="jrow"><span class="jdot" style="background:var(--red)"></span><div class="jinfo"><div class="jname">${x.name} · нужно +${parseFloat(Number(x.need).toFixed(2))}${x.unit||''}${badge}</div><div class="jtime">${loc} · остаток ${parseFloat(Number(x.qty).toFixed(2))} · мин ${Number(x.min)} · ${when}</div></div></div>`;
   }).join('');
 }
 
@@ -1519,6 +1538,7 @@ boot();
 setInterval(()=>{if(curTab==='orders'&&!subKind)renderOrders();},15000);
 setInterval(()=>{if(curTab==='move')renderMoveLog();},15000);
 setInterval(()=>{if(curTab==='move')renderPfReq();},15000);
+setInterval(()=>{if(curTab==='move')renderBuyReq();},15000);
 setInterval(()=>{if(subKind==='supplylog')refreshSupplyLog();},15000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&subKind==='supplylog')refreshSupplyLog();});
 window.addEventListener('yaya-menu-ready',function(){
