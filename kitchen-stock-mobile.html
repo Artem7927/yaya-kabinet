@@ -353,6 +353,7 @@ input:focus,select:focus{border-color:var(--orange)}
   }
 })();
 const YKEY='yaya_key_kitchen';
+const NAME_BY_ID={p1:'Крылышки маринованные (гот.)',p10:'Тесто для блинов (гот.)',p2:'Стрипсы маринованные (гот.)',p3:'Котлета куриная (гот.)',p4:'Котлета говяжья (гот.)',p5:'Шампур куриный (гот.)',p6:'Шампур говяжий (гот.)',p7:'Донер соус (гот.)',p8:'Бургер красный соус (гот.)',p9:'Бургер белый соус (гот.)',r27:'Булка для бургера',r28:'Лаваш / тортилья',r29:'Тесто для пиццы',r31:'Картофель фри',r33:'Творог',r34:'Coca Cola',r35:'Сыр',r36:'Наггетсы (заготовка)',r37:'Масло сливочное',ready_s14:'Фри'};
 function getCookLog(){try{return JSON.parse(localStorage.getItem('yaya_cooklog'))||[]}catch{return[]}}
 function setCookLog(v){try{localStorage.setItem('yaya_cooklog',JSON.stringify(v))}catch{}}
 const CAT_NAMES={sets:'🎁 Сеты',wings:'🍗 Крылышки',snacks:'🍟 Снеки',burgers:'🍔 Бургеры',doners:'🌯 Донеры',pizza:'🍕 Пицца',bliny:'🥞 Блины',drinks:'🥤 Напитки',coffee:'☕ Кофе',cocktails:'🍦 Коктейли',mohito:'🍹 Мохито',lemonade:'🍋 Лимонад',sauces:'🫙 Соусы'};
@@ -404,10 +405,10 @@ async function cookPreview(){
   const tc=getTechCards(),id=$('cook-dish').value,r=tc[id],el=$('cook-prev');
   if(!r){el.innerHTML='<div class="empty-mini">Нет техкарты</div>';el.style.borderLeftColor='var(--muted2)';return;}
   const [srvStock,srvPf]=await Promise.all([fetchStockSrv(),fetchPfSrv()]);
-  const all=[...(srvStock||[]),...(srvPf||[])];let ok=true;
-  const rows=(Array.isArray(r)?r:[]).map(it=>{const ing=all.find(i=>i.id===it.ingId),need=it.qty*cookQty,en=ing&&ing.qty>=need;if(!en)ok=false;return `<div class="r" style="color:${en?'var(--text)':'var(--red)'}"><span>${ing?ing.name:it.ingId}</span><span>${need.toFixed(3)} ${it.unit} ${en?'✓':'⚠ мало'}</span></div>`;}).join('');
+  const all=[...(srvStock||[]),...(srvPf||[])];const loaded=all.length>0;let ok=true;
+  const rows=(Array.isArray(r)?r:[]).map(it=>{const ing=all.find(i=>i.id===it.ingId),need=it.qty*cookQty;const name=ing?ing.name:(NAME_BY_ID[it.ingId]||it.ingId);const en=loaded&&ing&&ing.qty>=need;if(!en&&loaded)ok=false;const st=!loaded?'остатки грузятся…':(en?'✓':'⚠ мало');const color=!loaded?'var(--muted)':(en?'var(--text)':'var(--red)');return `<div class="r" style="color:${color}"><span>${name}</span><span>${need.toFixed(3)} ${it.unit} ${st}</span></div>`;}).join('');
   el.innerHTML=`<div class="h">Потребуется (${cookQty} порц.)</div>${rows}<div class="out"><span>Выход</span><span>${cookQty} порц.</span></div>`;
-  el.style.borderLeftColor=ok?'var(--green)':'var(--red)';
+  el.style.borderLeftColor=loaded?(ok?'var(--green)':'var(--red)'):'var(--muted2)';
 }
 async function cook(){
   const tc=getTechCards(),id=$('cook-dish').value,r=tc[id];
