@@ -554,7 +554,29 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)wsPollTick
 
 (async()=>{await syncWsRecipes();renderProd();})();
 </script>
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});}</script>
+<script>if('serviceWorker' in navigator){
+  var _hadCtrl=!!navigator.serviceWorker.controller,_swBusy=false,_swWait=false;
+  function _swReload(){
+    if(_swBusy)return;
+    var a=document.activeElement;
+    if(document.querySelector('.sheet.show')||(a&&(a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA'))){_swWait=true;return;}
+    _swBusy=true;location.reload();
+  }
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').then(function(r){
+      r.addEventListener('updatefound',function(){
+        var n=r.installing;if(!n)return;
+        n.addEventListener('statechange',function(){if(n.state==='activated'&&_hadCtrl)_swReload();});
+      });
+    }).catch(()=>{});
+  });
+  if(_hadCtrl)navigator.serviceWorker.addEventListener('controllerchange',function(){_swReload();});
+  setInterval(function(){
+    if(!_swWait)return;
+    var a=document.activeElement;
+    if(!document.querySelector('.sheet.show')&&!(a&&(a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA'))){_swWait=false;_swReload();}
+  },500);
+}</script>
 <script>if('serviceWorker' in navigator&&'Notification' in window){var API=window.YAYA_API||'https://yaya-db-production.up.railway.app';function b64u(u){u=u.replace(/-/g,'+').replace(/_/g,'/');while(u.length%4)u+='=';var bin=atob(u),arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr;}function sTok(){return localStorage.getItem(YKEY)||'';}function doSub(reg){fetch(API+'/push/public-key',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(!(d&&d.ok&&d.key))return;return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(d.key)});}).then(sub=>{if(!sub)return;return fetch(API+'/push/subscribe',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':sTok()},body:JSON.stringify({role:'workshop',sub:sub.toJSON()})});}).catch(function(){});}navigator.serviceWorker.ready.then(reg=>{if(Notification.permission==='denied')return;if(Notification.permission==='granted'){reg.pushManager.getSubscription().then(s=>{if(!s)doSub(reg);});}else{Notification.requestPermission().then(p=>{if(p==='granted')doSub(reg);});}});}</script>
 </body>
 </html>

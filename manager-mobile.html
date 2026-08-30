@@ -1527,6 +1527,28 @@ window.addEventListener('yaya-menu-ready',function(){
   else if(window._menuMode&&$('sheet-menu').classList.contains('show'))openMenu(window._menuMode);
 });
 </script>
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});}</script>
+<script>if('serviceWorker' in navigator){
+  var _hadCtrl=!!navigator.serviceWorker.controller,_swBusy=false,_swWait=false;
+  function _swReload(){
+    if(_swBusy)return;
+    var a=document.activeElement;
+    if(document.querySelector('.sheet.show')||(a&&(a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA'))){_swWait=true;return;}
+    _swBusy=true;location.reload();
+  }
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').then(function(r){
+      r.addEventListener('updatefound',function(){
+        var n=r.installing;if(!n)return;
+        n.addEventListener('statechange',function(){if(n.state==='activated'&&_hadCtrl)_swReload();});
+      });
+    }).catch(()=>{});
+  });
+  if(_hadCtrl)navigator.serviceWorker.addEventListener('controllerchange',function(){_swReload();});
+  setInterval(function(){
+    if(!_swWait)return;
+    var a=document.activeElement;
+    if(!document.querySelector('.sheet.show')&&!(a&&(a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA'))){_swWait=false;_swReload();}
+  },500);
+}</script>
 </body>
 </html>
