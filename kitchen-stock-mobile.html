@@ -405,6 +405,7 @@ async function cookPreview(){
   const tc=getTechCards(),id=$('cook-dish').value,r=tc[id],el=$('cook-prev');
   if(!r){el.innerHTML='<div class="empty-mini">Нет техкарты</div>';el.style.borderLeftColor='var(--muted2)';return;}
   const [srvStock,srvPf]=await Promise.all([fetchStockSrv(),fetchPfSrv()]);
+  if(!srvStock&&!srvPf){el.innerHTML=`<div class="empty-mini">Нет доступа к складу — войдите (токен)</div>`;el.style.borderLeftColor='var(--red)';return;}
   const all=[...(srvStock||[]),...(srvPf||[])];let ok=true;
   const rows=(Array.isArray(r)?r:[]).map(it=>{const ing=all.find(i=>i.id===it.ingId),need=it.qty*cookQty,en=ing&&ing.qty>=need;if(!en)ok=false;return `<div class="r" style="color:${en?'var(--text)':'var(--red)'}"><span>${ing?ing.name:(NAME_BY_ID[it.ingId]||it.ingId)}</span><span>${need.toFixed(3)} ${it.unit} ${en?'✓':'⚠ мало'}</span></div>`;}).join('');
   el.innerHTML=`<div class="h">Потребуется (${cookQty} порц.)</div>${rows}<div class="out"><span>Выход</span><span>${cookQty} порц.</span></div>`;
@@ -419,7 +420,7 @@ async function cook(){
   const pfMap=srvPf?new Map(srvPf.map(i=>[i.id,i])):new Map();
   const ded=getDeductions();let spentKg=0;
   const rows=Array.isArray(r)?r:[];
-  for(const it of rows){const need=it.qty*cookQty;const src=stockMap.get(it.ingId)||pfMap.get(it.ingId);if(!src||src.qty<need){toast('error','Недостаточно',(src?src.name:it.ingId));return;}}
+  for(const it of rows){const need=it.qty*cookQty;const src=stockMap.get(it.ingId)||pfMap.get(it.ingId);if(!src||src.qty<need){toast('error','Недостаточно',(src?src.name:(NAME_BY_ID[it.ingId]||it.ingId)));return;}}
   const res=[];
   for(const it of rows){
     const need=it.qty*cookQty;
@@ -531,7 +532,7 @@ async function doKsTransfer(){
     else{toast('warn','Не передано',errMsg);}
   }finally{_ksBusy=false;}
 }
-async function renderRaw(q){window._rawQ=q||'';q=(q||'').toLowerCase();const stock=(await fetchStockSrv())||getStock().filter(i=>(i.location||'')==='kitchen');let items=stock;if(q)items=items.filter(i=>i.name.toLowerCase().includes(q));items.sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));$('raw-list').innerHTML=items.map(i=>stockRow(i,`openAdj('${i.id}')`)).join('')||'<div class="empty-mini">Ничего не найдено</div>';}
+async function renderRaw(q){window._rawQ=q||'';q=(q||'').toLowerCase();const srv=await fetchStockSrv();const local=getStock().filter(i=>(i.location||'')==='kitchen');if(!srv&&!local.length){$('raw-list').innerHTML='<div class="empty-mini">Нет доступа к складу — войдите (токен)</div>';return;}const stock=srv||local;let items=stock;if(q)items=items.filter(i=>i.name.toLowerCase().includes(q));items.sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));$('raw-list').innerHTML=items.map(i=>stockRow(i,`openAdj('${i.id}')`)).join('')||'<div class="empty-mini">Ничего не найдено</div>';}
 async function renderPf(){
   const ws=(await fetchPfSrv())||getWsStock();
   let openReq=new Set();
