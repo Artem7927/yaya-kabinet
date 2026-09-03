@@ -400,6 +400,8 @@ const $=id=>document.getElementById(id);
 let curTab='orders', cookQty=1, stockView='raw', tcCat='all', tcEditId=null;
 const TICON={success:'✓',error:'✕',warn:'!',info:'i'};
 function toast(type,title,sub){const el=document.createElement('div');el.className='tst '+type;el.innerHTML=`<div class="ti">${TICON[type]||'i'}</div><div class="tc"><b>${title}</b>${sub?`<span>${sub}</span>`:''}</div>`;$('toasts').appendChild(el);requestAnimationFrame(()=>el.classList.add('show'));setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),260)},3200);}
+window.addEventListener('error',e=>console.error('GLOBAL',e.message,(e.error&&e.error.stack)||e.error));
+window.addEventListener('unhandledrejection',e=>console.error('REJECT',(e.reason&&e.reason.stack)||e.reason));
 
 function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+tab).classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));$('ab-title').textContent=$('s-'+tab).dataset.title;({orders:renderOrders,cook:renderCook,stock:renderStock,tech:renderTechAll,reports:renderReports,calc:renderCalc}[tab]||(()=>{}))();const sc=$('s-'+tab).querySelector('.scroll');if(sc)sc.scrollTop=0;}
 function openSub(k){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+k).classList.add('active');$('ab-title').textContent=$('s-'+k).dataset.title;if(k==='ing')renderIng('');}
@@ -559,7 +561,7 @@ async function ordItem(id,did,action){
       else toast('success',action==='take'?'Взято в работу':'Блюдо готово','');
       _stockCache=null;_pfCache=null;renderOrders();
     }else toast('warn','Не удалось',(d&&d.error)||'');
-  }catch(e){toast('error','Ошибка сети','');}
+  }catch(e){console.error('ordItem',e.stack||e);toast('error','Ошибка сети','');}
   finally{delete _ordBusy[id+':'+did+':'+action];}
 }
 async function ordReqPf(id,did,btn){
@@ -648,7 +650,7 @@ async function cook(){
       let d=null;try{d=await resp.json();}catch(e){}
       if(resp.ok&&d&&d.ok){if(it.unit==='кг'||it.unit==='л')spentKg+=need;ded.push({date:todayStr(),time:nowStr(),ing:ing.name,qty:(-need).toFixed(3),unit:it.unit,reason:'Приготовление: '+dish.name+' ×'+cookQty,emp:'Кухня'});res.push({ok:true,name:ing.name});}
       else res.push({ok:false,name:ing.name,err:(d&&d.error)||'HTTP '+resp.status});
-    }catch(e){res.push({ok:false,name:ing.name,err:e.message||String(e)});}
+    }catch(e){console.error('cook',e.stack||e);res.push({ok:false,name:ing.name,err:e.message||String(e)});}
   }
   const fail=res.filter(x=>!x.ok);
   if(fail.length)toast('warn','Частичное списание',fail.map(f=>f.name+': '+f.err).join('; '));
@@ -694,7 +696,7 @@ async function reqPf(id){
       else{toast('success','Заявка отправлена',(d.name||'')+' · '+d.qty);}
       _pfCache=null; renderPf();
     } else toast('warn','Не удалось','Повторите');
-  }catch(e){toast('error','Ошибка сети','Повторите');}
+  }catch(e){console.error('reqPf',e.stack||e);toast('error','Ошибка сети','Повторите');}
 }
 const PF_ROLE_RU={BUYER:'Закупщик',MANAGER:'Менеджер',WORKSHOP:'Цех',KITCHEN:'Кухня'};
 async function renderPfIncoming(){
@@ -737,7 +739,7 @@ async function doKsTransfer(){
       let d=null;try{d=await res.json();}catch(e){}
       ok=!!(res.ok&&d&&d.ok);
       if(!ok)errMsg=(d&&d.error)||('HTTP '+res.status);
-    }catch(e){errMsg=e.message||String(e);}
+    }catch(e){console.error('ksTransfer',e.stack||e);errMsg=e.message||String(e);}
     if(ok){_pfCache=null;_stockCache=null;closeSheet();renderStock();toast('success','Передано в цех',items.length+' поз.');}
     else{toast('warn','Не передано',errMsg);}
   }finally{_ksBusy=false;}
@@ -778,7 +780,7 @@ async function applyAdj(){
       let d=null;try{d=await r.json();}catch(e){}
       ok=!!(r.ok&&d&&d.ok);
       if(!ok)errMsg=(d&&d.error)||('HTTP '+r.status);
-    }catch(e){errMsg=e.message||String(e);}
+    }catch(e){console.error('adj',e.stack||e);errMsg=e.message||String(e);}
     if(ok){_stockCache=null;closeSheet();renderStock();toast('success',reason,ing.name+' '+msg+ing.unit);}
     else{toast('warn','Не сохранено на сервере',errMsg+' — повторите');}
   }finally{_adjBusy=false;}
