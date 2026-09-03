@@ -6,24 +6,24 @@
 <title>YaYa Chicken · Кухня</title>
 <style>
 :root {
-  --orange: #D85A30;
+  --orange: #F15A29;
   --orange-dark: #993C1D;
-  --green: #639922;
+  --green: #34D07F;
   --green-light: #EAF3DE;
-  --amber: #EF9F27;
+  --amber: #F5A623;
   --amber-light: #FAEEDA;
-  --red: #E24B4A;
+  --red: #FF5A5F;
   --red-light: #FCEBEB;
-  --blue: #378ADD;
+  --blue: #4A9BEF;
   --blue-light: #E6F1FB;
-  --bg: #0F0E0C;
-  --surface: #1C1B18;
-  --surface2: #252420;
+  --bg: #0A0A0B;
+  --surface: #131316;
+  --surface2: #1C1C20;
   --border: rgba(255,255,255,0.08);
   --text: #F0EDE6;
-  --muted: #7a776e;
-  --radius: 12px;
-  --radius-sm: 8px;
+  --muted: #8A888F;
+  --radius: 16px;
+  --radius-sm: 10px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 15px; }
@@ -31,17 +31,17 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 /* ── Header ── */
 .header {
   background: var(--surface); border-bottom: 1px solid var(--border);
-  padding: 14px 24px; display: flex; align-items: center; gap: 16px;
+  padding: 16px 24px; display: flex; align-items: center; gap: 16px;
 }
 .logo { font-size: 20px; font-weight: 700; }
 .logo span { color: var(--orange); }
 .header-sub { font-size: 13px; color: var(--muted); }
-.header-clock { margin-left: auto; font-size: 24px; font-weight: 300; font-variant-numeric: tabular-nums; color: var(--text); }
+.header-clock { margin-left: auto; font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
 
 /* ── Tabs ── */
-.tabs { display: flex; gap: 0; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; }
+.tabs { display: flex; gap: 4px; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; overflow-x: auto; }
 .tab {
-  padding: 14px 20px; font-size: 14px; font-weight: 500; cursor: pointer;
+  padding: 15px 20px; font-size: 14px; font-weight: 600; cursor: pointer;
   border-bottom: 3px solid transparent; color: var(--muted); transition: all 0.15s;
   white-space: nowrap;
 }
@@ -49,39 +49,45 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .tab.active { color: var(--orange); border-bottom-color: var(--orange); }
 .tab-badge {
   display: inline-block; background: var(--red); color: #fff;
-  font-size: 11px; padding: 1px 6px; border-radius: 99px; margin-left: 6px; font-weight: 700;
+  font-size: 11px; padding: 1px 7px; border-radius: 99px; margin-left: 6px; font-weight: 700;
 }
+.tab-badge.amber { background: var(--amber); }
 
 /* ── Content ── */
 .content { padding: 20px 24px; min-height: calc(100vh - 120px); }
 .panel { display: none; }
 .panel.active { display: block; }
 
-/* ── Order grid ── */
-.orders-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
+/* ── Stats bar ── */
+.stats-bar { display: flex; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+.stat-chip {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 18px; display: flex; flex-direction: column; gap: 2px; min-width: 120px;
 }
+.stat-chip-label { font-size: 11px; color: var(--muted); }
+.stat-chip-val { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+
+/* ── Order grid ── */
+.orders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
 
 /* ── Order card ── */
 .order-card {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 16px; transition: border-color 0.2s, box-shadow 0.2s;
-  display: flex; flex-direction: column; gap: 12px;
+  padding: 16px; transition: border-color 0.2s; display: flex; flex-direction: column; gap: 12px;
 }
-.order-card.status-new  { border-color: rgba(55,138,221,0.4); }
-.order-card.status-cook { border-color: rgba(239,159,39,0.5); box-shadow: 0 0 0 1px rgba(239,159,39,0.15); }
-.order-card.status-done { border-color: rgba(99,153,34,0.4); opacity: 0.6; }
+.order-card.status-new  { border-color: rgba(74,155,239,0.4); }
+.order-card.status-cook { border-color: rgba(245,166,35,0.5); }
+.order-card.status-done { border-color: rgba(52,208,127,0.3); opacity: 0.65; }
 
-.order-head { display: flex; align-items: center; gap: 8px; }
+.order-head { display: flex; align-items: center; gap: 12px; }
+.otimer {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 66px; height: 58px; border-radius: 14px; flex-shrink: 0;
+}
+.otimer .ov { font-size: 26px; font-weight: 900; line-height: 1; letter-spacing: -1px; }
+.otimer .ol { font-size: 9px; font-weight: 700; letter-spacing: 0.02em; opacity: 0.85; margin-top: 2px; }
 .order-num { font-size: 20px; font-weight: 800; color: var(--text); }
 .order-time { font-size: 12px; color: var(--muted); margin-left: auto; }
-.order-timer { font-size: 13px; font-weight: 600; }
-.order-timer.late { color: var(--red); animation: pulse 1s infinite; }
-.order-timer.ok   { color: var(--amber); }
-
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
 .order-items-list { display: flex; flex-direction: column; gap: 6px; }
 .order-item-row {
@@ -89,10 +95,8 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
   padding: 8px 10px; background: var(--surface2); border-radius: var(--radius-sm);
   font-size: 14px;
 }
-.item-emoji { font-size: 18px; width: 26px; text-align: center; }
 .item-name { flex: 1; }
 .item-qty { font-weight: 700; color: var(--orange); font-size: 16px; white-space: nowrap; }
-.item-stop { font-size: 11px; background: var(--red); color: #fff; padding: 1px 6px; border-radius: 4px; }
 
 .order-actions { display: flex; gap: 8px; }
 .btn {
@@ -102,85 +106,54 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 }
 .btn:hover { background: rgba(255,255,255,0.08); }
 .btn:active { transform: scale(0.97); }
-.btn-cook { background: rgba(239,159,39,0.15); border-color: rgba(239,159,39,0.4); color: var(--amber); }
-.btn-cook:hover { background: rgba(239,159,39,0.25); }
-.btn-done { background: rgba(99,153,34,0.15); border-color: rgba(99,153,34,0.4); color: #97C459; }
-.btn-done:hover { background: rgba(99,153,34,0.25); }
-.btn-cancel { background: rgba(226,75,74,0.1); border-color: rgba(226,75,74,0.3); color: var(--red); }
-.btn-cancel:hover { background: rgba(226,75,74,0.2); }
+.btn-cook { background: rgba(245,166,35,0.15); border-color: rgba(245,166,35,0.4); color: var(--amber); }
+.btn-cook:hover { background: rgba(245,166,35,0.25); }
+.btn-done { background: rgba(52,208,127,0.15); border-color: rgba(52,208,127,0.4); color: var(--green); }
+.btn-done:hover { background: rgba(52,208,127,0.25); }
+
+/* ── Per-dish tasks ── */
+.dish-block { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; }
+.dish-block.has-short { border-color: rgba(255,90,95,0.5); }
+.dish-top { display: flex; align-items: center; gap: 8px; }
+.dish-name { flex: 1; font-size: 14px; font-weight: 700; }
+.dish-st { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; }
+.task-list { margin-top: 8px; display: flex; flex-direction: column; gap: 3px; }
+.task-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; }
+.task-row .tneed { font-weight: 600; }
+.task-row .tshort { color: var(--red); }
+.dish-actions { display: flex; gap: 6px; margin-top: 9px; }
+.dish-actions .btn { flex: 1; padding: 8px; }
 
 /* ── Status badge ── */
-.badge {
-  display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px;
-}
-.badge-new  { background: rgba(55,138,221,0.15); color: #85B7EB; }
-.badge-cook { background: rgba(239,159,39,0.15); color: var(--amber); }
-.badge-done { background: rgba(99,153,34,0.15); color: #97C459; }
-.badge-cancel { background: rgba(226,75,74,0.1); color: var(--red); }
+.badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; }
+.badge-new  { background: rgba(74,155,239,0.15); color: var(--blue); }
+.badge-cook { background: rgba(245,166,35,0.15); color: var(--amber); }
+.badge-done { background: rgba(52,208,127,0.15); color: var(--green); }
+.badge-fulfilled { background: rgba(52,208,127,0.15); color: var(--green); }
+.badge-cancel { background: rgba(255,90,95,0.12); color: var(--red); }
 
 /* ── Empty state ── */
-.empty {
-  text-align: center; padding: 60px 20px; color: var(--muted);
-}
-.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty { text-align: center; padding: 60px 20px; color: var(--muted); }
 .empty-text { font-size: 15px; }
-
-/* ── Stop list panel ── */
-.stop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-.stop-card {
-  background: var(--surface); border: 1px solid rgba(226,75,74,0.3); border-radius: var(--radius);
-  padding: 14px; text-align: center;
-}
-.stop-emoji { font-size: 28px; margin-bottom: 6px; }
-.stop-name { font-size: 13px; font-weight: 600; color: var(--red); }
 
 /* ── All orders table ── */
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th { text-align: left; padding: 10px 12px; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--border); font-size: 12px; }
-td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: top; }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--surface); }
 
 /* ── Section title ── */
-.section-title {
-  font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase;
-  letter-spacing: 0.1em; margin-bottom: 14px;
-}
+.section-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 14px; }
 
 /* ── Notification ── */
-#notif {
-  position: fixed; top: 20px; right: 20px;
-  background: var(--orange); color: #fff;
-  padding: 14px 20px; border-radius: var(--radius); font-size: 15px; font-weight: 600;
-  transform: translateX(120%); transition: transform 0.3s; z-index: 999;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-}
+#notif { position: fixed; top: 20px; right: 20px; background: var(--orange); color: #fff; padding: 14px 20px; border-radius: 12px; font-size: 15px; font-weight: 600; transform: translateX(120%); transition: transform 0.3s; z-index: 999; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
 #notif.show { transform: translateX(0); }
 
-/* ── Stats bar ── */
-.stats-bar {
-  display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;
-}
-.stat-chip {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
-  padding: 10px 16px; display: flex; flex-direction: column; gap: 2px;
-}
-.stat-chip-label { font-size: 11px; color: var(--muted); }
-.stat-chip-val { font-size: 20px; font-weight: 700; }
-
-/* ═══ HELP MODE ═══ */
-#help-fab{position:fixed;top:12px;right:16px;z-index:8000;width:32px;height:32px;border-radius:50%;background:#fff;border:2px solid #D85A30;color:#D85A30;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(216,90,48,0.3);transition:all 0.2s;line-height:1;user-select:none;font-family:inherit;}
-#help-fab:hover{background:#D85A30;color:#fff;}
-#help-fab.hactive{background:#D85A30;color:#fff;}
-#help-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:7999;background:linear-gradient(90deg,#D85A30,#E8744E);color:#fff;font-size:12px;font-weight:600;padding:6px 50px;text-align:center;pointer-events:none;}
-body.help-mode #help-banner{display:block;}
-body.help-mode{padding-top:28px;}
-body.help-mode [data-tip]{outline:2px dashed rgba(216,90,48,0.6)!important;outline-offset:3px;cursor:help!important;border-radius:4px;}
-body.help-mode [data-tip]:hover{outline-color:#D85A30!important;background:rgba(216,90,48,0.07)!important;}
-#htip-pop{display:none;position:fixed;z-index:9999;background:#1C1B18;color:#F0EDE6;border-radius:8px;padding:10px 13px;max-width:250px;font-size:12px;line-height:1.6;box-shadow:0 4px 24px rgba(0,0,0,0.45);pointer-events:none;}
-#htip-pop.vis{display:block;}
-#htip-pop b{color:#FFD9CC;font-weight:700;display:block;margin-bottom:3px;font-size:12.5px;}
-
+/* ── Auth banner ── */
+.auth-banner { display: none; margin-bottom: 16px; padding: 14px 16px; border: 1px solid rgba(255,170,0,0.4); border-radius: var(--radius); background: rgba(245,166,35,0.08); color: var(--amber); font-size: 13px; font-weight: 600; }
+.auth-banner.show { display: block; }
+.auth-banner button { margin-left: 8px; font-weight: 700; color: var(--orange); background: none; border: none; cursor: pointer; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -194,60 +167,42 @@ body.help-mode [data-tip]:hover{outline-color:#D85A30!important;background:rgba(
 </div>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('new')" data-tip-title="Новые заказы" data-tip="Заказы принятые менеджером. Нажмите Начать готовить когда взяли в работу.">
-    🆕 Новые <span class="tab-badge" id="cnt-new">0</span>
-  </div>
-  <div class="tab" onclick="switchTab('cook')" data-tip-title="В работе" data-tip="Заказы в процессе приготовления. Нажмите Готово когда заказ собран и готов к выдаче.">
-    🔥 Готовятся <span class="tab-badge" id="cnt-cook">0</span>
-  </div>
-  <div class="tab" onclick="switchTab('done')" data-tip-title="Готово" data-tip="Выданные заказы за смену. Архив для сверки.">
-    ✅ Готово
-  </div>
-  <div class="tab" onclick="switchTab('all')" data-tip-title="Все заказы" data-tip="Полный список смены: новые, в работе и выданные.">
-    📋 Все заказы
-  </div>
-  <div class="tab" onclick="switchTab('stoplist')" data-tip-title="Стоп-лист" data-tip="Позиций нет сегодня — не принимать заказы! Обновляется автоматически при нехватке ингредиентов.">
-    🚫 Стоп-лист <span class="tab-badge" id="cnt-stop" style="display:none">!</span>
-  </div>
+  <div class="tab active" id="tb-new" onclick="switchTab('new')">Новые <span class="tab-badge" id="cnt-new" style="display:none">0</span></div>
+  <div class="tab" id="tb-cook" onclick="switchTab('cook')">Готовятся <span class="tab-badge" id="cnt-cook" style="display:none">0</span></div>
+  <div class="tab" id="tb-done" onclick="switchTab('done')">Готово</div>
+  <div class="tab" id="tb-all" onclick="switchTab('all')">Все заказы</div>
 </div>
 
 <div class="content">
-  <!-- NEW -->
+  <div class="auth-banner" id="auth-banner">Нет токена доступа к серверу.<button onclick="setToken()">Ввести токен</button></div>
+
   <div id="tab-new" class="panel active">
     <div class="stats-bar">
       <div class="stat-chip"><div class="stat-chip-label">Новых заказов</div><div class="stat-chip-val" id="s-new">0</div></div>
       <div class="stat-chip"><div class="stat-chip-label">Готовится</div><div class="stat-chip-val" id="s-cook" style="color:var(--amber)">0</div></div>
-      <div class="stat-chip"><div class="stat-chip-label">Выдано сегодня</div><div class="stat-chip-val" id="s-done" style="color:#97C459">0</div></div>
+      <div class="stat-chip"><div class="stat-chip-label">Выдано сегодня</div><div class="stat-chip-val" id="s-done" style="color:var(--green)">0</div></div>
     </div>
     <div id="orders-new" class="orders-grid"></div>
   </div>
 
-  <!-- COOKING -->
   <div id="tab-cook" class="panel">
+    <div class="stats-bar">
+      <div class="stat-chip"><div class="stat-chip-label">Готовится</div><div class="stat-chip-val" id="s-cook2" style="color:var(--amber)">0</div></div>
+      <div class="stat-chip"><div class="stat-chip-label">Выдано сегодня</div><div class="stat-chip-val" id="s-done2" style="color:var(--green)">0</div></div>
+    </div>
     <div id="orders-cook" class="orders-grid"></div>
   </div>
 
-  <!-- DONE -->
   <div id="tab-done" class="panel">
     <div id="orders-done" class="orders-grid"></div>
   </div>
 
-  <!-- ALL -->
   <div id="tab-all" class="panel">
     <div class="section-title">Все заказы за сегодня</div>
     <table>
-      <thead><tr><th>№</th><th>Время</th><th>Состав</th><th>Сумма</th><th>Статус</th></tr></thead>
+      <thead><tr><th>Время</th><th>№</th><th>Состав</th><th>Сумма</th><th>Статус</th></tr></thead>
       <tbody id="orders-all-tbody"></tbody>
     </table>
-  </div>
-
-  <!-- STOPLIST -->
-  <div id="tab-stoplist" class="panel">
-    <div class="section-title" style="margin-bottom:16px">Позиции в стоп-листе — не готовить!</div>
-    <div id="stop-grid" class="stop-grid"></div>
-    <div id="stop-empty" style="display:none">
-      <div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Стоп-лист пуст</div></div>
-    </div>
   </div>
 </div>
 
@@ -255,246 +210,207 @@ body.help-mode [data-tip]:hover{outline-color:#D85A30!important;background:rgba(
 
 <script src="data.js"></script>
 <script>
-let currentTab = 'new';
-let lastOrderCount = 0;
-let orderTimers = {};
+var YKEY='yaya_key_kitchen';
+var YAYA_API=window.YAYA_API||'https://yaya-db-production.up.railway.app';
+function yTok(){return localStorage.getItem(YKEY)||''}
+function setToken(){var t=prompt('Вставьте токен доступа:',yTok());if(t!==null){localStorage.setItem(YKEY,t.trim());location.reload();}}
+function $i(id){return document.getElementById(id)}
+var _ordCache=null,_ordT=0,_ordBusy={},_expand={};
+var STATUS_RU={new:'Новый',cook:'Готовится',done:'Готов',fulfilled:'Выдан',cancel:'Отменён'};
+var STATUS_CLASS={new:'badge-new',cook:'badge-cook',done:'badge-done',fulfilled:'badge-fulfilled',cancel:'badge-cancel'};
+var TABS=['new','cook','done','all'];
+var currentTab='new';
 
-function switchTab(id) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + id).classList.add('active');
-  document.querySelectorAll('.tab')[['new','cook','done','all','stoplist'].indexOf(id)].classList.add('active');
-  currentTab = id;
-  render();
+function orderColor(min){
+  if(min<=10)return{col:'var(--green)',bg:'rgba(52,208,127,0.14)'};
+  if(min<=20)return{col:'var(--amber)',bg:'rgba(245,166,35,0.14)'};
+  return{col:'var(--red)',bg:'rgba(255,90,95,0.14)'};
+}
+function ordTimerHtml(ts){
+  var min=Math.max(0,Math.floor((Date.now()-Number(ts))/60000));
+  var c=orderColor(min);
+  return '<div class="otimer" style="color:'+c.col+';background:'+c.bg+'"><div class="ov">'+min+'</div><div class="ol">мин</div></div>';
 }
 
-const STATUS_LABEL = {new:'Новый', cook:'Готовится', done:'Готово', cancel:'Отменён'};
-const STATUS_CLASS = {new:'badge-new', cook:'badge-cook', done:'badge-done', cancel:'badge-cancel'};
-
-function setOrderStatus(idx, status) {
-  const orders = getOrders();
-  orders[idx].status = status;
-  setOrders(orders);
-  render();
+async function fetchOrders(){
+  var now=Date.now();if(_ordCache&&now-_ordT<8000)return _ordCache;
+  try{
+    var r=await fetch(YAYA_API+'/orders?limit=80',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+    var d=await r.json();
+    if(d&&d.ok&&Array.isArray(d.orders)){_ordCache=d.orders;_ordT=now;return _ordCache;}
+    if(r.status===401&&$i('auth-banner'))$i('auth-banner').classList.add('show');
+  }catch(e){}
+  return _ordCache||[];
 }
-
-function elapsedMins(timeStr) {
-  const [h,m] = timeStr.split(':').map(Number);
-  const now = new Date();
-  const diff = (now.getHours()*60+now.getMinutes()) - (h*60+m);
-  return Math.max(0, diff);
+async function fetchTasks(id){
+  try{
+    var r=await fetch(YAYA_API+'/orders/'+encodeURIComponent(id)+'/tasks',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+    var d=await r.json();
+    return d&&d.ok?d:null;
+  }catch(e){return null;}
 }
-
-function buildOrderCard(o, realIdx) {
-  const mins = elapsedMins(o.time);
-  const timerCls = mins > 20 ? 'late' : mins > 10 ? 'ok' : '';
-  const timerText = mins > 0 ? `⏱ ${mins} мин` : 'только что';
-  const sl = getStopList();
-
-  const itemsHtml = (Array.isArray(o.items)?o.items:[]).map(it => {
-    const stopped = sl.includes(it.id);
-    return `<div class="order-item-row">
-      <span class="item-emoji">${it.emoji||'🍽'}</span>
-      <span class="item-name">${it.name}${stopped?` <span class="item-stop">СТОП</span>`:''}</span>
-      <span class="item-qty">×${it.qty}</span>
-    </div>`;
-  }).join('');
-
-  let actionsHtml = '';
-  if (o.status === 'new') {
-    actionsHtml = `<button class="btn btn-cook" onclick="setOrderStatus(${realIdx},'cook')">🔥 Начать готовить</button>
-                   <button class="btn btn-cancel" onclick="setOrderStatus(${realIdx},'cancel')">✕</button>`;
-  } else if (o.status === 'cook') {
-    actionsHtml = `<button class="btn btn-done" onclick="setOrderStatus(${realIdx},'done')">✅ Готово! Выдать</button>
-                   <button class="btn btn-cancel" onclick="setOrderStatus(${realIdx},'cancel')">✕</button>`;
-  } else if (o.status === 'done') {
-    actionsHtml = `<button class="btn" disabled style="opacity:0.4;cursor:default">✅ Выдан</button>`;
+async function ordItem(id,did,action){
+  var k=id+':'+did+':'+action;if(_ordBusy[k])return;_ordBusy[k]=true;
+  try{
+    var r=await fetch(YAYA_API+'/orders/'+encodeURIComponent(id)+'/item',{method:'POST',
+      headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},
+      body:JSON.stringify({dishId:did,action}),cache:'no-store'});
+    var d=await r.json();
+    if(r.ok&&d&&d.ok){
+      _ordCache=null;
+      if(d.order_status==='done')notify('Заказ готов');
+      render();
+    }else{if(d&&d.error)notify(d.error);}
+  }catch(e){notify('Ошибка сети');}
+  finally{delete _ordBusy[k];}
+}
+async function reqPf(id,did){
+  var o=(_ordCache||[]).find(function(x){return String(x.id)===String(id)});
+  var dish=o&&o.data&&Array.isArray(o.data.items)?o.data.items.find(function(x){return String(x.id)===did}):null;
+  if(!dish)return;
+  var tc=(typeof getTechCards==='function')?getTechCards():[];
+  var rows=tc[did]||[];
+  var pfIds=rows.filter(function(r){
+    var ws=(typeof getWsStock==='function')?getWsStock():[];
+    return ws.some(function(s){return String(s.id)===String(r.ingId)})||/^p\d+$/.test(r.ingId)||String(r.ingId).indexOf('ready_')===0;
+  }).map(function(r){return r.ingId});
+  if(!pfIds.length){notify('Нет ПФ для запроса');return;}
+  var n=0;
+  for(var i=0;i<pfIds.length;i++){
+    try{
+      var rr=await fetch(YAYA_API+'/pf-requests',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({item_id:pfIds[i]}),cache:'no-store'});
+      var dd=await rr.json();if(rr.ok&&dd&&dd.ok)n++;
+    }catch(e){}
   }
-
-  return `<div class="order-card status-${o.status}">
-    <div class="order-head">
-      <span class="order-num">${o.id}</span>
-      <span class="badge badge-${o.status}">${STATUS_LABEL[o.status]}</span>
-      <span class="order-time">${o.time}</span>
-    </div>
-    <span class="order-timer ${timerCls}">${timerText}</span>
-    <div class="order-items-list">${itemsHtml}</div>
-    <div class="order-actions">${actionsHtml}</div>
-  </div>`;
+  if(n)notify('Запрос у цеха отправлен');
 }
 
-function render() {
-  const orders = getOrders();
-  const today = todayStr();
-  const todayOrders = orders.filter(o => o.date === today);
-
-  const newOrd  = todayOrders.filter(o => o.status === 'new');
-  const cookOrd = todayOrders.filter(o => o.status === 'cook');
-  const doneOrd = todayOrders.filter(o => o.status === 'done');
-
-  // Stats
-  document.getElementById('s-new').textContent  = newOrd.length;
-  document.getElementById('s-cook').textContent = cookOrd.length;
-  document.getElementById('s-done').textContent = doneOrd.length;
-
-  // Tab badges
-  document.getElementById('cnt-new').textContent  = newOrd.length;
-  document.getElementById('cnt-cook').textContent = cookOrd.length;
-  document.getElementById('cnt-new').style.display  = newOrd.length  ? '' : 'none';
-  document.getElementById('cnt-cook').style.display = cookOrd.length ? '' : 'none';
-
-  function fillGrid(elId, list) {
-    const el = document.getElementById(elId);
-    if (!list.length) {
-      el.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🍽</div><div class="empty-text">Нет заказов</div></div>';
-      return;
+function dishRow(o,t,d,ds){
+  var st=ds[t.dishId]||{status:'new',qty:t.qty};
+  var noE=(typeof findMenuItem==='function')&&findMenuItem(t.dishId);
+  var rowCls=t.noRecipe?'':(t.tasks.some(function(x){return !x.enough})?' has-short':'');
+  var stL=st.status==='done'?'Готово':(st.status==='cook'?'В работе':'Взять');
+  var stC=st.status==='done'?'var(--green)':(st.status==='cook'?'var(--amber)':'var(--blue)');
+  var locked=(o.status==='done'||o.status==='fulfilled'||o.status==='cancel');
+  var h='<div class="dish-block'+rowCls+'"><div class="dish-top"><div class="dish-name">'+(noE?noE.name:t.dishName)+'<span style="color:var(--muted);font-weight:600"> ×'+t.qty+'</span></div><div class="dish-st" style="color:'+stC+'">'+stL+'</div></div>';
+  if(!t.noRecipe){
+    h+='<div class="task-list">'+t.tasks.map(function(x){
+      var col=x.enough?'var(--text)':'var(--red)';
+      return '<div class="task-row" style="color:'+col+'"><span>'+x.name+'</span><span class="'+(x.enough?'tneed':'tshort')+'">'+( x.unit==='шт.'||x.unit==='бут.'?Math.round(x.need):x.need.toFixed(2))+' '+x.unit+(x.enough?'':' — не хватает')+'</span></div>';
+    }).join('')+'</div>';
+  }
+  if(st.status!=='done'&&!locked){
+    var acts='';
+    if(st.status==='new')acts='<button class="btn btn-cook" onclick="ordItem('+o.id+',\''+t.dishId+'\',\'take\')">Взял</button>';
+    else{
+      var short=t.tasks.some(function(x){return !x.enough});
+      acts='<button class="btn btn-done" onclick="ordItem('+o.id+',\''+t.dishId+'\',\'done\')">Готово</button>';
+      if(short)acts+='<button class="btn" style="color:var(--red)" onclick="reqPf('+o.id+',\''+t.dishId+'\')">Запросить у цеха</button>';
     }
-    el.innerHTML = list.map(o => buildOrderCard(o, orders.indexOf(o))).join('');
+    h+='<div class="dish-actions">'+acts+'</div>';
   }
+  h+='</div>';
+  return h;
+}
 
-  fillGrid('orders-new',  newOrd);
-  fillGrid('orders-cook', cookOrd);
-  fillGrid('orders-done', doneOrd);
+function orderCard(o){
+  var mins=Math.max(0,Math.floor((Date.now()-Number(o.ts))/60000));
+  var timer=ordTimerHtml(o.ts);
+  var b=o.data||{},num=o.num||'?';
+  var when=new Date(Number(o.ts)||Date.now()).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+  var items=(b&&Array.isArray(b.items))?b.items:[];
+  var hasDish=Array.isArray(items)&&items.length>0;
+  var bodyTxt=items.map(function(i){return i.name+' ×'+i.qty}).join(', ');
+  var expand=_expand[o.id];
+  return '<div class="order-card status-'+o.status+'">'
+    +'<div class="order-head"><div class="otimer" style="color:'+orderColor(mins).col+';background:'+orderColor(mins).bg+'"><div class="ov">'+mins+'</div><div class="ol">мин</div></div>'
+    +'<span class="order-num">#'+num+'</span><span class="order-time">'+when+'</span></div>'
+    +'<div class="order-items-list"><div class="order-item-row"><span class="item-name">'+bodyTxt+'</span></div></div>'
+    +'<div id="occ-'+o.id+'">'+(expand?'<div class="section-title">Задачи</div><div id="obd-'+o.id+'">загрузка…</div>':'<button class="btn" onclick="toggleTasks('+o.id+')">Задачи по блюдам</button>')+'</div>'
+    +'</div>';
+}
+function toggleTasks(id){
+  _expand[id]=!_expand[id];
+  var c=$i('occ-'+id);
+  if(!c)return;
+  if(_expand[id]){
+    c.innerHTML='<div class="section-title">Задачи</div><div id="obd-'+id+'">загрузка…</div>';
+    loadTasks(id);
+  }else{
+    var o=_ordersCacheFind(id);
+    c.innerHTML='<button class="btn" onclick="toggleTasks('+id+')">Задачи по блюдам</button>';
+  }
+}
+function _ordersCacheFind(id){return (_ordCache||[]).find(function(x){return String(x.id)===String(id)})}
 
-  // All today
-  const tbody = document.getElementById('orders-all-tbody');
-  tbody.innerHTML = '';
-  [...todayOrders].reverse().forEach(o => {
-    const names = (Array.isArray(o.items)?o.items:[]).map(it=>(it.emoji||'')+it.name+(it.qty>1?` ×${it.qty}`:'')).join(', ');
-    const realIdx = orders.indexOf(o);
-    tbody.innerHTML += `<tr>
-      <td style="font-weight:700;font-size:16px">${o.id}</td>
-      <td>${o.time}</td>
-      <td style="color:var(--muted);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${names}</td>
-      <td style="font-weight:600;color:var(--orange)">${fmt(o.total)} тг</td>
-      <td><span class="badge badge-${o.status}">${STATUS_LABEL[o.status]}</span></td>
-    </tr>`;
+async function loadTasks(id){
+  var o=_ordersCacheFind(id);if(!o)return;
+  var d=await fetchTasks(id);
+  var body=$i('obd-'+id);if(!body)return;
+  if(!d){body.innerHTML='<div class="empty-text">Не удалось загрузить задачи</div>';return;}
+  var ds=d.dish_status||{},tasks=d.tasks||[];
+  body.innerHTML=tasks.map(function(t){return dishRow(o,t,d,ds)}).join('')||'<div class="empty-text">Нет задач</div>';
+}
+
+function render(){
+  var orders=_ordCache||[];
+  var today=new Date().toDateString();
+  var todayOrders=orders.filter(function(o){return new Date(Number(o.ts)||Date.now()).toDateString()===today});
+  var newOrd=todayOrders.filter(function(o){return o.status==='new'});
+  var cookOrd=todayOrders.filter(function(o){return o.status==='cook'});
+  var doneOrd=todayOrders.filter(function(o){return o.status==='done'});
+  var fulOrd=todayOrders.filter(function(o){return o.status==='fulfilled'});
+
+  $i('s-new').textContent=newOrd.length;
+  $i('s-cook').textContent=cookOrd.length;
+  $i('s-cook2').textContent=cookOrd.length;
+  $i('s-done').textContent=doneOrd.length+fulOrd.length;
+  $i('s-done2').textContent=doneOrd.length+fulOrd.length;
+  $i('cnt-new').textContent=newOrd.length;
+  $i('cnt-cook').textContent=cookOrd.length;
+  $i('cnt-new').style.display=newOrd.length?'inline-block':'none';
+  $i('cnt-cook').style.display=cookOrd.length?'inline-block':'none';
+
+  function fill(elId,list){
+    var el=$i(elId);
+    if(!list.length){el.innerHTML='<div class="empty"><div class="empty-text">Нет заказов</div></div>';return;}
+    el.innerHTML=list.map(orderCard).join('');
+  }
+  fill('orders-new',newOrd);
+  fill('orders-cook',cookOrd);
+  fill('orders-done',doneOrd);
+
+  var tb=$i('orders-all-tbody');tb.innerHTML='';
+  todayOrders.slice().reverse().forEach(function(o){
+    var b=o.data||{},items=(b&&Array.isArray(b.items))?b.items:[];
+    var names=items.map(function(i){return i.name+(i.qty>1?' ×'+i.qty:'')}).join(', ');
+    var total=(Number(b.total)||0)+(Number(b.delivery)||0);
+    var when=new Date(Number(o.ts)||Date.now()).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+    tb.innerHTML+='<tr><td>'+when+'</td><td style="font-weight:700;font-size:16px">#'+o.num+'</td><td style="color:var(--muted)">'+names+'</td><td style="font-weight:600;color:var(--orange)">'+fmt(total)+' тг</td><td><span class="badge '+(STATUS_CLASS[o.status]||'badge-new')+'">'+(STATUS_RU[o.status]||o.status)+'</span></td></tr>';
   });
-
-  // Stop list
-  renderStopList();
-
-  // Notify new orders
-  if (orders.length > lastOrderCount && lastOrderCount > 0) {
-    notify('🔔 Новый заказ!');
-  }
-  lastOrderCount = orders.length;
 }
 
-function renderStopList() {
-  const sl = getStopList();
-  const tc = getTechCards();
-  const stock = getStock();
-
-  // Auto stops
-  const autoStop = MENU.filter(m => {
-    const recipe = tc[m.id];
-    if (!recipe) return false;
-    return recipe.some(r => {
-      const ing = stock.find(i => i.id === r.ingId);
-      return ing && ing.qty < ing.min;
-    });
-  }).map(m => m.id);
-
-  const allStop = [...new Set([...sl, ...autoStop])];
-
-  document.getElementById('cnt-stop').textContent = allStop.length;
-  document.getElementById('cnt-stop').style.display = allStop.length ? '' : 'none';
-
-  const grid = document.getElementById('stop-grid');
-  const empty = document.getElementById('stop-empty');
-
-  if (!allStop.length) {
-    grid.innerHTML = '';
-    empty.style.display = '';
-    return;
-  }
-  empty.style.display = 'none';
-  grid.innerHTML = allStop.map(id => {
-    const item = findMenuItem(id);
-    if (!item) return '';
-    const isAuto = autoStop.includes(id) && !sl.includes(id);
-    return `<div class="stop-card">
-      <div class="stop-emoji">${item.emoji}</div>
-      <div class="stop-name">${item.name}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px">${isAuto?'авто (мало сырья)':'менеджер'}</div>
-    </div>`;
-  }).join('');
+function switchTab(id){
+  currentTab=id;
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+  $i('tab-'+id).classList.add('active');
+  $i('tb-'+id).classList.add('active');
+  render();
 }
+function notify(msg){var el=$i('notif');el.textContent=msg;el.classList.add('show');setTimeout(function(){el.classList.remove('show')},3000);}
+function updateClock(){$i('clock').textContent=new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});}
+function fmt(n){return Math.round(Number(n||0)).toLocaleString('ru')}
 
-function notify(msg) {
-  const el = document.getElementById('notif');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 3000);
+async function tick(){
+  await fetchOrders();
+  render();
 }
-
-function updateClock() {
-  document.getElementById('clock').textContent =
-    new Date().toLocaleTimeString('ru', {hour:'2-digit', minute:'2-digit'});
-}
-
-render();
+tick();
 updateClock();
-setInterval(() => { render(); }, 8000);
-setInterval(updateClock, 1000);
-window.addEventListener('yaya-menu-ready', () => { render(); });
+setInterval(function(){if(!document.hidden)tick();},8000);
+setInterval(updateClock,1000);
+window.addEventListener('yaya-menu-ready',function(){render()});
 </script>
-<div id="help-banner">💡 Режим подсказок — наводите на элементы с оранжевой рамкой</div>
-<button id="help-fab" onclick="toggleHelp()" title="Подсказки">?</button>
-<div id="htip-pop"></div>
-<script>
-(function(){
-  // Если в iframe менеджера — скрыть собственную кнопку и баннер
-  var inIframe = window.self !== window.top;
-  // В iframe — полностью убрать кнопку ? и баннер (управление из manager.html)
-  var _fab = document.getElementById('help-fab');
-  var _ban = document.getElementById('help-banner');
-  if (inIframe) {
-    if (_fab) _fab.remove();
-    if (_ban) _ban.remove();
-  }
-  var hm=false,ht=document.getElementById('htip-pop');
-  var fb = inIframe ? null : _fab;
-  window.toggleHelp=function(fromParent){
-    hm=!hm;
-    document.body.classList.toggle('help-mode',hm);
-    if(fb){fb.classList.toggle('hactive',hm);fb.textContent=hm?'✕':'?';}
-    if(!hm) ht.classList.remove('vis');
-    // Если выключили внутри iframe — сообщить менеджеру чтобы он вернул ? на кнопке
-    if(!hm && !fromParent && window.parent !== window){
-      try { window.parent.postMessage('helpOff','*'); } catch(e){}
-    }
-  };
-  // Принимать команду toggleHelp от родительского окна (manager.html)
-  window.addEventListener('message', function(e){
-    if (e.data === 'toggleHelp') window.toggleHelp(true);
-  });
-  function show(e){
-    if(!hm)return;
-    var el=e.currentTarget;
-    ht.innerHTML='<b>'+el.getAttribute('data-tip-title')+'</b>'+el.getAttribute('data-tip');
-    pos(e);ht.classList.add('vis');
-  }
-  function pos(e){
-    var l=e.clientX+14,t=e.clientY+12;
-    if(l+260>window.innerWidth-6)l=e.clientX-266;
-    if(t+120>window.innerHeight-6)t=e.clientY-126;
-    ht.style.left=l+'px';ht.style.top=t+'px';
-  }
-  document.querySelectorAll('[data-tip]').forEach(function(el){
-    el.addEventListener('mouseenter',show);
-    el.addEventListener('mousemove',function(e){if(hm&&ht.classList.contains('vis'))pos(e);});
-    el.addEventListener('mouseleave',function(){ht.classList.remove('vis');});
-    el.addEventListener('click',function(e){if(hm)e.stopPropagation();});
-  });
-  document.addEventListener('click',function(e){
-    if(hm&&!e.target.closest('[data-tip]')&&e.target.id!=='help-fab')toggleHelp();
-  });
-  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&hm)toggleHelp();});
-})();
-</script>
-<script>window.YAYA_API = 'https://yaya-db-production.up.railway.app';</script>
-<script src="yaya-sync.js"></script>
 </body>
 </html>

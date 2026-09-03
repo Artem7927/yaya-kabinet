@@ -500,7 +500,7 @@ async function loadOrderTasks(id){
     const stCol=st.status==='done'?'var(--green)':st.status==='cook'?'var(--amber)':'var(--blue)';
     let inner=`<div class="ord-dish" data-did="${t.dishId}">
       <div class="od-top">
-        <div class="od-name">${t.noRecipe?'⚠ ':(findMenuItem(t.dishId)?findMenuItem(t.dishId).emoji+' ':'' )}${t.dishName} <span class="muted">×${t.qty||1}</span></div>
+        <div class="od-name">${t.dishName} <span class="muted">×${t.qty||1}</span></div>
         <div class="od-st" style="color:${stCol}">${stLbl}</div>
       </div>`;
     if(!t.noRecipe){
