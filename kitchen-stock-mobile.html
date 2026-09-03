@@ -446,28 +446,31 @@ function ordItemsHtml(b){
 }
 function isTodayOrder(o){return new Date(Number(o.ts)||Date.now()).toDateString()===new Date().toDateString();}
 function ordCard(o){
+  if(!o||typeof o!=='object')return '';
   const b=o.data||{},num=o.num||'?';
+  const st=o.status||'';
   const when=new Date(Number(o.ts)||Date.now()).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
-  const sc=o.status==='new'?'var(--blue)':o.status==='cook'?'var(--amber)':o.status==='done'?'var(--green)':o.status==='fulfilled'?'var(--teal)':'var(--muted)';
+  const sc=st==='new'?'var(--blue)':st==='cook'?'var(--amber)':st==='done'?'var(--green)':st==='fulfilled'?'var(--teal)':'var(--muted)';
   const exp=!!_orderExpand[o.id];
-  return `<div class="ocard ${o.status}">
+  return `<div class="ocard ${st}">
     <div class="ord-head" onclick="toggleOrder(${o.id})">
       ${ordTimerHtml(o.ts)}
       <div class="ord-mid">
         <div class="ord-num">#${num}</div>
         <div class="ord-when">оформлен ${when}</div>
       </div>
-      <div class="ord-st" style="color:${sc}">${ORD_STATUS_RU[o.status]||o.status}</div>
+      <div class="ord-st" style="color:${sc}">${ORD_STATUS_RU[st]||st}</div>
     </div>
     <div class="ord-body" id="ord-body-${o.id}">${exp?('загрузка…'):ordItemsHtml(b)}</div>
   </div>`;
 }
 function ordFilter(orders,seg){
-  const today=orders.filter(isTodayOrder);
-  if(seg==='new')return today.filter(o=>o.status==='new');
-  if(seg==='cook')return today.filter(o=>o.status==='cook');
-  if(seg==='done')return today.filter(o=>o.status==='done');
-  if(seg==='fulfilled')return today.filter(o=>o.status==='fulfilled');
+  const objs=Array.isArray(orders)?orders.filter(o=>o&&typeof o==='object'):[];
+  const today=objs.filter(isTodayOrder);
+  if(seg==='new')return today.filter(o=>(o.status||'')==='new');
+  if(seg==='cook')return today.filter(o=>(o.status||'')==='cook');
+  if(seg==='done')return today.filter(o=>(o.status||'')==='done');
+  if(seg==='fulfilled')return today.filter(o=>(o.status||'')==='fulfilled');
   return today;
 }
 var _ordTab='new';
@@ -477,12 +480,13 @@ function ordSeg(v){
   renderOrders();
 }
 async function renderOrders(){
-  const orders=await fetchOrdersKitchen();
+  const raw=await fetchOrdersKitchen();
+  const orders=Array.isArray(raw)?raw.filter(o=>o&&typeof o==='object'):[];
   const todayOrders=orders.filter(isTodayOrder);
-  const newOnes=todayOrders.filter(o=>o.status==='new');
-  const cookOnes=todayOrders.filter(o=>o.status==='cook');
-  const doneOnes=todayOrders.filter(o=>o.status==='done');
-  const fulOnes=todayOrders.filter(o=>o.status==='fulfilled');
+  const newOnes=todayOrders.filter(o=>(o.status||'')==='new');
+  const cookOnes=todayOrders.filter(o=>(o.status||'')==='cook');
+  const doneOnes=todayOrders.filter(o=>(o.status||'')==='done');
+  const fulOnes=todayOrders.filter(o=>(o.status||'')==='fulfilled');
   $('ord-new2').textContent=newOnes.length;
   $('ord-cook2').textContent=cookOnes.length;
   $('ord-done2').textContent=doneOnes.length+fulOnes.length;
@@ -511,11 +515,13 @@ async function loadOrderTasks(id){
   if(!d){const el=$('ord-body-'+id);if(el)el.innerHTML='<div class="empty-mini">Не удалось загрузить задачи</div>';return;}
   const body=$('ord-body-'+id);
   if(!body)return;
-  const ds=d.dish_status||{},tasks=d.tasks||[];
+  const ds=d.dish_status||{},tasks=Array.isArray(d.tasks)?d.tasks:[];
   const locked=(o.status==='done'||o.status==='fulfilled'||o.status==='cancel');
   body.innerHTML=tasks.map(t=>{
+    if(!t||typeof t!=='object')return '';
     const st=ds[t.dishId]||{status:'new',qty:t.qty};
-    const rowCls=t.noRecipe?'':(t.tasks.some(x=>!x.enough)?' has-short':'');
+    const subtasks=Array.isArray(t.tasks)?t.tasks:[];
+    const rowCls=t.noRecipe?'':(subtasks.some(x=>x&&!x.enough)?' has-short':'');
     const stLbl=st.status==='done'?'Готово':st.status==='cook'?'В работе':'Взять';
     const stCol=st.status==='done'?'var(--green)':st.status==='cook'?'var(--amber)':'var(--blue)';
     let inner=`<div class="ord-dish" data-did="${t.dishId}">
@@ -524,16 +530,18 @@ async function loadOrderTasks(id){
         <div class="od-st" style="color:${stCol}">${stLbl}</div>
       </div>`;
     if(!t.noRecipe){
-      inner+=`<div class="od-tasks">`+t.tasks.map(x=>{
-        const en=x.enough,col=en?'var(--text)':'var(--red)';
-        return `<div class="od-task" style="color:${col}"><span>${x.name}</span><span>${x.need.toFixed(x.unit==='шт.'||x.unit==='бут.'?0:2)} ${x.unit}${en?'':' &mdash; не хватает'}</span></div>`;
+      inner+=`<div class="od-tasks">`+subtasks.map(x=>{
+        const en=x&&x.enough,col=en?'var(--text)':'var(--red)';
+        const unit=x&&x.unit||'';
+        const need=(x&&x.need!=null)?x.need:0;
+        return `<div class="od-task" style="color:${col}"><span>${x&&x.name||''}</span><span>${need.toFixed(unit==='шт.'||unit==='бут.'?0:2)} ${unit}${en?'':' &mdash; не хватает'}</span></div>`;
       }).join('')+`</div>`;
     }
     if(st.status==='done'){inner+=`</div>`;return inner;}
     if(locked){inner+=`</div>`;return inner;}
     let actions='';
     if(st.status==='new')actions=`<button class="btn btn-ghost" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${t.dishId}','take')">Взял</button>`;
-    if(st.status==='cook')actions=(t.tasks.some(x=>!x.enough))
+    if(st.status==='cook')actions=(subtasks.some(x=>x&&!x.enough))
       ?`<button class="btn btn-primary" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${t.dishId}','done')">Готово</button><button class="btn" style="flex:1;padding:9px;color:var(--red)" onclick="ordReqPf(${o.id},'${t.dishId}')">Запросить у цеха</button>`
       :`<button class="btn btn-primary" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${t.dishId}','done')">Готово</button>`;
     inner+=`<div class="od-actions">${actions}</div></div>`;
