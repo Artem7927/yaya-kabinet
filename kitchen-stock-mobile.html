@@ -209,10 +209,11 @@ input:focus,select:focus{border-color:var(--orange)}
     <section class="screen active" id="s-orders" data-title="Заказы">
       <div class="scroll">
         <div class="stats3">
-          <div class="stat"><div class="ic ic-orange"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg></div><div class="val" id="ord-total">0</div><div class="lab">Заказов</div></div>
-          <div class="stat"><div class="ic ic-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 20h20L12 2Z"/><path d="M12 9v5M12 17h.01"/></svg></div><div class="val" id="ord-burn">0</div><div class="lab">Горит</div></div>
-          <div class="stat"><div class="ic ic-teal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></div><div class="val" id="ord-done">0</div><div class="lab">Готовых сегодня</div></div>
+          <div class="stat"><div class="ic ic-orange"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg></div><div class="val" id="ord-new2">0</div><div class="lab">Новых</div></div>
+          <div class="stat"><div class="ic ic-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg></div><div class="val" id="ord-cook2">0</div><div class="lab">Готовится</div></div>
+          <div class="stat"><div class="ic ic-teal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></div><div class="val" id="ord-done2">0</div><div class="lab">Выдано сегодня</div></div>
         </div>
+        <div class="seg" style="margin-bottom:10px"><button id="os-new" class="on" onclick="ordSeg('new')">Новые</button><button id="os-cook" onclick="ordSeg('cook')">Готовятся</button><button id="os-done" onclick="ordSeg('done')">Готово</button><button id="os-all" onclick="ordSeg('all')">Все</button></div>
         <div id="ord-list"></div>
       </div>
     </section>
@@ -331,9 +332,9 @@ input:focus,select:focus{border-color:var(--orange)}
   <aside class="drawer" id="drawer">
     <div class="drawer-head"><div class="l1">YaYa</div><div class="l2">CHICKEN</div><div class="sub"><span id="dw-date">—</span></div></div>
     <div class="drawer-body">
-      <div class="dnav" onclick="closeDrawer();setToken()">🔑 Токен доступа</div>
-      <div class="dnav" onclick="closeDrawer();openSub('ing')"><div class="mic ic-purple">⚙️</div><b>Ингредиенты кухни</b></div>
-      <div class="dnav" onclick="openExt('kitchen.html')"><div class="mic ic-amber">👨‍🍳</div><b>Экран кухни</b></div>
+      <div class="dnav" onclick="closeDrawer();setToken()"><div class="mic ic-orange"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><b>Токен доступа</b></div>
+      <div class="dnav" onclick="closeDrawer();openSub('ing')"><div class="mic ic-purple"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg></div><b>Ингредиенты кухни</b></div>
+      <div class="dnav" onclick="closeDrawer();go('orders');ordSeg('new')"><div class="mic ic-amber"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div><b>Экран кухни</b></div>
     </div>
   </aside>
 
@@ -443,36 +444,55 @@ function ordItemsHtml(b){
   if(!items.length)return '—';
   return items.map(i=>`<div class="ord-line"><span>${i.name||i.id}</span><b>×${i.qty||1}</b></div>`).join('');
 }
+function isTodayOrder(o){return new Date(Number(o.ts)||Date.now()).toDateString()===new Date().toDateString();}
+function ordCard(o){
+  const b=o.data||{},num=o.num||'?';
+  const when=new Date(Number(o.ts)||Date.now()).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+  const sc=o.status==='new'?'var(--blue)':o.status==='cook'?'var(--amber)':o.status==='done'?'var(--green)':o.status==='fulfilled'?'var(--teal)':'var(--muted)';
+  const exp=!!_orderExpand[o.id];
+  return `<div class="ocard ${o.status}">
+    <div class="ord-head" onclick="toggleOrder(${o.id})">
+      ${ordTimerHtml(o.ts)}
+      <div class="ord-mid">
+        <div class="ord-num">#${num}</div>
+        <div class="ord-when">оформлен ${when}</div>
+      </div>
+      <div class="ord-st" style="color:${sc}">${ORD_STATUS_RU[o.status]||o.status}</div>
+    </div>
+    <div class="ord-body" id="ord-body-${o.id}">${exp?('загрузка…'):ordItemsHtml(b)}</div>
+  </div>`;
+}
+function ordFilter(orders,seg){
+  const today=orders.filter(isTodayOrder);
+  if(seg==='new')return today.filter(o=>o.status==='new');
+  if(seg==='cook')return today.filter(o=>o.status==='cook');
+  if(seg==='done')return today.filter(o=>o.status==='done');
+  if(seg==='fulfilled')return today.filter(o=>o.status==='fulfilled');
+  return today;
+}
+var _ordTab='new';
+function ordSeg(v){
+  _ordTab=v;
+  ['new','cook','done','all'].forEach(x=>{const b=$('os-'+x);if(b)b.classList.toggle('on',x===v);});
+  renderOrders();
+}
 async function renderOrders(){
   const orders=await fetchOrdersKitchen();
-  const today=new Date().toDateString();
-  const act=orders.filter(o=>o.status==='new'||o.status==='cook');
-  // сортировка: старые сверху по времени оформления (все статусы), горящие не прыгают
-  const sorted=[...orders].sort((a,b)=>Number(a.ts)-Number(b.ts));
-  const el=$('ord-list');
-  $('ord-total').textContent=orders.filter(o=>new Date(Number(o.ts)||Date.now()).toDateString()===today).length;
-  $('ord-burn').textContent=act.filter(o=>Math.floor((Date.now()-Number(o.ts))/60000)>20).length;
-  $('ord-done').textContent=orders.filter(o=>o.status==='done').length;
+  const todayOrders=orders.filter(isTodayOrder);
+  const newOnes=todayOrders.filter(o=>o.status==='new');
+  const cookOnes=todayOrders.filter(o=>o.status==='cook');
+  const doneOnes=todayOrders.filter(o=>o.status==='done');
+  const fulOnes=todayOrders.filter(o=>o.status==='fulfilled');
+  $('ord-new2').textContent=newOnes.length;
+  $('ord-cook2').textContent=cookOnes.length;
+  $('ord-done2').textContent=doneOnes.length+fulOnes.length;
   const badge=$('ord-badge');
-  const nNew=act.length;badge.style.display=nNew?'flex':'none';badge.textContent=nNew>99?'99+':nNew;
-  el.innerHTML=sorted.length?sorted.map(o=>{
-    const b=o.data||{},num=o.num||'?';
-    const when=new Date(Number(o.ts)||Date.now()).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
-    const sc=o.status==='new'?'var(--blue)':o.status==='cook'?'var(--amber)':o.status==='done'?'var(--green)':o.status==='fulfilled'?'var(--teal)':'var(--muted)';
-    const exp=!!_orderExpand[o.id];
-    return `<div class="ocard ${o.status}">
-      <div class="ord-head" onclick="toggleOrder(${o.id})">
-        ${ordTimerHtml(o.ts)}
-        <div class="ord-mid">
-          <div class="ord-num">#${num}</div>
-          <div class="ord-when">оформлен ${when}</div>
-        </div>
-        <div class="ord-st" style="color:${sc}">${ORD_STATUS_RU[o.status]||o.status}</div>
-      </div>
-      <div class="ord-body" id="ord-body-${o.id}">${exp?('загрузка…'):ordItemsHtml(b)}</div>
-    </div>`;
-  }).join(''):'<div class="empty-mini">Заказов пока нет</div>';
-  // раскрытые — догрузить задачи
+  const nNew=newOnes.length;badge.style.display=nNew?'flex':'none';badge.textContent=nNew>99?'99+':nNew;
+  // сортировка: старые сверху по времени оформления, горящие не прыгают
+  const list=ordFilter(orders,_ordTab).sort((a,b)=>Number(a.ts)-Number(b.ts));
+  const el=$('ord-list');
+  el.innerHTML=list.length?list.map(ordCard).join(''):'<div class="empty-mini">Нет заказов</div>';
+  // раскрытые — догрузить задачи (всегда завершается: успех→задачи, ошибка/пусто→явный текст)
   Object.keys(_orderExpand).forEach(id=>{
     if(_orderExpand[id]&&$('ord-body-'+id))loadOrderTasks(id);
   });
@@ -506,7 +526,7 @@ async function loadOrderTasks(id){
     if(!t.noRecipe){
       inner+=`<div class="od-tasks">`+t.tasks.map(x=>{
         const en=x.enough,col=en?'var(--text)':'var(--red)';
-        return `<div class="od-task" style="color:${col}"><span>${x.name}</span><span>${x.need.toFixed(x.unit==='шт.'||x.unit==='бут.'?0:2)} ${x.unit}${en?'':' ⚠ не хватает'}</span></div>`;
+        return `<div class="od-task" style="color:${col}"><span>${x.name}</span><span>${x.need.toFixed(x.unit==='шт.'||x.unit==='бут.'?0:2)} ${x.unit}${en?'':' &mdash; не хватает'}</span></div>`;
       }).join('')+`</div>`;
     }
     if(st.status==='done'){inner+=`</div>`;return inner;}
@@ -860,6 +880,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)kitPollTic
 
 renderOrders(); renderCook();
 window.addEventListener('yaya-menu-ready', () => { renderOrders(); renderCook(); renderTechAll(); renderCalc(); });
+(function(){const q=new URLSearchParams(location.search),t=q.get('tab');if(t&&document.getElementById('s-'+t))go(t);})();
 </script>
 <script>if('serviceWorker' in navigator){
   var _hadCtrl=!!navigator.serviceWorker.controller,_swBusy=false,_swWait=false;
