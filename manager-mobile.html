@@ -110,6 +110,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sy
 .ohead{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .onum{font-size:15px;font-weight:800}
 .otime{margin-left:auto;font-size:11px;color:var(--muted2)}
+.otimer{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:58px;height:52px;border-radius:12px;flex-shrink:0}
+.otimer b{font-size:24px;font-weight:900;line-height:1;letter-spacing:-1px}
+.otimer i{font-size:8.5px;font-weight:700;letter-spacing:.02em;opacity:.85;margin-top:2px}
 .oname{font-size:13px;font-weight:600}
 .ophone{font-size:12px;color:var(--muted);margin-left:6px}
 .ometa{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:5px 0 10px}
@@ -1064,13 +1067,17 @@ function orderCard(o){
   const st=STATUS[o.status]||STATUS.new, cnt=(Array.isArray(o.items)?o.items:[]).reduce((s,i)=>s+i.qty,0);
   const typeL=o.type==='pickup'?'Самовывоз':'Доставка', nm=o.name||'Гость';
   const ph=o.phone?`<span class="ophone">${o.phone}</span>`:'';
+  const _ts=Number(o.ts)||0;
+  const min=_ts?Math.max(0,Math.floor((Date.now()-_ts)/60000)):null;
+  const tc=_ts&&min!=null?((min<=10?{c:'var(--green)',s:'var(--green-soft)'}:(min<=20?{c:'var(--amber)',s:'var(--amber-soft)'}:{c:'var(--red)',s:'var(--red-soft)'}))):null;
+  const timer=tc?`<span class="otimer" style="color:${tc.c};background:${tc.s}"><b>${min}′</b><i>мин</i></span>`:'';
   let acts='';
   if(o.status==='new'||o.status==='cook') acts=`<div class="oacts">
     <button class="btn btn-primary" onclick="setStatus(${o.id},'cook')">🔥 ${o.status==='cook'?'В работе':'Начать'}</button>
     <button class="btn btn-green" onclick="setStatus(${o.id},'done')">✓ Готово</button>
     <button class="btn xbtn" onclick="setStatus(${o.id},'cancel')">✕</button></div>`;
   return `<div class="ocard ${cls}">
-    <div class="ohead"><span class="onum">#${String(o.num).padStart(3,'0')}</span><span class="badge ${st.c}">${st.l}</span><span class="otime">${agoStr(o.id)||o.time}</span></div>
+    <div class="ohead">${timer}<span class="onum">#${String(o.num).padStart(3,'0')}</span><span class="badge ${st.c}">${st.l}</span><span class="otime">${agoStr(o.id)||o.time}</span></div>
     <div><span class="oname">${nm}</span>${ph}</div>
     <div class="ometa"><span>${cnt} позиц.</span><span class="sepdot"></span><span>${typeL}</span></div>${acts}</div>`;
 }
@@ -1165,7 +1172,7 @@ async function syncOrdersFromServer(){
     if(!r.ok)return false;
     const d=await r.json();
     if(!(d&&d.ok&&Array.isArray(d.orders)))return false;
-    const srv=d.orders.map(o=>{const b=o.data||{};const items=Array.isArray(b.items)?b.items.map(i=>({id:i.id||i.name,name:i.name,qty:Number(i.qty)||0,price:Number(i.price)||0})):[];const num=Number(o.num);return {id:Number(o.id),num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',items,total:(Number(b.total)||0)+(Number(b.delivery)||0),status:o.status||'new',type:b.type||'delivery',name:b.name||'',phone:b.phone||'',_srv:true,srvId:Number(o.id)};});
+    const srv=d.orders.map(o=>{const b=o.data||{};const items=Array.isArray(b.items)?b.items.map(i=>({id:i.id||i.name,name:i.name,qty:Number(i.qty)||0,price:Number(i.price)||0})):[];const num=Number(o.num);return {id:Number(o.id),num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',ts:Number(o.ts)||Date.now(),items,total:(Number(b.total)||0)+(Number(b.delivery)||0),status:o.status||'new',type:b.type||'delivery',name:b.name||'',phone:b.phone||'',_srv:true,srvId:Number(o.id)};});
     const nums=new Set(srv.map(o=>String(o.num)));
     const local=getOrders().filter(o=>!o._srv||!nums.has(String(o.num)));
     setOrders(srv.concat(local).sort((a,b)=>((b.srvId||b.id||0))-((a.srvId||a.id||0))));

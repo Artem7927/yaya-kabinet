@@ -115,6 +115,30 @@ input:focus,select:focus{border-color:var(--orange)}
 .itbl-head{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:0 4px 8px;font-size:10px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 .xbtn{width:36px;height:36px;padding:0;border-radius:10px;background:var(--card2);border:1px solid var(--line);color:var(--muted);font-size:15px;flex-shrink:0}
 
+/* ЗАКАЗЫ — рабочий экран кухни */
+.ocard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px;margin-bottom:10px}
+.ocard.cook{border-color:rgba(255,169,46,.35)}
+.ocard.done{border-color:rgba(52,208,127,.25)}
+.ocard .ord-head{display:flex;align-items:center;gap:12px;cursor:pointer}
+.ocard .ord-time{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:64px;height:56px;border-radius:14px;flex-shrink:0}
+.ocard .ord-time .v{font-size:26px;font-weight:900;line-height:1;letter-spacing:-1px}
+.ocard .ord-time .l{font-size:9px;font-weight:700;letter-spacing:.02em;opacity:.85;margin-top:2px}
+.ocard .ord-mid{flex:1;min-width:0}
+.ocard .ord-num{font-size:16px;font-weight:800;letter-spacing:-.2px}
+.ocard .ord-when{font-size:11px;color:var(--muted);margin-top:2px}
+.ocard .ord-st{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
+.ocard .ord-body{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.ocard .ord-line{display:flex;justify-content:space-between;font-size:13px;padding:2px 0;color:var(--muted)}
+.ocard .ord-line b{color:var(--text);font-weight:700}
+.ocard .ord-dish{background:var(--card2);border:1px solid var(--line);border-radius:13px;padding:11px;margin-top:9px}
+.ocard .ord-dish.has-short{border-color:var(--red);background:var(--red-soft)}
+.ocard .od-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ocard .od-name{font-size:13px;font-weight:700}
+.ocard .od-st{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
+.ocard .od-tasks{margin-top:7px;display:flex;flex-direction:column;gap:3px}
+.ocard .od-task{display:flex;justify-content:space-between;font-size:11.5px;gap:8px}
+.ocard .od-actions{display:flex;gap:7px;margin-top:10px}
+
 .dcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:10px;cursor:pointer}
 .dcard:active{background:var(--card2)}
 .dcard .dn{font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:7px}
@@ -127,9 +151,10 @@ input:focus,select:focus{border-color:var(--orange)}
 .empty-mini{padding:20px 10px;text-align:center;color:var(--muted2);font-size:13px}
 
 .tabbar{display:flex;flex-shrink:0;background:rgba(16,15,18,.94);backdrop-filter:blur(20px);border-top:1px solid var(--line);padding:8px 4px calc(8px + var(--safe-b))}
-.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;border:none;background:none;color:var(--muted2);cursor:pointer;font-family:inherit;padding:2px}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;border:none;background:none;color:var(--muted2);cursor:pointer;font-family:inherit;padding:2px;position:relative}
 .tab.on{color:var(--orange)}
 .tab .tl{font-size:9px;font-weight:600}
+.tab .tbadge{position:absolute;top:1px;margin-left:26px;min-width:15px;height:15px;padding:0 4px;background:var(--red);border-radius:8px;font-size:9px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
 
 .drawer-bg{position:absolute;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:.25s;z-index:40}
 .drawer-bg.show{opacity:1;pointer-events:auto}
@@ -174,14 +199,26 @@ input:focus,select:focus{border-color:var(--orange)}
 
   <div class="appbar">
     <button class="ib" onclick="openDrawer()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
-    <h1 id="ab-title">Приготовление</h1>
+    <h1 id="ab-title">Заказы</h1>
     <span class="badge-crit" id="crit-badge" style="display:none">0 крит.</span>
   </div>
 
   <div class="screens">
 
+    <!-- ЗАКАЗЫ -->
+    <section class="screen active" id="s-orders" data-title="Заказы">
+      <div class="scroll">
+        <div class="stats3">
+          <div class="stat"><div class="ic ic-orange"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg></div><div class="val" id="ord-total">0</div><div class="lab">Заказов</div></div>
+          <div class="stat"><div class="ic ic-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 20h20L12 2Z"/><path d="M12 9v5M12 17h.01"/></svg></div><div class="val" id="ord-burn">0</div><div class="lab">Горит</div></div>
+          <div class="stat"><div class="ic ic-teal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></div><div class="val" id="ord-done">0</div><div class="lab">Готовых сегодня</div></div>
+        </div>
+        <div id="ord-list"></div>
+      </div>
+    </section>
+
     <!-- ПРИГОТОВЛЕНИЕ -->
-    <section class="screen active" id="s-cook" data-title="Приготовление">
+    <section class="screen" id="s-cook" data-title="Приготовление">
       <div class="scroll">
         <div class="stats3">
           <div class="stat"><div class="ic ic-orange"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg></div><div class="val" id="ck-total">0</div><div class="lab">Пригот. шт</div></div>
@@ -282,7 +319,8 @@ input:focus,select:focus{border-color:var(--orange)}
   </div>
 
   <nav class="tabbar">
-    <button class="tab on" data-tab="cook" onclick="go('cook')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg><span class="tl">Готовка</span></button>
+    <button class="tab on" data-tab="orders" onclick="go('orders')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg><span class="tl">Заказы</span><span class="tbadge" id="ord-badge" style="display:none">0</span></button>
+    <button class="tab" data-tab="cook" onclick="go('cook')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg><span class="tl">Готовка</span></button>
     <button class="tab" data-tab="stock" onclick="go('stock')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9 12 3l9 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 21V12h6v9"/></svg><span class="tl">Склад</span></button>
     <button class="tab" data-tab="tech" onclick="go('tech')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><span class="tl">Техкарты</span></button>
     <button class="tab" data-tab="reports" onclick="go('reports')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/></svg><span class="tl">Отчёты</span></button>
@@ -358,11 +396,11 @@ function getCookLog(){try{return JSON.parse(localStorage.getItem('yaya_cooklog')
 function setCookLog(v){try{localStorage.setItem('yaya_cooklog',JSON.stringify(v))}catch{}}
 const CAT_NAMES={sets:'🎁 Сеты',wings:'🍗 Крылышки',snacks:'🍟 Снеки',burgers:'🍔 Бургеры',doners:'🌯 Донеры',pizza:'🍕 Пицца',bliny:'🥞 Блины',drinks:'🥤 Напитки',coffee:'☕ Кофе',cocktails:'🍦 Коктейли',mohito:'🍹 Мохито',lemonade:'🍋 Лимонад',sauces:'🫙 Соусы'};
 const $=id=>document.getElementById(id);
-let curTab='cook', cookQty=1, stockView='raw', tcCat='all', tcEditId=null;
+let curTab='orders', cookQty=1, stockView='raw', tcCat='all', tcEditId=null;
 const TICON={success:'✓',error:'✕',warn:'!',info:'i'};
 function toast(type,title,sub){const el=document.createElement('div');el.className='tst '+type;el.innerHTML=`<div class="ti">${TICON[type]||'i'}</div><div class="tc"><b>${title}</b>${sub?`<span>${sub}</span>`:''}</div>`;$('toasts').appendChild(el);requestAnimationFrame(()=>el.classList.add('show'));setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),260)},3200);}
 
-function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+tab).classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));$('ab-title').textContent=$('s-'+tab).dataset.title;({cook:renderCook,stock:renderStock,tech:renderTechAll,reports:renderReports,calc:renderCalc}[tab]||(()=>{}))();const sc=$('s-'+tab).querySelector('.scroll');if(sc)sc.scrollTop=0;}
+function go(tab){curTab=tab;document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+tab).classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));$('ab-title').textContent=$('s-'+tab).dataset.title;({orders:renderOrders,cook:renderCook,stock:renderStock,tech:renderTechAll,reports:renderReports,calc:renderCalc}[tab]||(()=>{}))();const sc=$('s-'+tab).querySelector('.scroll');if(sc)sc.scrollTop=0;}
 function openSub(k){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('s-'+k).classList.add('active');$('ab-title').textContent=$('s-'+k).dataset.title;if(k==='ing')renderIng('');}
 function openExt(u){location.href=u}
 function openDrawer(){$('dw-date').textContent=new Date().toLocaleDateString('ru',{day:'numeric',month:'long'});$('drawer').classList.add('show');$('drawer-bg').classList.add('show')}
@@ -370,6 +408,150 @@ function setToken(){const t=prompt('Вставьте токен доступа:'
 function closeDrawer(){$('drawer').classList.remove('show');$('drawer-bg').classList.remove('show')}
 function openSheet(id){$(id).classList.add('show');$('sheet-bg').classList.add('show')}
 function closeSheet(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'));$('sheet-bg').classList.remove('show');if(window.kitPollTick)setTimeout(kitPollTick,0);}
+
+/* ЗАКАЗЫ (рабочий экран кухни) */
+let _ordersCache=null,_ordersT=0,_ordBusy={},_orderExpand={};
+const ORD_STATUS_RU={new:'Новый',cook:'В работе',done:'Готов',fulfilled:'Выдан',cancel:'Отменён'};
+function orderColor(min){
+  if(min<=10)return{col:'var(--green)',soft:'var(--green-soft)',lbl:'до 10 мин'};
+  if(min<=20)return{col:'var(--amber)',soft:'var(--amber-soft)',lbl:'10–20 мин'};
+  return{col:'var(--red)',soft:'var(--red-soft)',lbl:'>20 мин'};
+}
+function ordTimerHtml(ts){
+  const min=Math.max(0,Math.floor((Date.now()-Number(ts))/60000));
+  const c=orderColor(min);
+  return `<div class="ord-time" style="color:${c.col};background:${c.soft}"><span class="v">${min}′</span><span class="l">мин</span></div>`;
+}
+async function fetchOrdersKitchen(){
+  const now=Date.now();if(_ordersCache&&now-_ordersT<8000)return _ordersCache;
+  try{
+    const r=await fetch(YAYA_API+'/orders?limit=80',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+    const d=await r.json();
+    if(d&&d.ok&&Array.isArray(d.orders)){_ordersCache=d.orders;_ordersT=now;return _ordersCache;}
+  }catch(e){}
+  return _ordersCache||[];
+}
+async function fetchOrderTasks(id){
+  try{
+    const r=await fetch(YAYA_API+'/orders/'+encodeURIComponent(id)+'/tasks',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+    const d=await r.json();
+    return (d&&d.ok)?d:null;
+  }catch(e){return null;}
+}
+function ordItemsHtml(b){
+  const items=(b&&Array.isArray(b.items))?b.items:[];
+  if(!items.length)return '—';
+  return items.map(i=>`<div class="ord-line"><span>${i.name||i.id}</span><b>×${i.qty||1}</b></div>`).join('');
+}
+async function renderOrders(){
+  const orders=await fetchOrdersKitchen();
+  const today=new Date().toDateString();
+  const act=orders.filter(o=>o.status==='new'||o.status==='cook');
+  // сортировка: старые сверху по времени оформления (все статусы), горящие не прыгают
+  const sorted=[...orders].sort((a,b)=>Number(a.ts)-Number(b.ts));
+  const el=$('ord-list');
+  $('ord-total').textContent=orders.filter(o=>new Date(Number(o.ts)||Date.now()).toDateString()===today).length;
+  $('ord-burn').textContent=act.filter(o=>Math.floor((Date.now()-Number(o.ts))/60000)>20).length;
+  $('ord-done').textContent=orders.filter(o=>o.status==='done').length;
+  const badge=$('ord-badge');
+  const nNew=act.length;badge.style.display=nNew?'flex':'none';badge.textContent=nNew>99?'99+':nNew;
+  el.innerHTML=sorted.length?sorted.map(o=>{
+    const b=o.data||{},num=o.num||'?';
+    const when=new Date(Number(o.ts)||Date.now()).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+    const sc=o.status==='new'?'var(--blue)':o.status==='cook'?'var(--amber)':o.status==='done'?'var(--green)':o.status==='fulfilled'?'var(--teal)':'var(--muted)';
+    const exp=!!_orderExpand[o.id];
+    return `<div class="ocard ${o.status}">
+      <div class="ord-head" onclick="toggleOrder(${o.id})">
+        ${ordTimerHtml(o.ts)}
+        <div class="ord-mid">
+          <div class="ord-num">#${num}</div>
+          <div class="ord-when">оформлен ${when}</div>
+        </div>
+        <div class="ord-st" style="color:${sc}">${ORD_STATUS_RU[o.status]||o.status}</div>
+      </div>
+      <div class="ord-body" id="ord-body-${o.id}">${exp?('загрузка…'):ordItemsHtml(b)}</div>
+    </div>`;
+  }).join(''):'<div class="empty-mini">Заказов пока нет</div>';
+  // раскрытые — догрузить задачи
+  Object.keys(_orderExpand).forEach(id=>{
+    if(_orderExpand[id]&&$('ord-body-'+id))loadOrderTasks(id);
+  });
+  updCrit();
+}
+function toggleOrder(id){
+  _orderExpand[id]=!_orderExpand[id];
+  const body=$('ord-body-'+id);
+  if(_orderExpand[id]){body.innerHTML='<div class="empty-mini">загрузка…</div>';loadOrderTasks(id);}
+  else{const o=_ordersCache.find(x=>String(x.id)===String(id));if(o)body.innerHTML=ordItemsHtml(o.data||{});}
+}
+async function loadOrderTasks(id){
+  const o=_ordersCache.find(x=>String(x.id)===String(id));
+  if(!o)return;
+  const d=await fetchOrderTasks(id);
+  if(!d){const el=$('ord-body-'+id);if(el)el.innerHTML='<div class="empty-mini">Не удалось загрузить задачи</div>';return;}
+  const body=$('ord-body-'+id);
+  if(!body)return;
+  const ds=d.dish_status||{},tasks=d.tasks||[];
+  const locked=(o.status==='done'||o.status==='fulfilled'||o.status==='cancel');
+  body.innerHTML=tasks.map(t=>{
+    const st=ds[t.dishId]||{status:'new',qty:t.qty};
+    const rowCls=t.noRecipe?'':(t.tasks.some(x=>!x.enough)?' has-short':'');
+    const stLbl=st.status==='done'?'Готово':st.status==='cook'?'В работе':'Взять';
+    const stCol=st.status==='done'?'var(--green)':st.status==='cook'?'var(--amber)':'var(--blue)';
+    let inner=`<div class="ord-dish" data-did="${t.dishId}">
+      <div class="od-top">
+        <div class="od-name">${t.noRecipe?'⚠ ':(findMenuItem(t.dishId)?findMenuItem(t.dishId).emoji+' ':'' )}${t.dishName} <span class="muted">×${t.qty||1}</span></div>
+        <div class="od-st" style="color:${stCol}">${stLbl}</div>
+      </div>`;
+    if(!t.noRecipe){
+      inner+=`<div class="od-tasks">`+t.tasks.map(x=>{
+        const en=x.enough,col=en?'var(--text)':'var(--red)';
+        return `<div class="od-task" style="color:${col}"><span>${x.name}</span><span>${x.need.toFixed(x.unit==='шт.'||x.unit==='бут.'?0:2)} ${x.unit}${en?'':' ⚠ не хватает'}</span></div>`;
+      }).join('')+`</div>`;
+    }
+    if(st.status==='done'){inner+=`</div>`;return inner;}
+    if(locked){inner+=`</div>`;return inner;}
+    let actions='';
+    if(st.status==='new')actions=`<button class="btn btn-ghost" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${t.dishId}','take')">Взял</button>`;
+    if(st.status==='cook')actions=(t.tasks.some(x=>!x.enough))
+      ?`<button class="btn btn-primary" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${t.dishId}','done')">Готово</button><button class="btn" style="flex:1;padding:9px;color:var(--red)" onclick="ordReqPf(${o.id},'${t.dishId}')">Запросить у цеха</button>`
+      :`<button class="btn btn-primary" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${t.dishId}','done')">Готово</button>`;
+    inner+=`<div class="od-actions">${actions}</div></div>`;
+    return inner;
+  }).join('')||'<div class="empty-mini">Нет задач</div>';
+}
+async function ordItem(id,did,action){
+  if(_ordBusy[id+':'+did+':'+action])return;_ordBusy[id+':'+did+':'+action]=true;
+  try{
+    const r=await fetch(YAYA_API+'/orders/'+encodeURIComponent(id)+'/item',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({dishId:did,action}),cache:'no-store'});
+    const d=await r.json();
+    if(r.ok&&d&&d.ok){
+      _ordersCache=null;
+      if(d.order_status==='done')toast('success','Заказ готов','Последнее блюдо закрыто — заказ ушёл в готов');
+      else toast('success',action==='take'?'Взято в работу':'Блюдо готово','');
+      _stockCache=null;_pfCache=null;renderOrders();
+    }else toast('warn','Не удалось',(d&&d.error)||'');
+  }catch(e){toast('error','Ошибка сети','');}
+  finally{delete _ordBusy[id+':'+did+':'+action];}
+}
+async function ordReqPf(id,did,btn){
+  const o=_ordersCache&&_ordersCache.find(x=>String(x.id)===String(id));
+  const dish=(o&&o.data&&Array.isArray(o.data.items)&&o.data.items.find(x=>String(x.id)===did));
+  if(!dish)return;
+  const tc=getTechCards(),rows=tc[did]||[];
+  const pfIds=rows.filter(r=>getWsStock().some(s=>String(s.id)===String(r.ingId))||/^p\d+$/.test(r.ingId)||String(r.ingId).indexOf('ready_')===0).map(r=>r.ingId);
+  if(!pfIds.length){toast('warn','Нет ПФ для запроса','Проверьте состав блюда');return;}
+  let okN=0;
+  for(const pid of pfIds){const ok=await reqPfQuiet(pid);if(ok)okN++;}
+  if(okN)toast('info','Запрос у цеха отправлен','');
+  _pfCache=null;renderPf();renderOrders();
+}
+async function reqPfQuiet(id){
+  try{
+    const r=await fetch(YAYA_API+'/pf-requests',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({item_id:id}),cache:'no-store'});
+    const d=await r.json();return r.ok&&d&&d.ok;
+  }catch(e){return false;}
+}
 async function critCount(){const st=(await fetchStockSrv())||getStock();return st.filter(i=>i.location==='kitchen'&&i.qty<i.min).length}
 async function updCrit(){const c=await critCount(),b=$('crit-badge');b.textContent=c+' крит.';b.style.display=c?'inline-block':'none';}
 function statusOf(i){const crit=i.qty<i.min,low=i.qty<i.min*1.5;return crit?['Критично','var(--red)']:low?['Мало','var(--amber)']:['Норма','var(--green)'];}
@@ -670,14 +852,14 @@ function kitPollTick(){
   if(!_kitPollActive())return;
   const sc=document.querySelector('.screen.active');
   const id=sc?sc.id.replace('s-',''):curTab;
-  const fn={cook:renderCook,stock:renderStock,tech:renderTechAll,reports:renderReports,calc:renderCalc,ing:()=>renderIng(window._ingQ||'')}[id];
+  const fn={orders:renderOrders,cook:renderCook,stock:renderStock,tech:renderTechAll,reports:renderReports,calc:renderCalc,ing:()=>renderIng(window._ingQ||'')}[id];
   if(fn)fn();
 }
-setInterval(()=>{if(!document.hidden)kitPollTick();},15000);
+setInterval(()=>{if(!document.hidden)kitPollTick();},8000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)kitPollTick();});
 
-renderCook();
-window.addEventListener('yaya-menu-ready', () => { renderCook(); renderTechAll(); renderCalc(); });
+renderOrders(); renderCook();
+window.addEventListener('yaya-menu-ready', () => { renderOrders(); renderCook(); renderTechAll(); renderCalc(); });
 </script>
 <script>if('serviceWorker' in navigator){
   var _hadCtrl=!!navigator.serviceWorker.controller,_swBusy=false,_swWait=false;

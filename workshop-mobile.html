@@ -112,6 +112,22 @@ input:focus,select:focus{border-color:var(--orange)}
 .ist{font-size:10px;font-weight:800;text-align:right;text-transform:uppercase;letter-spacing:.3px}
 .ibar{height:5px;border-radius:3px;background:var(--card2);margin-top:9px;overflow:hidden}
 .ibar i{display:block;height:100%;border-radius:3px}
+
+/* общая лента заказов (read-only) */
+.ocard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px;margin-bottom:10px}
+.ocard.cook{border-color:rgba(255,169,46,.35)}
+.ocard.done{border-color:rgba(52,208,127,.25)}
+.ocard .ord-head{display:flex;align-items:center;gap:12px}
+.ocard .ord-time{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:64px;height:56px;border-radius:14px;flex-shrink:0}
+.ocard .ord-time .v{font-size:26px;font-weight:900;line-height:1;letter-spacing:-1px}
+.ocard .ord-time .l{font-size:9px;font-weight:700;letter-spacing:.02em;opacity:.85;margin-top:2px}
+.ocard .ord-mid{flex:1;min-width:0}
+.ocard .ord-num{font-size:16px;font-weight:800;letter-spacing:-.2px}
+.ocard .ord-when{font-size:11px;color:var(--muted);margin-top:2px}
+.ocard .ord-st{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
+.ocard .ord-body{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.ocard .ord-line{display:flex;justify-content:space-between;font-size:13px;padding:2px 0;color:var(--muted)}
+.ocard .ord-line b{color:var(--text);font-weight:700}
 .itbl-head{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:0 4px 8px;font-size:10px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 .xbtn{width:36px;height:36px;padding:0;border-radius:10px;background:var(--card2);border:1px solid var(--line);color:var(--muted);font-size:15px;flex-shrink:0}
 
@@ -237,6 +253,18 @@ input:focus,select:focus{border-color:var(--orange)}
       </div>
     </section>
 
+    <!-- ОБЩАЯ ЛЕНТА ЗАКАЗОВ (read-only, цех) -->
+    <section class="screen" id="s-orders" data-title="Заказы">
+      <div class="scroll">
+        <div class="stats3">
+          <div class="stat"><div class="ic ic-orange"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/></svg></div><div class="val" id="ord-total">0</div><div class="lab">Заказов</div></div>
+          <div class="stat"><div class="ic ic-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg></div><div class="val" id="ord-active">0</div><div class="lab">В работе</div></div>
+          <div class="stat"><div class="ic ic-teal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></div><div class="val" id="ord-done">0</div><div class="lab">Готовых сегодня</div></div>
+        </div>
+        <div id="ord-list"></div>
+      </div>
+    </section>
+
     <!-- ОТЧЁТЫ -->
     <section class="screen" id="s-reports" data-title="Отчёты">
       <div class="scroll">
@@ -265,6 +293,7 @@ input:focus,select:focus{border-color:var(--orange)}
 
   <nav class="tabbar">
     <button class="tab on" data-tab="prod" onclick="go('prod')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M4 20V8l5 4V8l5 4V4l6 4v12"/></svg><span class="tl">Произв.</span></button>
+    <button class="tab" data-tab="orders" onclick="go('orders')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg><span class="tl">Заказы</span></button>
     <button class="tab" data-tab="stock" onclick="go('stock')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21 8-9-5-9 5 9 5 9-5ZM3 8v8l9 5 9-5V8"/></svg><span class="tl">Склад</span></button>
     <button class="tab" data-tab="recipes" onclick="go('recipes')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg><span class="tl">Рецепты</span></button>
     <button class="tab" data-tab="reports" onclick="go('reports')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/></svg><span class="tl">Отчёты</span></button>
@@ -347,6 +376,7 @@ function go(tab){
   $('ab-title').textContent=$('s-'+tab).dataset.title;
   if(tab==='prod'){(async()=>{await syncWsRecipes();renderProd();})();}
   else if(tab==='recipes'){(async()=>{await syncWsRecipes();renderRecipes();})();}
+  else if(tab==='orders')renderOrdersWs();
   else{({stock:renderStock,reports:renderReports}[tab]||(()=>{}))();}
   const sc=$('s-'+tab).querySelector('.scroll');if(sc)sc.scrollTop=0;
 }
@@ -359,6 +389,46 @@ function openSheet(id){$(id).classList.add('show');$('sheet-bg').classList.add('
 function closeSheet(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'));$('sheet-bg').classList.remove('show');if(window.wsPollTick)setTimeout(wsPollTick,0);}
 async function critCount(){const st=(await fetchStockSrv())||getStock();return st.filter(i=>(!i.location||i.location==='workshop')&&i.qty<i.min).length}
 async function updCrit(){const c=await critCount(),b=$('crit-badge');b.textContent=c+' крит.';b.style.display=c?'inline-block':'none';}
+
+/* ОБЩАЯ ЛЕНТА ЗАКАЗОВ — read-only (цех смотрит) */
+let _wsOrdersCache=null,_wsOrdersT=0;
+const _owsRu={new:'Новый',cook:'В работе',done:'Готов',fulfilled:'Выдан',cancel:'Отменён'};
+function _owsColor(min){if(min<=10)return{col:'var(--green)',soft:'var(--green-soft)'};if(min<=20)return{col:'var(--amber)',soft:'var(--amber-soft)'};return{col:'var(--red)',soft:'var(--red-soft)'};}
+async function fetchOrdersWs(){
+  const now=Date.now();if(_wsOrdersCache&&now-_wsOrdersT<8000)return _wsOrdersCache;
+  try{
+    const r=await fetch(YAYA_API+'/orders?limit=80',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+    const d=await r.json();
+    if(d&&d.ok&&Array.isArray(d.orders)){_wsOrdersCache=d.orders;_wsOrdersT=now;return _wsOrdersCache;}
+  }catch(e){}
+  return _wsOrdersCache||[];
+}
+async function renderOrdersWs(){
+  const orders=await fetchOrdersWs();
+  const today=new Date().toDateString();
+  const sorted=[...orders].sort((a,b)=>Number(a.ts)-Number(b.ts));
+  const act=orders.filter(o=>o.status==='new'||o.status==='cook');
+  const el=$('ord-list');
+  $('ord-total').textContent=orders.filter(o=>new Date(Number(o.ts)||Date.now()).toDateString()===today).length;
+  $('ord-active').textContent=act.length;
+  $('ord-done').textContent=orders.filter(o=>o.status==='done'&&new Date(Number(o.ts)||Date.now()).toDateString()===today).length;
+  el.innerHTML=sorted.length?sorted.map(o=>{
+    const b=o.data||{},num=o.num||'?';
+    const min=Math.max(0,Math.floor((Date.now()-Number(o.ts))/60000)),c=_owsColor(min);
+    const when=new Date(Number(o.ts)||Date.now()).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+    const sc=o.status==='new'?'var(--blue)':o.status==='cook'?'var(--amber)':o.status==='done'?'var(--green)':o.status==='fulfilled'?'var(--teal)':'var(--muted)';
+    const items=(b&&Array.isArray(b.items)?b.items:[]).map(i=>`<div class="ord-line"><span>${i.name||i.id}</span><b>×${i.qty||1}</b></div>`).join('');
+    return `<div class="ocard ${o.status}">
+      <div class="ord-head">
+        <div class="ord-time" style="color:${c.col};background:${c.soft}"><span class="v">${min}′</span><span class="l">мин</span></div>
+        <div class="ord-mid"><div class="ord-num">#${num}</div><div class="ord-when">оформлен ${when}</div></div>
+        <div class="ord-st" style="color:${sc}">${_owsRu[o.status]||o.status}</div>
+      </div>
+      <div class="ord-body">${items||'—'}</div>
+    </div>`;
+  }).join(''):'<div class="empty-mini">Заказов пока нет</div>';
+  updCrit();
+}
 
 /* status helper */
 function statusOf(i){const crit=i.qty<i.min,low=i.qty<i.min*1.5;return crit?['Критично','var(--red)']:low?['Мало','var(--amber)']:['Норма','var(--green)'];}
@@ -546,7 +616,7 @@ function wsPollTick(){
   if(!_wsPollActive())return;
   const sc=document.querySelector('.screen.active');
   const id=sc?sc.id.replace('s-',''):curTab;
-  const fn={prod:()=>renderProd(),stock:renderStock,recipes:renderRecipes,reports:renderReports,ing:()=>renderIng(window._ingQ||'')}[id];
+  const fn={prod:()=>renderProd(),stock:renderStock,recipes:renderRecipes,reports:renderReports,orders:renderOrdersWs,ing:()=>renderIng(window._ingQ||'')}[id];
   if(fn)fn();
 }
 setInterval(()=>{if(!document.hidden)wsPollTick();},15000);
