@@ -413,7 +413,7 @@ function openSheet(id){$(id).classList.add('show');$('sheet-bg').classList.add('
 function closeSheet(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'));$('sheet-bg').classList.remove('show');if(window.kitPollTick)setTimeout(kitPollTick,0);}
 
 /* ЗАКАЗЫ (рабочий экран кухни) */
-let _ordersCache=null,_ordersT=0,_ordBusy={},_orderExpand={};
+let _ordersCache=null,_ordersT=0,_ordBusy={},_orderIsOpen=new Set(),_orderTasksLoaded={};
 const ORD_STATUS_RU={new:'Новый',cook:'В работе',done:'Готов',fulfilled:'Выдан',cancel:'Отменён'};
 function orderColor(min){
   if(min<=10)return{col:'var(--green)',soft:'var(--green-soft)',lbl:'до 10 мин'};
@@ -447,15 +447,12 @@ function ordItemsHtml(b){
   return items.map(i=>`<div class="ord-line"><span>${i.name||i.id}</span><b>×${i.qty||1}</b></div>`).join('');
 }
 function isTodayOrder(o){return new Date(Number(o.ts)||Date.now()).toDateString()===new Date().toDateString();}
-function ordCard(o){
-  if(!o||typeof o!=='object')return '';
-  const b=o.data||{},num=o.num||'?';
+function ordCardInner(o,bodyHTML){
+  const num=o.num||'?';
   const st=o.status||'';
   const when=new Date(Number(o.ts)||Date.now()).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
   const sc=st==='new'?'var(--blue)':st==='cook'?'var(--amber)':st==='done'?'var(--green)':st==='fulfilled'?'var(--teal)':'var(--muted)';
-  const exp=!!_orderExpand[o.id];
-  return `<div class="ocard ${st}">
-    <div class="ord-head" onclick="toggleOrder(${o.id})">
+  return `<div class="ord-head" onclick="toggleOrder(${o.id})">
       ${ordTimerHtml(o.ts)}
       <div class="ord-mid">
         <div class="ord-num">#${num}</div>
@@ -463,8 +460,40 @@ function ordCard(o){
       </div>
       <div class="ord-st" style="color:${sc}">${ORD_STATUS_RU[st]||st}</div>
     </div>
-    <div class="ord-body" id="ord-body-${o.id}">${exp?('загрузка…'):ordItemsHtml(b)}</div>
-  </div>`;
+    <div class="ord-body" id="ord-body-${o.id}">${bodyHTML}</div>`;
+}
+function ordCreateCard(o){
+  if(!o||typeof o!=='object')return null;
+  const id=String(o.id);
+  const open=_orderIsOpen.has(id);
+  const bodyHTML=open?'<div class="empty-mini">загрузка…</div>':ordItemsHtml(o.data||{});
+  if(open)delete _orderTasksLoaded[id];
+  const div=document.createElement('div');
+  div.id='ord-card-'+id;
+  div.dataset.oid=id;
+  div.className='ocard '+(o.status||'');
+  div.innerHTML=ordCardInner(o,bodyHTML);
+  return div;
+}
+function ordPatchCard(node,o){
+  if(!o||typeof o!=='object'||!node)return;
+  const st=o.status||'';
+  const t=node.querySelector('.ord-time .v');
+  if(t)t.textContent=Math.max(0,Math.floor((Date.now()-Number(o.ts))/60000))+'′';
+  const sc=st==='new'?'var(--blue)':st==='cook'?'var(--amber)':st==='done'?'var(--green)':st==='fulfilled'?'var(--teal)':'var(--muted)';
+  const stEl=node.querySelector('.ord-st');
+  if(stEl){stEl.textContent=ORD_STATUS_RU[st]||st;stEl.style.color=sc;}
+  node.className='ocard '+st;
+}
+function ordSyncBody(node,o,id){
+  const body=$('ord-body-'+id);
+  if(!body)return;
+  if(_orderIsOpen.has(id)){
+    if(!_orderTasksLoaded[id]&&body.dataset.init!=='1')body.innerHTML='<div class="empty-mini">загрузка…</div>';
+  }else{
+    const sum=ordItemsHtml(o.data||{});
+    if(body.innerHTML!==sum)body.innerHTML=sum;
+  }
 }
 function ordFilter(orders,seg){
   const objs=Array.isArray(orders)?orders.filter(o=>o&&typeof o==='object'):[];
@@ -497,38 +526,72 @@ async function renderOrders(){
   // сортировка: старые сверху по времени оформления, горящие не прыгают
   const list=ordFilter(orders,_ordTab).sort((a,b)=>Number(a.ts)-Number(b.ts));
   const el=$('ord-list');
-  el.innerHTML=list.length?list.map(ordCard).join(''):'<div class="empty-mini">Нет заказов</div>';
-  // раскрытые — догрузить задачи (всегда завершается: успех→задачи, ошибка/пусто→явный текст)
-  Object.keys(_orderExpand).forEach(id=>{
-    if(_orderExpand[id]&&$('ord-body-'+id))loadOrderTasks(id);
+  const want=new Map(list.map(o=>[String(o.id),o]));
+  // удалить карточки, которых больше нет в списке
+  [...el.children].forEach(ch=>{if(ch.classList.contains('ocard')&&ch.dataset.oid&&!want.has(ch.dataset.oid))ch.remove();});
+  // обновить существующие/добавить новые на месте (in-place), раскрытый DOM не пересоздаётся
+  let prev=null;
+  for(const o of list){
+    const id=String(o.id),node=$('ord-card-'+id);
+    if(node){
+      ordPatchCard(node,o);
+      ordSyncBody(node,o,id);
+      if(prev&&prev.nextSibling!==node)prev.after(node);
+      else if(!prev&&el.firstChild!==node)el.prepend(node);
+    }else{
+      const fresh=ordCreateCard(o);
+      if(fresh){
+        if(prev)prev.after(fresh);else el.prepend(fresh);
+      }
+    }
+    prev=node||$('ord-card-'+id);
+  }
+  if(!el.querySelector('.ocard'))el.innerHTML='<div class="empty-mini">Нет заказов</div>';
+  // догрузить задачи только для открытых, ещё не загруженных карточек (уже загруженные не трогаем)
+  _orderIsOpen.forEach(id=>{
+    const o=want.get(id),b=o&&$('ord-body-'+id);
+    if(b&&!_orderTasksLoaded[id]&&!b.dataset.init)loadOrderTasks(id);
   });
   updCrit();
 }
 function toggleOrder(id){
-  _orderExpand[id]=!_orderExpand[id];
+  id=String(id);
   const body=$('ord-body-'+id);
-  if(_orderExpand[id]){body.innerHTML='<div class="empty-mini">загрузка…</div>';loadOrderTasks(id);}
-  else{const o=_ordersCache.find(x=>String(x.id)===String(id));if(o)body.innerHTML=ordItemsHtml(o.data||{});}
+  if(_orderIsOpen.has(id)){
+    _orderIsOpen.delete(id);
+    const o=_ordersCache.find(x=>String(x.id)===id);
+    if(body){body.dataset.init='';body.innerHTML=o?ordItemsHtml(o.data||{}):'<div class="empty-mini">Нет данных</div>';}
+  }else{
+    _orderIsOpen.add(id);
+    delete _orderTasksLoaded[id];
+    if(body){body.dataset.init='1';body.innerHTML='<div class="empty-mini">загрузка…</div>';}
+    loadOrderTasks(id);
+  }
 }
 async function loadOrderTasks(id){
-  const o=_ordersCache.find(x=>String(x.id)===String(id));
+  id=String(id);
+  const o=_ordersCache.find(x=>String(x.id)===id);
   if(!o)return;
-  const d=await fetchOrderTasks(id);
-  if(!d){const el=$('ord-body-'+id);if(el)el.innerHTML='<div class="empty-mini">Не удалось загрузить задачи</div>';return;}
   const body=$('ord-body-'+id);
   if(!body)return;
+  body.dataset.init='1';
+  const d=await fetchOrderTasks(id);
+  if(!d){body.dataset.init='';body.innerHTML='<div class="empty-mini">Не удалось загрузить задачи</div>';return;}
+  _orderTasksLoaded[id]=true;
+  body.dataset.init='1';
   const ds=d.dish_status||{},tasks=Array.isArray(d.tasks)?d.tasks:[];
   const locked=(o.status==='done'||o.status==='fulfilled'||o.status==='cancel');
+  try{
   body.innerHTML=tasks.map(t=>{
     if(!t||typeof t!=='object')return '';
-    const st=ds[t.dishId]||{status:'new',qty:t.qty};
+    const st=ds[String(t.dishId)]||{status:'new',qty:1};
     const subtasks=Array.isArray(t.tasks)?t.tasks:[];
     const rowCls=t.noRecipe?'':(subtasks.some(x=>x&&!x.enough)?' has-short':'');
     const stLbl=st.status==='done'?'Готово':st.status==='cook'?'В работе':'Взять';
     const stCol=st.status==='done'?'var(--green)':st.status==='cook'?'var(--amber)':'var(--blue)';
     let inner=`<div class="ord-dish" data-did="${t.dishId}">
       <div class="od-top">
-        <div class="od-name">${t.dishName} <span class="muted">×${t.qty||1}</span></div>
+        <div class="od-name">${t.dishName||''} <span class="muted">×${t.qty||1}</span></div>
         <div class="od-st" style="color:${stCol}">${stLbl}</div>
       </div>`;
     if(!t.noRecipe){
@@ -549,6 +612,12 @@ async function loadOrderTasks(id){
     inner+=`<div class="od-actions">${actions}</div></div>`;
     return inner;
   }).join('')||'<div class="empty-mini">Нет задач</div>';
+  }catch(err){
+    console.error('loadOrderTasks',err.stack||err);
+    _orderTasksLoaded[id]=false;
+    body.dataset.init='';
+    body.innerHTML='<div class="empty-mini">Не удалось загрузить задачи</div>';
+  }
 }
 async function ordItem(id,did,action){
   if(_ordBusy[id+':'+did+':'+action])return;_ordBusy[id+':'+did+':'+action]=true;
@@ -559,7 +628,9 @@ async function ordItem(id,did,action){
       _ordersCache=null;
       if(d.order_status==='done')toast('success','Заказ готов','Последнее блюдо закрыто — заказ ушёл в готов');
       else toast('success',action==='take'?'Взято в работу':'Блюдо готово','');
-      _stockCache=null;_pfCache=null;renderOrders();
+      _stockCache=null;_pfCache=null;
+      if(_orderIsOpen.has(String(id))){delete _orderTasksLoaded[String(id)];const b=$('ord-body-'+id);if(b){b.dataset.init='';b.innerHTML='<div class="empty-mini">загрузка…</div>';}loadOrderTasks(id);}
+      renderOrders();
     }else toast('warn','Не удалось',(d&&d.error)||'');
   }catch(e){console.error('ordItem',e.stack||e);toast('error','Ошибка сети','');}
   finally{delete _ordBusy[id+':'+did+':'+action];}
