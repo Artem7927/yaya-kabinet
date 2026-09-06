@@ -570,7 +570,7 @@ function toggleOrder(id){
 }
 async function loadOrderTasks(id){
   id=String(id);
-  const o=_ordersCache.find(x=>String(x.id)===id);
+  const o=Array.isArray(_ordersCache)?_ordersCache.find(x=>String(x.id)===id):null;
   if(!o)return;
   const body=$('ord-body-'+id);
   if(!body)return;
@@ -579,7 +579,7 @@ async function loadOrderTasks(id){
   if(!d){body.dataset.init='';body.innerHTML='<div class="empty-mini">Не удалось загрузить задачи</div>';return;}
   _orderTasksLoaded[id]=true;
   body.dataset.init='1';
-  const ds=d.dish_status||{},tasks=Array.isArray(d.tasks)?d.tasks:[];
+  const ds=(d&&(d.dish_status||d.items_status))||{},tasks=Array.isArray(d.tasks)?d.tasks:[];
   const locked=(o.status==='done'||o.status==='fulfilled'||o.status==='cancel');
   try{
   body.innerHTML=tasks.map(t=>{
@@ -620,20 +620,24 @@ async function loadOrderTasks(id){
   }
 }
 async function ordItem(id,did,action){
-  if(_ordBusy[id+':'+did+':'+action])return;_ordBusy[id+':'+did+':'+action]=true;
+  const key=String(id)+':'+did+':'+action;
+  if(_ordBusy[key])return;_ordBusy[key]=true;
   try{
-    const r=await fetch(YAYA_API+'/orders/'+encodeURIComponent(id)+'/item',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({dishId:did,action}),cache:'no-store'});
-    const d=await r.json();
+    const r=await fetch(YAYA_API+'/orders/'+encodeURIComponent(id)+'/item',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify({dishId:String(did),action}),cache:'no-store'});
+    let d=null;try{d=await r.json();}catch(e){d=null;}
     if(r.ok&&d&&d.ok){
       _ordersCache=null;
-      if(d.order_status==='done')toast('success','Заказ готов','Последнее блюдо закрыто — заказ ушёл в готов');
-      else toast('success',action==='take'?'Взято в работу':'Блюдо готово','');
       _stockCache=null;_pfCache=null;
-      if(_orderIsOpen.has(String(id))){delete _orderTasksLoaded[String(id)];const b=$('ord-body-'+id);if(b){b.dataset.init='';b.innerHTML='<div class="empty-mini">загрузка…</div>';}loadOrderTasks(id);}
+      const st=(d&&d.order&&(d.order.status||d.order.order_status))||(d&&d.order_status)||'';
+      if(st==='done')toast('success','Заказ готов','Последнее блюдо закрыто — заказ ушёл в готов');
+      else toast('success',action==='take'?'Взято в работу':'Блюдо готово','');
+      if(_orderIsOpen.has(String(id))){delete _orderTasksLoaded[String(id)];const b=$('ord-body-'+id);if(b){b.dataset.init='';b.innerHTML='<div class="empty-mini">загрузка…</div>';}}
       renderOrders();
-    }else toast('warn','Не удалось',(d&&d.error)||'');
+    }else if(!r.ok){
+      toast('warn','Не удалось',(d&&(d.error||d.message))||'Сервер ответил ошибкой');
+    }
   }catch(e){console.error('ordItem',e.stack||e);toast('error','Ошибка сети','');}
-  finally{delete _ordBusy[id+':'+did+':'+action];}
+  finally{delete _ordBusy[key];}
 }
 async function ordReqPf(id,did,btn){
   const o=_ordersCache&&_ordersCache.find(x=>String(x.id)===String(id));
