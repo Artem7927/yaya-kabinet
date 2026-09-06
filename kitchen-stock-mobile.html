@@ -587,13 +587,14 @@ async function loadOrderTasks(id){
   try{
   body.innerHTML=tasks.map(t=>{
     if(!t||typeof t!=='object')return '';
-    const st=ds[String(t.dishId)]||{status:'new',qty:1};
+    const did=(t.dishId!=null)?String(t.dishId):'';
+    const st=did?ds[did]||{status:'new',qty:1}:{status:'new',qty:1};
     const sts=(st&&st.status)||'new';
     const subtasks=Array.isArray(t.tasks)?t.tasks:[];
     const rowCls=t.noRecipe?'':(subtasks.some(x=>x&&!x.enough)?' has-short':'');
     const stLbl=sts==='done'?'Готово':sts==='cook'?'В работе':'Взять';
     const stCol=sts==='done'?'var(--green)':sts==='cook'?'var(--amber)':'var(--blue)';
-    let inner=`<div class="ord-dish" data-did="${t.dishId}">
+    let inner=`<div class="ord-dish" data-did="${did}">
       <div class="od-top">
         <div class="od-name">${t.dishName||''} <span class="muted">×${t.qty||1}</span></div>
         <div class="od-st" style="color:${stCol}">${stLbl}</div>
@@ -609,10 +610,11 @@ async function loadOrderTasks(id){
     if(sts==='done'){inner+=`</div>`;return inner;}
     if(locked){inner+=`</div>`;return inner;}
     let actions='';
-    if(sts==='new')actions=`<button class="btn btn-ghost" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${t.dishId}','take')">Взял</button>`;
+    if(!did){inner+=`<div class="od-actions">${actions}</div></div>`;return inner;}
+    if(sts==='new')actions=`<button class="btn btn-ghost" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${did}','take')">Взял</button>`;
     if(sts==='cook')actions=(subtasks.some(x=>x&&!x.enough))
-      ?`<button class="btn btn-primary" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${t.dishId}','done')">Готово</button><button class="btn" style="flex:1;padding:9px;color:var(--red)" onclick="ordReqPf(${o.id},'${t.dishId}')">Запросить у цеха</button>`
-      :`<button class="btn btn-primary" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${t.dishId}','done')">Готово</button>`;
+      ?`<button class="btn btn-primary" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${did}','done')">Готово</button><button class="btn" style="flex:1;padding:9px;color:var(--red)" onclick="ordReqPf(${o.id},'${did}')">Запросить у цеха</button>`
+      :`<button class="btn btn-primary" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${did}','done')">Готово</button>`;
     inner+=`<div class="od-actions">${actions}</div></div>`;
     return inner;
   }).join('')||'<div class="empty-mini">Нет задач</div>';
