@@ -512,6 +512,7 @@ function ordSeg(v){
 }
 async function renderOrders(){
   const raw=await fetchOrdersKitchen();
+  try{
   const orders=Array.isArray(raw)?raw.filter(o=>o&&typeof o==='object'):[];
   const todayOrders=orders.filter(isTodayOrder);
   const newOnes=todayOrders.filter(o=>(o.status||'')==='new');
@@ -550,22 +551,23 @@ async function renderOrders(){
   // догрузить задачи только для открытых, ещё не загруженных карточек (уже загруженные не трогаем)
   _orderIsOpen.forEach(id=>{
     const o=want.get(id),b=o&&$('ord-body-'+id);
-    if(b&&!_orderTasksLoaded[id]&&!b.dataset.init)loadOrderTasks(id);
+    if(b&&!_orderTasksLoaded[id]&&!b.dataset.init){const p=loadOrderTasks(id);if(p&&p.catch)p.catch(()=>{});}
   });
   updCrit();
+  }catch(err){console.error('GLOBAL',err.message,(err&&err.stack)||err);}
 }
 function toggleOrder(id){
   id=String(id);
   const body=$('ord-body-'+id);
   if(_orderIsOpen.has(id)){
     _orderIsOpen.delete(id);
-    const o=_ordersCache.find(x=>String(x.id)===id);
+    const o=Array.isArray(_ordersCache)?_ordersCache.find(x=>String(x.id)===id):null;
     if(body){body.dataset.init='';body.innerHTML=o?ordItemsHtml(o.data||{}):'<div class="empty-mini">Нет данных</div>';}
   }else{
     _orderIsOpen.add(id);
     delete _orderTasksLoaded[id];
     if(body){body.dataset.init='1';body.innerHTML='<div class="empty-mini">загрузка…</div>';}
-    loadOrderTasks(id);
+    const p=loadOrderTasks(id);if(p&&p.catch)p.catch(()=>{});
   }
 }
 async function loadOrderTasks(id){
@@ -580,15 +582,17 @@ async function loadOrderTasks(id){
   _orderTasksLoaded[id]=true;
   body.dataset.init='1';
   const ds=(d&&(d.dish_status||d.items_status))||{},tasks=Array.isArray(d.tasks)?d.tasks:[];
-  const locked=(o.status==='done'||o.status==='fulfilled'||o.status==='cancel');
+  const os=(o&&o.status)||'';
+  const locked=(os==='done'||os==='fulfilled'||os==='cancel');
   try{
   body.innerHTML=tasks.map(t=>{
     if(!t||typeof t!=='object')return '';
     const st=ds[String(t.dishId)]||{status:'new',qty:1};
+    const sts=(st&&st.status)||'new';
     const subtasks=Array.isArray(t.tasks)?t.tasks:[];
     const rowCls=t.noRecipe?'':(subtasks.some(x=>x&&!x.enough)?' has-short':'');
-    const stLbl=st.status==='done'?'Готово':st.status==='cook'?'В работе':'Взять';
-    const stCol=st.status==='done'?'var(--green)':st.status==='cook'?'var(--amber)':'var(--blue)';
+    const stLbl=sts==='done'?'Готово':sts==='cook'?'В работе':'Взять';
+    const stCol=sts==='done'?'var(--green)':sts==='cook'?'var(--amber)':'var(--blue)';
     let inner=`<div class="ord-dish" data-did="${t.dishId}">
       <div class="od-top">
         <div class="od-name">${t.dishName||''} <span class="muted">×${t.qty||1}</span></div>
@@ -602,11 +606,11 @@ async function loadOrderTasks(id){
         return `<div class="od-task" style="color:${col}"><span>${x&&x.name||''}</span><span>${need.toFixed(unit==='шт.'||unit==='бут.'?0:2)} ${unit}${en?'':' &mdash; не хватает'}</span></div>`;
       }).join('')+`</div>`;
     }
-    if(st.status==='done'){inner+=`</div>`;return inner;}
+    if(sts==='done'){inner+=`</div>`;return inner;}
     if(locked){inner+=`</div>`;return inner;}
     let actions='';
-    if(st.status==='new')actions=`<button class="btn btn-ghost" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${t.dishId}','take')">Взял</button>`;
-    if(st.status==='cook')actions=(subtasks.some(x=>x&&!x.enough))
+    if(sts==='new')actions=`<button class="btn btn-ghost" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${t.dishId}','take')">Взял</button>`;
+    if(sts==='cook')actions=(subtasks.some(x=>x&&!x.enough))
       ?`<button class="btn btn-primary" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${t.dishId}','done')">Готово</button><button class="btn" style="flex:1;padding:9px;color:var(--red)" onclick="ordReqPf(${o.id},'${t.dishId}')">Запросить у цеха</button>`
       :`<button class="btn btn-primary" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${t.dishId}','done')">Готово</button>`;
     inner+=`<div class="od-actions">${actions}</div></div>`;
@@ -678,6 +682,7 @@ async function fetchPfSrv(){const now=Date.now();if(_pfCache&&now-_pfCacheT<1500
 /* ПРИГОТОВЛЕНИЕ */
 async function qtyStep(d){cookQty=Math.max(1,cookQty+d);$('cook-qty').textContent=cookQty;await cookPreview();}
 async function renderCook(){
+  try{
   const tc=getTechCards(),sel=$('cook-dish'),prev=sel.value,withTC=MENU.filter(m=>tc[m.id]&&tc[m.id].length);
   sel.innerHTML=withTC.length?withTC.map(m=>`<option value="${m.id}">${m.emoji||''} ${m.name}</option>`).join(''):'<option value="">Нет блюд с техкартой</option>';
   if(prev&&withTC.find(m=>m.id===prev))sel.value=prev;
@@ -686,6 +691,7 @@ async function renderCook(){
   $('ck-total').textContent=tl.reduce((s,l)=>s+l.qty,0);$('ck-batch').textContent=tl.length;$('ck-spent').textContent=tl.reduce((s,l)=>s+(l.spentKg||0),0).toFixed(1);
   $('cook-log').innerHTML=log.length?log.slice(0,25).map(l=>`<div class="jrow"><span class="jdot" style="background:var(--orange)"></span><div class="jinfo"><div class="jname">${l.emoji||''} ${l.name}</div><div class="jtime">${l.date} ${l.time}</div></div><div class="jval" style="color:var(--orange)">×${l.qty} порц.</div></div>`).join(''):'<div class="empty-mini">Приготовлений ещё не было</div>';
   updCrit();
+  }catch(err){console.error('GLOBAL',err.message,(err&&err.stack)||err);}
 }
 
 async function cookPreview(){
