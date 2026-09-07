@@ -104,9 +104,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sy
 
 /* order cards */
 .olist{display:flex;flex-direction:column;gap:10px}
-.ocard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 13px}
+.ocard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 13px;cursor:pointer;transition:border-color .15s}
 .ocard.new{border-color:rgba(58,138,240,.35)}
 .ocard.cook{border-color:rgba(255,169,46,.4)}
+.ocard.done{border-color:rgba(83,199,111,.45)}
+.ocard .oexp{font-size:11px;color:var(--muted);margin-top:8px}
+.orec{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.orec-h{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--muted2);margin-bottom:6px}
+.rrow{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0}
+.rrow span{flex:1}
+.rrow i{font-style:normal;color:var(--muted)}
+.rrow b{font-weight:700}
+.orec-s{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted);padding-top:6px}
+.orec-t{display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:800;padding-top:8px;margin-top:2px;border-top:1px solid var(--line)}
+.orec-e{font-size:12px;color:var(--muted2);padding:4px 0}
 .ohead{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .onum{font-size:15px;font-weight:800}
 .otime{margin-left:auto;font-size:11px;color:var(--muted2)}
@@ -1063,24 +1074,40 @@ async function syncStatus(id,st){
   }catch(e){toast('warn','Ошибка сети — статус только локально','');}
 }
 function orderCard(o){
-  const cls=o.status==='cook'?'cook':(o.status==='new'?'new':'');
-  const st=STATUS[o.status]||STATUS.new, cnt=(Array.isArray(o.items)?o.items:[]).reduce((s,i)=>s+i.qty,0);
+  const cls=o.status==='cook'?'cook':(o.status==='new'?'new':(o.status==='done'?'done':''));
+  const st=STATUS[o.status]||STATUS.new, cnt=(Array.isArray(o.items)?o.items:[]).reduce((s,i)=>s+(Number(i.qty)||0),0);
   const typeL=o.type==='pickup'?'Самовывоз':'Доставка', nm=o.name||'Гость';
   const ph=o.phone?`<span class="ophone">${o.phone}</span>`:'';
   const _ts=Number(o.ts)||0;
   const min=_ts?Math.max(0,Math.floor((Date.now()-_ts)/60000)):null;
   const tc=_ts&&min!=null?((min<=10?{c:'var(--green)',s:'var(--green-soft)'}:(min<=20?{c:'var(--amber)',s:'var(--amber-soft)'}:{c:'var(--red)',s:'var(--red-soft)'}))):null;
   const timer=tc?`<span class="otimer" style="color:${tc.c};background:${tc.s}"><b>${min}′</b><i>мин</i></span>`:'';
-  let acts='';
-  if(o.status==='new'||o.status==='cook') acts=`<div class="oacts">
-    <button class="btn btn-primary" onclick="setStatus(${o.id},'cook')">🔥 ${o.status==='cook'?'В работе':'Начать'}</button>
-    <button class="btn btn-green" onclick="setStatus(${o.id},'done')">✓ Готово</button>
-    <button class="btn xbtn" onclick="setStatus(${o.id},'cancel')">✕</button></div>`;
-  return `<div class="ocard ${cls}">
+  const k=(o._srv?'s':'l')+':'+(o.srvId||o.id);
+  const open=_expOrders.has(k);
+  return `<div class="ocard ${cls}" onclick="togOrd('${k}')">
     <div class="ohead">${timer}<span class="onum">#${String(o.num).padStart(3,'0')}</span><span class="badge ${st.c}">${st.l}</span><span class="otime">${agoStr(o.id)||o.time}</span></div>
     <div><span class="oname">${nm}</span>${ph}</div>
-    <div class="ometa"><span>${cnt} позиц.</span><span class="sepdot"></span><span>${typeL}</span></div>${acts}</div>`;
+    <div class="ometa"><span>${cnt} позиц.</span><span class="sepdot"></span><span>${typeL}</span></div>
+    <div class="oexp">${open?'▾ скрыть':'▸ состав заказа и сумма'}</div>${open?recHtml(o):''}</div>`;
 }
+function recHtml(o){
+  const items=Array.isArray(o.items)?o.items:[];
+  const lines=items.map(i=>{
+    const q=Number(i.qty)||0,p=Number(i.price)||0;
+    return `<div class="rrow"><span>${i.name||'—'}</span><i>×${q}</i><b>${p?money(p*q):'—'}</b></div>`;
+  }).join('');
+  const food=Number(o.food)!=null&&!isNaN(Number(o.food))&&o.food!==undefined?Number(o.food):items.reduce((s,i)=>s+(Number(i.price)||0)*(Number(i.qty)||0),0);
+  const deliv=Number(o.deliv)!=null&&!isNaN(Number(o.deliv))&&o.deliv!==undefined?Number(o.deliv):0;
+  const total=Number(o.total)!=null&&!isNaN(Number(o.total))&&o.total!==undefined?Number(o.total):(food+deliv);
+  return `<div class="orec">
+    <div class="orec-h">Состав заказа</div>
+    ${lines||'<div class="orec-e">Состав не указан</div>'}
+    <div class="orec-s"><span>Сумма блюд</span><b>${money(food)}</b></div>
+    <div class="orec-s"><span>Доставка</span><b>${money(deliv)}</b></div>
+    <div class="orec-t"><span>К ОПЛАТЕ</span><b>${money(total)}</b></div></div>`;
+}
+const _expOrders=new Set();
+function togOrd(k){if(_expOrders.has(k))_expOrders.delete(k);else _expOrders.add(k);renderOrders();}
 
 /* ── ЗАКАЗЫ / статы ── */
 function renderOrders(){
@@ -1089,13 +1116,14 @@ function renderOrders(){
   const yOrd=orders.filter(o=>o.date===yest&&o.status!=='cancel');
   const rev=tOrd.reduce((s,o)=>s+o.total,0), yRev=yOrd.reduce((s,o)=>s+o.total,0);
   const active=orders.filter(o=>o.status==='new'||o.status==='cook');
+  const view=orders.filter(o=>o.status==='new'||o.status==='cook'||o.status==='done');
   const stock=getStock(), low=stock.filter(i=>i.qty<i.min).length;
   $('st-cnt').textContent=tOrd.length; trend('st-cnt-tr',tOrd.length,yOrd.length);
   $('st-rev').textContent=fmt(rev); trend('st-rev-tr',rev,yRev);
   $('st-active').textContent=active.length; $('st-low').textContent=low;
   const b=active.length; ['bell-badge','tab-badge'].forEach(i=>{const e=$(i);e.textContent=b;e.style.display=b?'flex':'none';});
-  $('ord-count').textContent=active.length?active.length+' активных':'';
-  $('active-list').innerHTML=active.length?[...active].reverse().map(orderCard).join(''):emptyMini('Нет активных заказов');
+  $('ord-count').textContent=view.length?view.length+' заказов':'';
+  $('active-list').innerHTML=view.length?[...view].reverse().map(orderCard).join(''):emptyMini('Нет активных заказов');
   renderCart();
   if(!_ordersSynced){_ordersSynced=true;syncOrdersFromServer().then(ok=>{_ordersSynced=ok;if(ok)renderOrders();});}
 }
