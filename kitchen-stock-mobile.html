@@ -76,6 +76,11 @@ input:focus,select:focus{border-color:var(--orange)}
 .btn-line{background:transparent;border:1px solid var(--line);color:var(--text)}
 .btn-red{background:var(--red-soft);color:var(--red)}
 .btn-block{width:100%}
+.act-take,.act-done,.act-req{border:none;border-radius:13px;font-family:inherit;font-weight:800;font-size:13px;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px}
+.act-take{background:linear-gradient(135deg,var(--orange),#ff7a45);color:#fff;box-shadow:0 5px 16px rgba(241,90,41,.4);border:1px solid rgba(255,255,255,.12)}
+.act-done{background:linear-gradient(135deg,var(--green),#5ee5a3);color:#08170E;box-shadow:0 5px 16px rgba(52,208,127,.4);border:1px solid rgba(255,255,255,.12)}
+.act-req{background:var(--red-soft);color:var(--red);border:1px solid rgba(255,77,74,.3)}
+.act-take:active,.act-done:active,.act-req:active{transform:scale(.97)}
 .stepper{display:flex;align-items:center;gap:12px}
 .stepper button{width:44px;height:44px;border-radius:12px;background:var(--card2);border:1px solid var(--line);color:var(--text);font-size:22px;line-height:1;cursor:pointer;font-family:inherit}
 .stepper .n{flex:1;text-align:center;font-size:20px;font-weight:800}
@@ -611,10 +616,10 @@ async function loadOrderTasks(id){
     if(locked){inner+=`</div>`;return inner;}
     let actions='';
     if(!did){inner+=`<div class="od-actions">${actions}</div></div>`;return inner;}
-    if(sts==='new')actions=`<button class="btn btn-ghost" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${did}','take')">Взял</button>`;
+    if(sts==='new')actions=`<button class="act-take" style="flex:1" onclick="ordItem(${o.id},'${did}','take')">Взял</button>`;
     if(sts==='cook')actions=(subtasks.some(x=>x&&!x.enough))
-      ?`<button class="btn btn-primary" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${did}','done')">Готово</button><button class="btn" style="flex:1;padding:9px;color:var(--red)" onclick="ordReqPf(${o.id},'${did}')">Запросить у цеха</button>`
-      :`<button class="btn btn-primary" style="flex:1;padding:9px" onclick="ordItem(${o.id},'${did}','done')">Готово</button>`;
+      ?`<button class="act-done" style="flex:1" onclick="ordItem(${o.id},'${did}','done')">Готово</button><button class="act-req" style="flex:1" onclick="ordReqPf(${o.id},'${did}')">Запросить у цеха</button>`
+      :`<button class="act-done" style="flex:1" onclick="ordItem(${o.id},'${did}','done')">Готово</button>`;
     inner+=`<div class="od-actions">${actions}</div></div>`;
     return inner;
   }).join('')||'<div class="empty-mini">Нет задач</div>';
