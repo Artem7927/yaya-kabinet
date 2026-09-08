@@ -456,6 +456,7 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
         </div>
 
         <div class="between" style="margin:16px 4px 12px"><div class="ttl">Активные заказы</div><span class="link" id="ord-count"></span></div>
+        <div id="ord-per-widget"></div>
         <div class="olist" id="active-list"></div>
       </div>
     </section>
@@ -1049,7 +1050,7 @@ async function placeOrder(){
   }catch(e){}
   const orders=getOrders();
   const num=srvNum||(orders.length?Math.max(...orders.map(o=>o.num||0)):0)+1;
-  const rec={id:srvId||Date.now(),num,date:todayStr(),time:nowStr(),items,total,status:'new',type:orderType,name:data.name,phone:data.phone};
+  const rec={id:srvId||Date.now(),num,date:todayStr(),ts:Date.now(),time:nowStr(),items,total,status:'new',type:orderType,name:data.name,phone:data.phone};
   if(srvId){rec._srv=true;rec.srvId=srvId;}
   orders.push(rec);setOrders(orders);try{autoDeductForOrder(cart);}catch(e){}
   cart=[];renderCart();$('co-name').value='';$('co-phone').value='';closeSheet();
@@ -1110,13 +1111,72 @@ const _expOrders=new Set();
 function togOrd(k){if(_expOrders.has(k))_expOrders.delete(k);else _expOrders.add(k);renderOrders();}
 
 /* ── ЗАКАЗЫ / статы ── */
+let _ordPeriod='day',_ordCursor=(()=>{const t=new Date();return{y:t.getFullYear(),m:t.getMonth(),d:t.getDate()}})();
+function _ordToday(){return new Date();}
+function _ordIsFuture(){
+  const t=_ordToday();
+  if(_ordPeriod==='day')return _ordCursor.y===t.getFullYear()&&_ordCursor.m===t.getMonth()&&_ordCursor.d===t.getDate();
+  if(_ordPeriod==='month')return _ordCursor.y===t.getFullYear()&&_ordCursor.m===t.getMonth();
+  return _ordCursor.y===t.getFullYear();
+}
+function _ordSetMode(m){
+  _ordPeriod=m;const t=_ordToday();
+  if(m==='day')_ordCursor={y:t.getFullYear(),m:t.getMonth(),d:t.getDate()};
+  else if(m==='month')_ordCursor={y:t.getFullYear(),m:t.getMonth()};
+  else _ordCursor={y:t.getFullYear()};
+  renderOrders();
+}
+function _ordStep(dir){
+  const c=_ordCursor,t=_ordToday();
+  if(_ordPeriod==='day'){
+    const d=new Date(c.y,c.m,c.d+dir);
+    if(dir>0&&d>t)return;
+    _ordCursor={y:d.getFullYear(),m:d.getMonth(),d:d.getDate()};
+  }else if(_ordPeriod==='month'){
+    if(dir>0&&c.y===t.getFullYear()&&c.m===t.getMonth())return;
+    let nm=c.m+dir,ny=c.y;
+    if(nm<0){nm=11;ny--;}else if(nm>11){nm=0;ny++;}
+    _ordCursor={y:ny,m:nm};
+  }else{
+    if(dir>0&&c.y===t.getFullYear())return;
+    _ordCursor={y:c.y+dir};
+  }
+  renderOrders();
+}
+function _ordCenter(){
+  if(_ordPeriod==='day')return _ordCursor.d+' '+(['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][_ordCursor.m])+' '+_ordCursor.y;
+  if(_ordPeriod==='month')return ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'][_ordCursor.m]+' '+_ordCursor.y;
+  return String(_ordCursor.y);
+}
+function _ordRange(){
+  const c=_ordCursor;let s,t;
+  if(_ordPeriod==='day'){s=new Date(c.y,c.m,c.d,0,0,0,0);t=new Date(c.y,c.m,c.d+1,0,0,0,0);}
+  else if(_ordPeriod==='month'){s=new Date(c.y,c.m,1);t=new Date(c.y,c.m+1,1);}
+  else {s=new Date(c.y,0,1);t=new Date(c.y+1,0,1);}
+  return [s.getTime(),t.getTime()];
+}
+function _ordTs(o){
+  if(o.ts!=null&&!isNaN(+o.ts)){const ts=+o.ts;if(ts>0||o._srv)return ts;}
+  const m=String(o.date||'').trim().match(/^(\d{1,2})\s+([а-яА-Яa-zA-ZёЁ]+)\.?$/);
+  if(m){
+    const MON={янв:0,фев:1,мар:2,апр:3,май:4,мая:4,июн:5,июл:6,авг:7,сен:8,окт:9,ноя:10,дек:11};
+    const mon=MON[m[2].toLowerCase().slice(0,3)];
+    if(mon!==undefined){const now=new Date(),d=new Date(now.getFullYear(),mon,+m[1]);if(d>now)d.setFullYear(now.getFullYear()-1);return d.getTime();}
+  }
+  return null;
+}
+function _ordWidgetHtml(){
+  return `<div class="ptabs"><button class="ptab ${_ordPeriod==='day'?'on':''}" onclick="_ordSetMode('day')">День</button><button class="ptab ${_ordPeriod==='month'?'on':''}" onclick="_ordSetMode('month')">Месяц</button><button class="ptab ${_ordPeriod==='year'?'on':''}" onclick="_ordSetMode('year')">Год</button></div><div class="arow"><button class="ab" onclick="_ordStep(-1)">◄</button><span class="ac">${_ordCenter()}</span><button class="ab" ${_ordIsFuture()?'disabled':''} onclick="_ordStep(1)">►</button></div>`;
+}
 function renderOrders(){
+  const wg=$('ord-per-widget');if(wg)wg.innerHTML=_ordWidgetHtml();
   const orders=getOrders(),today=todayStr(),yest=dstr(new Date(Date.now()-864e5));
   const tOrd=orders.filter(o=>o.date===today&&o.status!=='cancel');
   const yOrd=orders.filter(o=>o.date===yest&&o.status!=='cancel');
   const rev=tOrd.reduce((s,o)=>s+o.total,0), yRev=yOrd.reduce((s,o)=>s+o.total,0);
   const active=orders.filter(o=>o.status==='new'||o.status==='cook');
-  const view=orders.filter(o=>o.status==='new'||o.status==='cook'||o.status==='done');
+  const [rs,re]=_ordRange();
+  const view=orders.filter(o=>{if(o.status!=='new'&&o.status!=='cook'&&o.status!=='done')return false;const ts=_ordTs(o);if(ts==null)return false;const yy=new Date(ts).getFullYear();if(yy<2020)return false;return ts>=rs&&ts<re;});
   const stock=getStock(), low=stock.filter(i=>i.qty<i.min).length;
   $('st-cnt').textContent=tOrd.length; trend('st-cnt-tr',tOrd.length,yOrd.length);
   $('st-rev').textContent=fmt(rev); trend('st-rev-tr',rev,yRev);
