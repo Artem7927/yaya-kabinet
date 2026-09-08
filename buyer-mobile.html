@@ -588,7 +588,8 @@ async function savePurch(){
   if(!_photoReceipt){toast('warn','Добавьте фото чека','');return;}
   if(_purchBusy)return;_purchBusy=true;
   try{
-    const stock=getStock(),ing=stock.find(i=>i.id===id);if(!ing)return;
+    const stock=getStock(),ing=stock.find(i=>String(i.id)===String(id));
+    if(!ing){toast('warn','Позиция не найдена','обновите склад и повторите');_purchBusy=false;return;}
     let serverOk=false,errMsg='',srvPurchaseId=null;
     try{
       const r=await fetch(YAYA_API+'/stock/'+encodeURIComponent(id)+'/deliver',{
@@ -608,10 +609,10 @@ async function savePurch(){
     {const rec=getReceipts();rec.push({id:'r'+Date.now(),purchaseId:pid,date:todayStr(),time:nowStr(),supplier,ing:ing.name,location:loc,goods:_photoGoods,receipt:_photoReceipt});setReceipts(rec);}
     if(supplier){const sup=getSuppliers();if(!sup.find(s=>s.name===supplier)){sup.push({name:supplier,info:''});setSuppliers(sup);}}
     _stockCache=null;
-    clearPhoto();closeSheet();renderBuy();if(serverOk)loadPurchasesSrv().then(()=>{if(curTab==='log')renderLog();else if(curTab==='spend')renderSpend();});
-    if(serverOk)toast('success','Отправлено на приёмку',ing.name+' +'+qty+unit+' · ждёт подтверждения складом');
+    if(serverOk){toast('success','Отправлено на приёмку',ing.name+' +'+qty+unit+' · ждёт подтверждения складом');clearPhoto();closeSheet();renderBuy();loadPurchasesSrv().then(()=>{if(curTab==='log')renderLog();else if(curTab==='spend')renderSpend();});}
     else toast('warn','Не отправлено',errMsg+' — повторите позже');
-  }finally{
+  }catch(e){toast('warn','Сбой',e.message||String(e));}
+  finally{
     _purchBusy=false;
   }
 }
