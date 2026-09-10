@@ -3,7 +3,7 @@
   "name": "YaYa Менеджер",
   "short_name": "Менеджер",
   "start_url": "./manager-mobile.html",
-  "scope": "./manager-mobile.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0A0A0B",

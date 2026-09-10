@@ -3,7 +3,7 @@
   "name": "YaYa Сборщик",
   "short_name": "Сборщик",
   "start_url": "./assembler-mobile.html",
-  "scope": "./assembler-mobile.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0A0A0B",
