@@ -127,6 +127,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sy
 .oname{font-size:13px;font-weight:600}
 .ophone{font-size:12px;color:var(--muted);margin-left:6px}
 .ometa{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:5px 0 10px}
+.payline{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;padding:7px 10px;border-radius:10px;margin:0 0 10px}
+.payline.ok{background:var(--green-soft);color:var(--green);border:1px solid rgba(52,208,127,.35)}
+.payline.nopay{background:var(--card2);border:1px dashed var(--line);color:var(--muted2)}
 .sepdot{width:3px;height:3px;border-radius:50%;background:var(--muted2)}
 .oacts{display:grid;grid-template-columns:1fr 1fr auto;gap:7px}
 .oacts .btn{padding:9px 6px;font-size:12px}
@@ -1078,6 +1081,31 @@ async function syncStatus(id,st){
     if(!(r.ok&&d&&d.ok))toast('warn','Сервер не применил статус',(d&&d.error)||'');
   }catch(e){toast('warn','Ошибка сети — статус только локально','');}
 }
+/* ── Факт оплаты из KV yaya_order_couriers (пишет курьер, смотрим в моменте) ── */
+const _KM={'cash':'Наличные','kaspi-qr':'Kaspi QR','remote':'Удалённо'};
+const _KR={'undelivered':'Не доложили','refused':'Клиент отказался','missing':'Нет в наличии','defect':'Брак','other':''};
+function payLine(o){
+  if(o.status==='cancel')return '';
+  const p=o.payFact;
+  if(!p)return `<div class="payline nopay">Оплата не принята</div>`;
+  const m=_KM[p.method]||p.method;
+  const sh=(p.reason||p.reason_note)?` · недовоз: ${_rcpEsc(p.reason_note||(_KR[p.reason]||p.reason||'—'))}`:'';
+  return `<div class="payline ok">Оплачено: ${m} ${_rcpMoney(p.amount)}${sh}</div>`;
+}
+let _courPay=null,_courPayTs=0;
+async function courPay(){
+  if(_courPay===null||Date.now()-_courPayTs>8000){
+    const cf={};
+    try{
+      const r=await fetch(DED_API+'/kv/yaya_order_couriers',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+      const d=await r.json();
+      const kv=((d&&d.value&&typeof d.value==='object')?d.value:(d&&typeof d==='object'?d:null))||{};
+      for(const k in kv){const v=kv[k];if(v&&v.pay)cf[String(k)]=v.pay;}
+    }catch(e){}
+    _courPay=cf;_courPayTs=Date.now();
+  }
+  return _courPay;
+}
 function orderCard(o){
   const cls=o.status==='cook'?'cook':(o.status==='new'?'new':(o.status==='done'?'done':''));
   const st=STATUS[o.status]||STATUS.new, cnt=(Array.isArray(o.items)?o.items:[]).reduce((s,i)=>s+(Number(i.qty)||0),0);
@@ -1093,6 +1121,7 @@ function orderCard(o){
     <div class="ohead">${timer}<span class="onum">#${String(o.num).padStart(3,'0')}</span><span class="badge ${st.c}">${st.l}</span><span class="otime">${agoStr(o.id)||o.time}</span></div>
     <div><span class="oname">${nm}</span>${ph}</div>
     <div class="ometa"><span>${cnt} позиц.</span><span class="sepdot"></span><span>${typeL}</span></div>
+    ${payLine(o)}
     <div class="oexp">${open?'▾ скрыть':'▸ состав заказа и сумма'}</div>${open?recHtml(o):''}</div>`;
 }
 /* ── Квитанция из данных заказа (единый вид на все кабинеты, из o.data + o.ts; НЕ из корзины) ── */
@@ -1301,10 +1330,11 @@ async function loadOrdersSrv(){
   if(_ordersLoading)return;_ordersLoading=true;
   const token=yTok();
   try{
+    const cf=await courPay();
     const r=await fetch(DED_API+'/orders?limit=500',{headers:{'X-Admin-Token':token},cache:'no-store'});
     if(r.ok){const d=await r.json();if(d&&d.ok&&Array.isArray(d.orders)){
       _ordersSrv=d.orders.map(o=>{const b=o.data||{};const items=Array.isArray(b.items)?b.items.map(i=>({name:i.name,qty:Number(i.qty)||0,price:Number(i.price)||0})):[];
-        return {id:o.id,num:o.num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',items,total:(Number(b.total)||0)+(Number(b.delivery)||0),food:Number(b.total)||0,deliv:Number(b.delivery)||0,status:o.status||'new',type:b.type,name:b.name||'',phone:b.phone||'',source:b.source||'direct'};});
+        return {id:o.id,num:o.num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',items,total:(Number(b.total)||0)+(Number(b.delivery)||0),food:Number(b.total)||0,deliv:Number(b.delivery)||0,status:o.status||'new',type:b.type,name:b.name||'',phone:b.phone||'',source:b.source||'direct',payFact:cf[String(o.id)]||null};});
     }}
   }catch(e){}
   _ordersLoading=false;renderReports();
@@ -1312,11 +1342,12 @@ async function loadOrdersSrv(){
 async function syncOrdersFromServer(){
   const token=yTok();
   try{
+    const cf=await courPay();
     const r=await fetch(DED_API+'/orders?limit=300',{headers:{'X-Admin-Token':token},cache:'no-store'});
     if(!r.ok)return false;
     const d=await r.json();
     if(!(d&&d.ok&&Array.isArray(d.orders)))return false;
-    const srv=d.orders.map(o=>{const b=o.data||{};const items=Array.isArray(b.items)?b.items.map(i=>({id:i.id||i.name,name:i.name,qty:Number(i.qty)||0,price:Number(i.price)||0})):[];const num=Number(o.num);return {id:Number(o.id),num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',ts:Number(o.ts)||Date.now(),items,total:(Number(b.total)||0)+(Number(b.delivery)||0),status:o.status||'new',type:b.type||'delivery',name:b.name||'',phone:b.phone||'',food:Number(b.total)||0,deliv:Number(b.delivery)||0,address:b.address?String(b.address).trim():'',comment:b.comment?String(b.comment):'',pay:b.pay_method||'',source:b.source||'direct',_srv:true,srvId:Number(o.id)};});
+    const srv=d.orders.map(o=>{const b=o.data||{};const items=Array.isArray(b.items)?b.items.map(i=>({id:i.id||i.name,name:i.name,qty:Number(i.qty)||0,price:Number(i.price)||0})):[];const num=Number(o.num);return {id:Number(o.id),num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',ts:Number(o.ts)||Date.now(),items,total:(Number(b.total)||0)+(Number(b.delivery)||0),status:o.status||'new',type:b.type||'delivery',name:b.name||'',phone:b.phone||'',food:Number(b.total)||0,deliv:Number(b.delivery)||0,address:b.address?String(b.address).trim():'',comment:b.comment?String(b.comment):'',pay:b.pay_method||'',source:b.source||'direct',payFact:cf[String(o.id)]||null,_srv:true,srvId:Number(o.id)};});
     const nums=new Set(srv.map(o=>String(o.num)));
     const local=getOrders().filter(o=>!o._srv||!nums.has(String(o.num)));
     setOrders(srv.concat(local).sort((a,b)=>((b.srvId||b.id||0))-((a.srvId||a.id||0))));
