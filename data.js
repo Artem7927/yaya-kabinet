@@ -101,7 +101,8 @@ function buildMenuFromLive(live) {
         price: it.price,
         emoji: catEmoji,
         cat: catKey,
-        desc: it.desc || ''
+        desc: it.desc || '',
+        img: it.img || ''
       });
     });
   });

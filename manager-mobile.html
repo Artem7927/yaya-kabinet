@@ -1126,7 +1126,13 @@ function renderReceiptFromOrder(_o){
     </div></div>`;
 }
 function rcptNorm(o){
-  const items=Array.isArray(o.items)?o.items.map(i=>({name:i.name,qty:Number(i.qty)||1,price:Number(i.price)||0})):[];
+  const items=Array.isArray(o.items)?o.items.map(i=>{
+    const r={name:i.name,qty:Number(i.qty)||1,price:Number(i.price)||0};
+    let m=null;
+    if(i.id!=null)m=MENU.find(x=>String(x.id)===String(i.id))||null;
+    if(m&&m.img)r.img=m.img;
+    return r;
+  }):[];
   const food=(o.food!=null&&!isNaN(+o.food))?Number(o.food):items.reduce((s,i)=>s+i.price*i.qty,0);
   const deliv=(o.deliv!=null&&!isNaN(+o.deliv))?Number(o.deliv):0;
   return {num:o.num,ts:o.ts,data:{name:o.name||'',phone:o.phone||'',items,total:food,delivery:deliv,address:o.address||'',comment:o.comment||'',pay_method:o.pay||''}};
