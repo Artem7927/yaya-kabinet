@@ -516,6 +516,10 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
           <div class="ttl" style="font-size:14px;margin-bottom:10px">Топ-10 позиций</div>
           <div id="rep-top"></div>
         </div>
+        <div class="card" style="margin-top:12px">
+          <div class="ttl" style="font-size:14px;margin-bottom:10px">Источники заказов</div>
+          <div id="rep-src"></div>
+        </div>
       </div>
     </section>
 
@@ -1300,7 +1304,7 @@ async function loadOrdersSrv(){
     const r=await fetch(DED_API+'/orders?limit=500',{headers:{'X-Admin-Token':token},cache:'no-store'});
     if(r.ok){const d=await r.json();if(d&&d.ok&&Array.isArray(d.orders)){
       _ordersSrv=d.orders.map(o=>{const b=o.data||{};const items=Array.isArray(b.items)?b.items.map(i=>({name:i.name,qty:Number(i.qty)||0,price:Number(i.price)||0})):[];
-        return {id:o.id,num:o.num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',items,total:(Number(b.total)||0)+(Number(b.delivery)||0),food:Number(b.total)||0,deliv:Number(b.delivery)||0,status:o.status||'new',type:b.type,name:b.name||'',phone:b.phone||''};});
+        return {id:o.id,num:o.num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',items,total:(Number(b.total)||0)+(Number(b.delivery)||0),food:Number(b.total)||0,deliv:Number(b.delivery)||0,status:o.status||'new',type:b.type,name:b.name||'',phone:b.phone||'',source:b.source||'direct'};});
     }}
   }catch(e){}
   _ordersLoading=false;renderReports();
@@ -1312,7 +1316,7 @@ async function syncOrdersFromServer(){
     if(!r.ok)return false;
     const d=await r.json();
     if(!(d&&d.ok&&Array.isArray(d.orders)))return false;
-    const srv=d.orders.map(o=>{const b=o.data||{};const items=Array.isArray(b.items)?b.items.map(i=>({id:i.id||i.name,name:i.name,qty:Number(i.qty)||0,price:Number(i.price)||0})):[];const num=Number(o.num);return {id:Number(o.id),num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',ts:Number(o.ts)||Date.now(),items,total:(Number(b.total)||0)+(Number(b.delivery)||0),status:o.status||'new',type:b.type||'delivery',name:b.name||'',phone:b.phone||'',food:Number(b.total)||0,deliv:Number(b.delivery)||0,address:b.address?String(b.address).trim():'',comment:b.comment?String(b.comment):'',pay:b.pay_method||'',_srv:true,srvId:Number(o.id)};});
+    const srv=d.orders.map(o=>{const b=o.data||{};const items=Array.isArray(b.items)?b.items.map(i=>({id:i.id||i.name,name:i.name,qty:Number(i.qty)||0,price:Number(i.price)||0})):[];const num=Number(o.num);return {id:Number(o.id),num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',ts:Number(o.ts)||Date.now(),items,total:(Number(b.total)||0)+(Number(b.delivery)||0),status:o.status||'new',type:b.type||'delivery',name:b.name||'',phone:b.phone||'',food:Number(b.total)||0,deliv:Number(b.delivery)||0,address:b.address?String(b.address).trim():'',comment:b.comment?String(b.comment):'',pay:b.pay_method||'',source:b.source||'direct',_srv:true,srvId:Number(o.id)};});
     const nums=new Set(srv.map(o=>String(o.num)));
     const local=getOrders().filter(o=>!o._srv||!nums.has(String(o.num)));
     setOrders(srv.concat(local).sort((a,b)=>((b.srvId||b.id||0))-((a.srvId||a.id||0))));
@@ -1506,6 +1510,15 @@ function renderReports(){
   $('rep-top').innerHTML=top.length?top.map(([n,v],i)=>`<div class="top">
     <div class="r1"><div class="rn">${i+1}</div><div class="tn">${n}</div><div class="tq">${v.q} шт</div><div class="ts">${money(v.s)}</div></div>
     <div class="tbar"><i style="width:${(v.s/max*100).toFixed(0)}%"></i></div></div>`).join(''):emptyMini('Пока нет продаж');
+  const _es=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const srcMap={};
+  orders.forEach(o=>{const k=_es(o.source||'direct');if(!srcMap[k])srcMap[k]={q:0,s:0};srcMap[k].q+=1;srcMap[k].s+=(Number(o.total)||0);});
+  const srcArr=Object.entries(srcMap).sort((a,b)=>b[1].s-a[1].s);
+  const sMax=srcArr.length?srcArr[0][1].s:1;
+  const _rs=$('rep-src');
+  if(_rs)_rs.innerHTML=srcArr.length?srcArr.map(([n,v],i)=>`<div class="top">
+    <div class="r1"><div class="rn">${i+1}</div><div class="tn">${n==='direct'?'Прямой заход':n}</div><div class="tq">${v.q} зак.</div><div class="ts">${money(v.s)}</div></div>
+    <div class="tbar"><i style="width:${(v.s/sMax*100).toFixed(0)}%"></i></div></div>`).join(''):emptyMini('Нет заказов за период');
 }
 function repDelta(id,cur,prev){const el=$(id);if(!el)return;if(!prev){el.textContent='';return;}const d=((cur-prev)/prev)*100;el.textContent=(d>=0?'+':'')+d.toFixed(1)+'%';el.className='d '+(d>=0?'up':'down');}
 
