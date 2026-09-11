@@ -101,6 +101,15 @@ input:focus,select:focus{border-color:var(--orange)}
 .chip{background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:12px;font-weight:600;padding:7px 14px;border-radius:99px;cursor:pointer}
 .chip.on{background:var(--orange);color:#fff;border-color:var(--orange)}
 .seg{display:flex;background:var(--card2);border-radius:11px;padding:3px;margin-bottom:12px}
+/* Фильтр периода День/Месяц/Год (портирован из manager-mobile) */
+.ptabs{display:flex;background:var(--card2);border-radius:11px;padding:3px;margin-bottom:10px}
+.ptab{flex:1;border:none;background:none;color:var(--muted);font-size:12px;font-weight:600;padding:8px 4px;border-radius:8px;cursor:pointer;font-family:inherit;transition:.15s}
+.ptab.on{background:var(--orange);color:#fff}
+.arow{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.arow .ab{width:36px;height:36px;border-radius:10px;border:none;background:var(--orange-soft);color:var(--orange);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.arow .ab:active{transform:scale(.95)}
+.arow .ab[disabled]{opacity:.25;pointer-events:none}
+.arow .ac{font-size:15px;font-weight:700;letter-spacing:-.2px}
 .seg button{flex:1;border:none;background:none;color:var(--muted);font-size:12px;font-weight:600;padding:8px 4px;border-radius:8px;cursor:pointer;font-family:inherit}
 .seg button.on{background:var(--orange);color:#fff}
 .search{width:100%;padding:11px 14px 11px 38px;margin-bottom:12px;
@@ -263,6 +272,7 @@ input:focus,select:focus{border-color:var(--orange)}
           <div class="stat"><div class="ic ic-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3h10V7a5 5 0 0 0-5-5ZM6 10v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-9"/></svg></div><div class="val" id="ord-active">0</div><div class="lab">В работе</div></div>
           <div class="stat"><div class="ic ic-teal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></div><div class="val" id="ord-done">0</div><div class="lab">Готовых сегодня</div></div>
         </div>
+        <div id="dfWidget" style="display:none;margin:0 16px 10px"></div>
         <div id="ord-list"></div>
       </div>
     </section>
@@ -405,15 +415,69 @@ async function fetchOrdersWs(){
   }catch(e){}
   return _wsOrdersCache||[];
 }
+
+/* Фильтр периода День/Месяц/Год (портирован из manager-mobile, _ord*→_df*) */
+let _dfPeriod='day',_dfCursor=(()=>{const t=new Date();return{y:t.getFullYear(),m:t.getMonth(),d:t.getDate()}})();
+function _dfToday(){return new Date();}
+function _dfIsFuture(){
+  const t=_dfToday();
+  if(_dfPeriod==='day')return _dfCursor.y===t.getFullYear()&&_dfCursor.m===t.getMonth()&&_dfCursor.d===t.getDate();
+  if(_dfPeriod==='month')return _dfCursor.y===t.getFullYear()&&_dfCursor.m===t.getMonth();
+  return _dfCursor.y===t.getFullYear();
+}
+function _dfSetMode(m){
+  _dfPeriod=m;const t=_dfToday();
+  if(m==='day')_dfCursor={y:t.getFullYear(),m:t.getMonth(),d:t.getDate()};
+  else if(m==='month')_dfCursor={y:t.getFullYear(),m:t.getMonth()};
+  else _dfCursor={y:t.getFullYear()};
+  _dfRender();
+}
+function _dfStep(dir){
+  const c=_dfCursor,t=_dfToday();
+  if(_dfPeriod==='day'){
+    const d=new Date(c.y,c.m,c.d+dir);
+    if(dir>0&&d>t)return;
+    _dfCursor={y:d.getFullYear(),m:d.getMonth(),d:d.getDate()};
+  }else if(_dfPeriod==='month'){
+    if(dir>0&&c.y===t.getFullYear()&&c.m===t.getMonth())return;
+    let nm=c.m+dir,ny=c.y;
+    if(nm<0){nm=11;ny--;}else if(nm>11){nm=0;ny++;}
+    _dfCursor={y:ny,m:nm};
+  }else{
+    if(dir>0&&c.y===t.getFullYear())return;
+    _dfCursor={y:c.y+dir};
+  }
+  _dfRender();
+}
+function _dfCenter(){
+  if(_dfPeriod==='day')return _dfCursor.d+' '+(['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][_dfCursor.m])+' '+_dfCursor.y;
+  if(_dfPeriod==='month')return ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'][_dfCursor.m]+' '+_dfCursor.y;
+  return String(_dfCursor.y);
+}
+function _dfRange(){
+  const c=_dfCursor;let s,t;
+  if(_dfPeriod==='day'){s=new Date(c.y,c.m,c.d,0,0,0,0);t=new Date(c.y,c.m,c.d+1,0,0,0,0);}
+  else if(_dfPeriod==='month'){s=new Date(c.y,c.m,1);t=new Date(c.y,c.m+1,1);}
+  else {s=new Date(c.y,0,1);t=new Date(c.y+1,0,1);}
+  return [s.getTime(),t.getTime()];
+}
+function _dfWidgetHtml(){
+  return `<div class="ptabs"><button class="ptab ${_dfPeriod==='day'?'on':''}" onclick="_dfSetMode('day')">День</button><button class="ptab ${_dfPeriod==='month'?'on':''}" onclick="_dfSetMode('month')">Месяц</button><button class="ptab ${_dfPeriod==='year'?'on':''}" onclick="_dfSetMode('year')">Год</button></div><div class="arow"><button class="ab" onclick="_dfStep(-1)">◄</button><span class="ac">${_dfCenter()}</span><button class="ab" ${_dfIsFuture()?'disabled':''} onclick="_dfStep(1)">►</button></div>`;
+}
+let _dfRender=renderOrdersWs;
+
 async function renderOrdersWs(){
   const orders=await fetchOrdersWs();
   const today=new Date().toDateString();
-  const sorted=[...orders].sort((a,b)=>Number(a.ts)-Number(b.ts));
+  const wg=$('dfWidget');
+  if(wg){wg.style.display='';wg.innerHTML=_dfWidgetHtml();}
+  const [rs,re]=_dfRange();
+  const sorted=orders.filter(o=>{const ts=Number(o&&o.ts!=null?o.ts:0)||0;return ts>=rs&&ts<re;}).sort((a,b)=>Number(a.ts)-Number(b.ts));
   const act=orders.filter(o=>o.status==='new'||o.status==='cook');
   const el=$('ord-list');
   $('ord-total').textContent=orders.filter(o=>new Date(Number(o.ts)||Date.now()).toDateString()===today).length;
   $('ord-active').textContent=act.length;
-  $('ord-done').textContent=orders.filter(o=>o.status==='done'&&new Date(Number(o.ts)||Date.now()).toDateString()===today).length;
+  $('ord-done').textContent=orders.filter(o=>(o.status==='done'||o.status==='fulfilled')&&new Date(Number(o.ts)||Date.now()).toDateString()===today).length;
   el.innerHTML=sorted.length?sorted.map(o=>{
     const b=o.data||{},num=o.num||'?';
     const min=Math.max(0,Math.floor((Date.now()-Number(o.ts))/60000)),c=_owsColor(min);
