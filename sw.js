@@ -1,4 +1,4 @@
-const CACHE = 'yaya-v90';
+const CACHE = 'yaya-v91';
 const API_HOST = 'yaya-db-production.up.railway.app';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil((async () => {

@@ -1118,7 +1118,7 @@ function orderCard(o){
   const k=(o._srv?'s':'l')+':'+(o.srvId||o.id);
   const open=_expOrders.has(k);
   return `<div class="ocard ${cls}" onclick="togOrd('${k}')">
-    <div class="ohead">${timer}<span class="onum">#${String(o.num).padStart(3,'0')}</span><span class="badge ${st.c}">${st.l}</span><span class="otime">${agoStr(o.id)||o.time}</span></div>
+    <div class="ohead">${timer}<span class="onum">#${String(o.num).padStart(3,'0')}</span><span class="badge ${st.c}">${st.l}</span><span class="otime">${agoStr(Number(o.ts))||o.time}</span></div>
     <div><span class="oname">${nm}</span>${ph}</div>
     <div class="ometa"><span>${cnt} позиц.</span><span class="sepdot"></span><span>${typeL}</span></div>
     ${payLine(o)}
