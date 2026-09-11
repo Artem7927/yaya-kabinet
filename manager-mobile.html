@@ -961,10 +961,20 @@ async function renderBuy(){
     if(!(sd&&sd.ok&&Array.isArray(sd.items))){el.innerHTML='<div class="empty-mini">Нет доступа к серверу — вставьте токен</div>';return;}
     const assign=(ad&&ad.ok&&ad.assign&&typeof ad.assign==='object')?ad.assign:{};
     _assignMap=assign;
-    const low=sd.items.filter(i=>Number(i.qty)<Number(i.min)).sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));
+    // та же логика, что в buyer-mobile (renderBuy): источн. /stock (норм.), порог min*1.5,
+    // без позиций с открытой закупкой (pending), цель max либо min*1.5
+    const _buyStock=sd.items.map(i=>({...i,qty:Number(i.qty)||0,min:Number(i.min)||0,crit:i.crit!=null?Number(i.crit)||0:0,max:i.max!=null?Number(i.max):null}));
+    let _buyPend=new Set();
+    try{
+      const pr=await fetch(DED_API+'/purchases?status=pending',{headers:{'X-Admin-Token':token},cache:'no-store'});
+      const pd=await pr.json();
+      if(pd&&pd.ok&&Array.isArray(pd.items))_buyPend=new Set(pd.items.map(p=>String(p.ing_id)));
+    }catch(e){}
+    const _buyNeed=i=>{const t=(i.max!=null?i.max:i.min*1.5);return Math.max(0,Math.round((t-i.qty)*100)/100);};
+    const low=_buyStock.filter(i=>i.qty<i.min*1.5&&!_buyPend.has(String(i.id))).sort((a,b)=>(a.qty/a.min)-(b.qty/b.min));
     if(!low.length){el.innerHTML='<div class="empty-mini">Всё в наличии — докупать нечего</div>';return;}
     el.innerHTML=`<div class="buynote">Назначьте, кто что покупает — назначение увидит закупщик в экране «Что купить».</div>`+low.map(i=>{
-      const need=Math.max(0,Math.round((Number(i.max!=null?i.max:i.min)-Number(i.qty))*100)/100);
+      const need=_buyNeed(i);
       const a=assign[String(i.id)]||null;
       const isOn=s=>a===s||(s==='🧾'&&a&&typeof a==='object'&&a.t==='🧾');
       const sum=a&&typeof a==='object'&&a.t==='🧾'&&a.sum?' · '+money(a.sum):'';
