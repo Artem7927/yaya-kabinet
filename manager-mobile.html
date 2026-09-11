@@ -458,12 +458,10 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
           </div>
         </div>
 
-        <div class="between" style="margin:16px 4px 12px"><div class="ttl">Активные заказы</div><span class="link" id="ord-count"></span></div>
-        <div id="ord-per-widget"></div>
-        <div class="olist" id="active-list"></div>
-        <div class="between" style="margin:26px 4px 12px"><div class="ttl">Завершённые / Выданные</div><span class="link" id="arch-count"></span></div>
-        <div id="arch-per-widget"></div>
-        <div class="olist" id="arch-list"></div>
+        <div class="between" style="margin:16px 4px 12px"><div class="ttl">Заказы</div><span class="link" id="ord-count"></span></div>
+        <div class="seg"><button id="os-new" class="on" onclick="ordSeg('new')">Новые</button><button id="os-cook" onclick="ordSeg('cook')">Готовятся</button><button id="os-done" onclick="ordSeg('done')">Готово</button><button id="os-iss" onclick="ordSeg('iss')">Выдан</button><button id="os-all" onclick="ordSeg('all')">Все</button></div>
+        <div id="ord-day-widget"></div>
+        <div class="olist" id="ord-list"></div>
       </div>
     </section>
 
@@ -1209,52 +1207,28 @@ const _expOrders=new Set();
 function togOrd(k){if(_expOrders.has(k))_expOrders.delete(k);else _expOrders.add(k);renderOrders();}
 
 /* ── ЗАКАЗЫ / статы ── */
-let _ordPeriod='day',_ordCursor=(()=>{const t=new Date();return{y:t.getFullYear(),m:t.getMonth(),d:t.getDate()}})();
-function _ordToday(){return new Date();}
-function _ordIsFuture(){
-  const t=_ordToday();
-  if(_ordPeriod==='day')return _ordCursor.y===t.getFullYear()&&_ordCursor.m===t.getMonth()&&_ordCursor.d===t.getDate();
-  if(_ordPeriod==='month')return _ordCursor.y===t.getFullYear()&&_ordCursor.m===t.getMonth();
-  return _ordCursor.y===t.getFullYear();
-}
-function _ordSetMode(m){
-  _ordPeriod=m;const t=_ordToday();
-  if(m==='day')_ordCursor={y:t.getFullYear(),m:t.getMonth(),d:t.getDate()};
-  else if(m==='month')_ordCursor={y:t.getFullYear(),m:t.getMonth()};
-  else _ordCursor={y:t.getFullYear()};
+let _ordSeg='new',_ordDay=(()=>{const t=new Date();return new Date(t.getFullYear(),t.getMonth(),t.getDate());})();
+const _ordLast=()=>{const t=new Date();return new Date(t.getFullYear(),t.getMonth(),t.getDate());};
+function _ordDayStr(){return _ordDay.getDate()+' '+['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][_ordDay.getMonth()]+' '+_ordDay.getFullYear();}
+function ordSeg(v){
+  _ordSeg=v;
+  ['new','cook','done','iss','all'].forEach(x=>{const b=$('os-'+x);if(b)b.classList.toggle('on',x===v);});
+  _ordDay=_ordLast();
   renderOrders();
 }
-function _ordStep(dir){
-  const c=_ordCursor,t=_ordToday();
-  if(_ordPeriod==='day'){
-    const d=new Date(c.y,c.m,c.d+dir);
-    if(dir>0&&d>t)return;
-    _ordCursor={y:d.getFullYear(),m:d.getMonth(),d:d.getDate()};
-  }else if(_ordPeriod==='month'){
-    if(dir>0&&c.y===t.getFullYear()&&c.m===t.getMonth())return;
-    let nm=c.m+dir,ny=c.y;
-    if(nm<0){nm=11;ny--;}else if(nm>11){nm=0;ny++;}
-    _ordCursor={y:ny,m:nm};
-  }else{
-    if(dir>0&&c.y===t.getFullYear())return;
-    _ordCursor={y:c.y+dir};
-  }
+function ordDayStep(dir){
+  const nd=new Date(_ordDay.getTime()+dir*864e5),last=_ordLast();
+  if(nd>last)return;
+  _ordDay=nd;
   renderOrders();
 }
-function _ordCenter(){
-  if(_ordPeriod==='day')return _ordCursor.d+' '+(['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][_ordCursor.m])+' '+_ordCursor.y;
-  if(_ordPeriod==='month')return ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'][_ordCursor.m]+' '+_ordCursor.y;
-  return String(_ordCursor.y);
+function _ordDayWidget(){
+  return `<div class="arow"><button class="ab" onclick="ordDayStep(-1)">◄</button><span class="ac">${_ordDayStr()}</span><button class="ab" ${_ordDay.getTime()>=_ordLast().getTime()?'disabled':''} onclick="ordDayStep(1)">►</button></div>`;
 }
-function _ordRange(){
-  const c=_ordCursor;let s,t;
-  if(_ordPeriod==='day'){s=new Date(c.y,c.m,c.d,0,0,0,0);t=new Date(c.y,c.m,c.d+1,0,0,0,0);}
-  else if(_ordPeriod==='month'){s=new Date(c.y,c.m,1);t=new Date(c.y,c.m+1,1);}
-  else {s=new Date(c.y,0,1);t=new Date(c.y+1,0,1);}
-  return [s.getTime(),t.getTime()];
-}
+function _ordDayRange(){const s=_ordDay.getTime();return[s,s+864e5];}
 function _ordTs(o){
-  if(o.ts!=null&&!isNaN(+o.ts)){const ts=+o.ts;if(ts>0||o._srv)return ts;}
+  const raw=o.ts;
+  if(raw!=null&&!isNaN(+raw)){const ts=+raw;if(ts>0||o._srv)return ts;}
   const m=String(o.date||'').trim().match(/^(\d{1,2})\s+([а-яА-Яa-zA-ZёЁ]+)\.?$/);
   if(m){
     const MON={янв:0,фев:1,мар:2,апр:3,май:4,мая:4,июн:5,июл:6,авг:7,сен:8,окт:9,ноя:10,дек:11};
@@ -1263,62 +1237,15 @@ function _ordTs(o){
   }
   return null;
 }
-function _ordWidgetHtml(){
-  return `<div class="ptabs"><button class="ptab ${_ordPeriod==='day'?'on':''}" onclick="_ordSetMode('day')">День</button><button class="ptab ${_ordPeriod==='month'?'on':''}" onclick="_ordSetMode('month')">Месяц</button><button class="ptab ${_ordPeriod==='year'?'on':''}" onclick="_ordSetMode('year')">Год</button></div><div class="arow"><button class="ab" onclick="_ordStep(-1)">◄</button><span class="ac">${_ordCenter()}</span><button class="ab" ${_ordIsFuture()?'disabled':''} onclick="_ordStep(1)">►</button></div>`;
+function _ordMatches(o){
+  if(_ordSeg==='new')return o.status==='new';
+  if(_ordSeg==='cook')return o.status==='cook';
+  if(_ordSeg==='done')return o.status==='done';
+  if(_ordSeg==='iss')return o.status==='fulfilled'||o.status==='cancel'||o.dst==='delivered';
+  return true;
 }
 
-/* ── ЗАВЕРШЁННЫЕ / ВЫДАННЫЕ (архив) — свой фильтр периода, активные не трогаем ── */
-let _archPeriod='day',_archCursor=(()=>{const t=new Date();return{y:t.getFullYear(),m:t.getMonth(),d:t.getDate()}})();
-function _archToday(){return new Date();}
-function _archIsFuture(){
-  const t=_archToday();
-  if(_archPeriod==='day')return _archCursor.y===t.getFullYear()&&_archCursor.m===t.getMonth()&&_archCursor.d===t.getDate();
-  if(_archPeriod==='month')return _archCursor.y===t.getFullYear()&&_archCursor.m===t.getMonth();
-  return _archCursor.y===t.getFullYear();
-}
-function _archSetMode(m){
-  _archPeriod=m;const t=_archToday();
-  if(m==='day')_archCursor={y:t.getFullYear(),m:t.getMonth(),d:t.getDate()};
-  else if(m==='month')_archCursor={y:t.getFullYear(),m:t.getMonth()};
-  else _archCursor={y:t.getFullYear()};
-  renderArch();
-}
-function _archStep(dir){
-  const c=_archCursor,t=_archToday();
-  if(_archPeriod==='day'){
-    const d=new Date(c.y,c.m,c.d+dir);
-    if(dir>0&&d>t)return;
-    _archCursor={y:d.getFullYear(),m:d.getMonth(),d:d.getDate()};
-  }else if(_archPeriod==='month'){
-    if(dir>0&&c.y===t.getFullYear()&&c.m===t.getMonth())return;
-    let nm=c.m+dir,ny=c.y;
-    if(nm<0){nm=11;ny--;}else if(nm>11){nm=0;ny++;}
-    _archCursor={y:ny,m:nm};
-  }else{
-    if(dir>0&&c.y===t.getFullYear())return;
-    _archCursor={y:c.y+dir};
-  }
-  renderArch();
-}
-function _archCenter(){
-  if(_archPeriod==='day')return _archCursor.d+' '+(['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][_archCursor.m])+' '+_archCursor.y;
-  if(_archPeriod==='month')return ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'][_archCursor.m]+' '+_archCursor.y;
-  return String(_archCursor.y);
-}
-function _archRange(){
-  const c=_archCursor;let s,t;
-  if(_archPeriod==='day'){s=new Date(c.y,c.m,c.d,0,0,0,0);t=new Date(c.y,c.m,c.d+1,0,0,0,0);}
-  else if(_archPeriod==='month'){s=new Date(c.y,c.m,1);t=new Date(c.y,c.m+1,1);}
-  else {s=new Date(c.y,0,1);t=new Date(c.y+1,0,1);}
-  return [s.getTime(),t.getTime()];
-}
-function _archTs(o){
-  if(o.ts!=null&&!isNaN(+o.ts)){const ts=+o.ts;if(ts>0||o._srv)return ts;}
-  return _ordTs(o);
-}
-function _archWidgetHtml(){
-  return `<div class="ptabs"><button class="ptab ${_archPeriod==='day'?'on':''}" onclick="_archSetMode('day')">День</button><button class="ptab ${_archPeriod==='month'?'on':''}" onclick="_archSetMode('month')">Месяц</button><button class="ptab ${_archPeriod==='year'?'on':''}" onclick="_archSetMode('year')">Год</button></div><div class="arow"><button class="ab" onclick="_archStep(-1)">◄</button><span class="ac">${_archCenter()}</span><button class="ab" ${_archIsFuture()?'disabled':''} onclick="_archStep(1)">►</button></div>`;
-}
+/* ── Карточка завершённого заказа (без живого таймера; оплата из KV) ── */
 function archCard(o){
   const st=STATUS[o.status]||STATUS.new;
   const cnt=(Array.isArray(o.items)?o.items:[]).reduce((s,i)=>s+(Number(i.qty)||0),0);
@@ -1336,40 +1263,33 @@ function archCard(o){
     ${payLine(o)}
     <div class="oexp">${open?'▾ скрыть':'▸ состав заказа и сумма'}</div>${open?recHtml(o):''}</div>`;
 }
-function renderArch(){
-  const wg=$('arch-per-widget');if(wg)wg.innerHTML=_archWidgetHtml();
-  const orders=getOrders();
-  const [rs,re]=_archRange();
-  const list=orders.filter(o=>{
-    if(o.status!=='fulfilled'&&o.status!=='cancel'&&o.dst!=='delivered')return false;
-    const ts=_archTs(o);
-    if(ts==null)return false;
-    if(new Date(ts).getFullYear()<2020)return false;
-    return ts>=rs&&ts<re;
-  }).sort((a,b)=>((b.srvId||b.id||0))-((a.srvId||a.id||0)));
-  const el=$('arch-list');
-  if(el)el.innerHTML=list.length?list.map(archCard).join(''):emptyMini('За этот период завершённых заказов нет');
-  const cnt=$('arch-count');
-  if(cnt)cnt.textContent=list.length?list.length+' заказов':'';
-}
 function renderOrders(){
-  const wg=$('ord-per-widget');if(wg)wg.innerHTML=_ordWidgetHtml();
+  const wg=$('ord-day-widget');
+  if(wg)wg.innerHTML=(_ordSeg==='iss'||_ordSeg==='all')?_ordDayWidget():'';
   const orders=getOrders(),today=todayStr(),yest=dstr(new Date(Date.now()-864e5));
   const tOrd=orders.filter(o=>o.date===today&&o.status!=='cancel');
   const yOrd=orders.filter(o=>o.date===yest&&o.status!=='cancel');
   const rev=tOrd.reduce((s,o)=>s+o.total,0), yRev=yOrd.reduce((s,o)=>s+o.total,0);
   const active=orders.filter(o=>o.status==='new'||o.status==='cook');
-  const [rs,re]=_ordRange();
-  const view=orders.filter(o=>{if(o.status!=='new'&&o.status!=='cook'&&o.status!=='done')return false;const ts=_ordTs(o);if(ts==null)return false;const yy=new Date(ts).getFullYear();if(yy<2020)return false;return ts>=rs&&ts<re;});
   const stock=getStock(), low=stock.filter(i=>i.qty<i.min).length;
   $('st-cnt').textContent=tOrd.length; trend('st-cnt-tr',tOrd.length,yOrd.length);
   $('st-rev').textContent=fmt(rev); trend('st-rev-tr',rev,yRev);
   $('st-active').textContent=active.length; $('st-low').textContent=low;
   const b=active.length; ['bell-badge','tab-badge'].forEach(i=>{const e=$(i);e.textContent=b;e.style.display=b?'flex':'none';});
+  const isLive=_ordSeg==='new'||_ordSeg==='cook'||_ordSeg==='done';
+  const [rs,re]=isLive?[0,Infinity]:_ordDayRange();
+  const view=orders.filter(o=>{
+    if(!_ordMatches(o))return false;
+    const ts=_ordTs(o);
+    if(ts==null)return false;
+    if(isLive&&new Date(ts).getFullYear()<2020)return false;
+    return ts>=rs&&ts<re;
+  }).sort((a,b)=>((b.srvId||b.id||0))-((a.srvId||a.id||0)));
+  const emt=_ordSeg==='iss'?'За этот день завершённых нет':(isLive?({new:'Нет новых заказов',cook:'Нет заказов в готовке',done:'Нет готовых заказов'}[_ordSeg]):'За этот день заказов нет');
+  const card=o=>(o.status==='fulfilled'||o.status==='cancel'||o.dst==='delivered')?archCard(o):orderCard(o);
   $('ord-count').textContent=view.length?view.length+' заказов':'';
-  $('active-list').innerHTML=view.length?view.map(orderCard).join(''):emptyMini('Нет активных заказов');
+  $('ord-list').innerHTML=view.length?view.map(card).join(''):emptyMini(emt);
   renderCart();
-  renderArch();
   if(!_ordersSynced){_ordersSynced=true;syncOrdersFromServer().then(ok=>{_ordersSynced=ok;if(ok)renderOrders();});}
 }
 function trend(id,cur,prev){const el=$(id);if(!el)return;if(!prev){el.textContent=cur?'↑ new':'';el.className='tr up';return;}const d=((cur-prev)/prev)*100;el.textContent=(d>=0?'↑ ':'↓ ')+Math.abs(d).toFixed(0)+'%';el.className='tr '+(d>=0?'up':'down');}
