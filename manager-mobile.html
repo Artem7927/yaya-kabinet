@@ -461,6 +461,9 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
         <div class="between" style="margin:16px 4px 12px"><div class="ttl">Активные заказы</div><span class="link" id="ord-count"></span></div>
         <div id="ord-per-widget"></div>
         <div class="olist" id="active-list"></div>
+        <div class="between" style="margin:26px 4px 12px"><div class="ttl">Завершённые / Выданные</div><span class="link" id="arch-count"></span></div>
+        <div id="arch-per-widget"></div>
+        <div class="olist" id="arch-list"></div>
       </div>
     </section>
 
@@ -641,7 +644,7 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
   }
 })();
 
-const STATUS={new:{l:'Новый',c:'b-new'},cook:{l:'Готовится',c:'b-cook'},done:{l:'Готово',c:'b-done'},cancel:{l:'Отменён',c:'b-cancel'}};
+const STATUS={new:{l:'Новый',c:'b-new'},cook:{l:'Готовится',c:'b-cook'},done:{l:'Готово',c:'b-done'},fulfilled:{l:'Выдан',c:'b-done'},cancel:{l:'Отменён',c:'b-cancel'}};
 const $=id=>document.getElementById(id);
 let cart=[], orderType='delivery', curTab='orders', subKind='', subArg='', helpOn=false;
 const SETTINGS_KEY='yaya_settings';
@@ -1263,6 +1266,92 @@ function _ordTs(o){
 function _ordWidgetHtml(){
   return `<div class="ptabs"><button class="ptab ${_ordPeriod==='day'?'on':''}" onclick="_ordSetMode('day')">День</button><button class="ptab ${_ordPeriod==='month'?'on':''}" onclick="_ordSetMode('month')">Месяц</button><button class="ptab ${_ordPeriod==='year'?'on':''}" onclick="_ordSetMode('year')">Год</button></div><div class="arow"><button class="ab" onclick="_ordStep(-1)">◄</button><span class="ac">${_ordCenter()}</span><button class="ab" ${_ordIsFuture()?'disabled':''} onclick="_ordStep(1)">►</button></div>`;
 }
+
+/* ── ЗАВЕРШЁННЫЕ / ВЫДАННЫЕ (архив) — свой фильтр периода, активные не трогаем ── */
+let _archPeriod='day',_archCursor=(()=>{const t=new Date();return{y:t.getFullYear(),m:t.getMonth(),d:t.getDate()}})();
+function _archToday(){return new Date();}
+function _archIsFuture(){
+  const t=_archToday();
+  if(_archPeriod==='day')return _archCursor.y===t.getFullYear()&&_archCursor.m===t.getMonth()&&_archCursor.d===t.getDate();
+  if(_archPeriod==='month')return _archCursor.y===t.getFullYear()&&_archCursor.m===t.getMonth();
+  return _archCursor.y===t.getFullYear();
+}
+function _archSetMode(m){
+  _archPeriod=m;const t=_archToday();
+  if(m==='day')_archCursor={y:t.getFullYear(),m:t.getMonth(),d:t.getDate()};
+  else if(m==='month')_archCursor={y:t.getFullYear(),m:t.getMonth()};
+  else _archCursor={y:t.getFullYear()};
+  renderArch();
+}
+function _archStep(dir){
+  const c=_archCursor,t=_archToday();
+  if(_archPeriod==='day'){
+    const d=new Date(c.y,c.m,c.d+dir);
+    if(dir>0&&d>t)return;
+    _archCursor={y:d.getFullYear(),m:d.getMonth(),d:d.getDate()};
+  }else if(_archPeriod==='month'){
+    if(dir>0&&c.y===t.getFullYear()&&c.m===t.getMonth())return;
+    let nm=c.m+dir,ny=c.y;
+    if(nm<0){nm=11;ny--;}else if(nm>11){nm=0;ny++;}
+    _archCursor={y:ny,m:nm};
+  }else{
+    if(dir>0&&c.y===t.getFullYear())return;
+    _archCursor={y:c.y+dir};
+  }
+  renderArch();
+}
+function _archCenter(){
+  if(_archPeriod==='day')return _archCursor.d+' '+(['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][_archCursor.m])+' '+_archCursor.y;
+  if(_archPeriod==='month')return ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'][_archCursor.m]+' '+_archCursor.y;
+  return String(_archCursor.y);
+}
+function _archRange(){
+  const c=_archCursor;let s,t;
+  if(_archPeriod==='day'){s=new Date(c.y,c.m,c.d,0,0,0,0);t=new Date(c.y,c.m,c.d+1,0,0,0,0);}
+  else if(_archPeriod==='month'){s=new Date(c.y,c.m,1);t=new Date(c.y,c.m+1,1);}
+  else {s=new Date(c.y,0,1);t=new Date(c.y+1,0,1);}
+  return [s.getTime(),t.getTime()];
+}
+function _archTs(o){
+  if(o.ts!=null&&!isNaN(+o.ts)){const ts=+o.ts;if(ts>0||o._srv)return ts;}
+  return _ordTs(o);
+}
+function _archWidgetHtml(){
+  return `<div class="ptabs"><button class="ptab ${_archPeriod==='day'?'on':''}" onclick="_archSetMode('day')">День</button><button class="ptab ${_archPeriod==='month'?'on':''}" onclick="_archSetMode('month')">Месяц</button><button class="ptab ${_archPeriod==='year'?'on':''}" onclick="_archSetMode('year')">Год</button></div><div class="arow"><button class="ab" onclick="_archStep(-1)">◄</button><span class="ac">${_archCenter()}</span><button class="ab" ${_archIsFuture()?'disabled':''} onclick="_archStep(1)">►</button></div>`;
+}
+function archCard(o){
+  const st=STATUS[o.status]||STATUS.new;
+  const cnt=(Array.isArray(o.items)?o.items:[]).reduce((s,i)=>s+(Number(i.qty)||0),0);
+  const nm=o.name||'Гость';
+  const ph=o.phone?`<span class="ophone">${_rcpEsc(o.phone)}</span>`:'';
+  const adr=o.address?`<span class="ophone">· ${_rcpEsc(o.address)}</span>`:'';
+  const k=(o._srv?'s':'l')+':'+(o.srvId||o.id);
+  const open=_expOrders.has(k);
+  const when=fmtTime(o.ts)||fmtDate(o.ts);
+  return `<div class="ocard ${o.status==='cancel'?'cancel':'done'}" onclick="togOrd('${k}')">
+    <div class="ohead"><span class="onum">#${String(o.num).padStart(3,'0')}</span><span class="badge ${st.c}">${st.l}</span><span class="otime">${when}</span></div>
+    <div><span class="oname">${_rcpEsc(nm)}</span>${ph}</div>
+    <div class="ometa"><span>${cnt} позиц.</span><span class="sepdot"></span><span>${o.type==='pickup'?'Самовывоз':'Доставка'}</span></div>
+    ${adr}
+    ${payLine(o)}
+    <div class="oexp">${open?'▾ скрыть':'▸ состав заказа и сумма'}</div>${open?recHtml(o):''}</div>`;
+}
+function renderArch(){
+  const wg=$('arch-per-widget');if(wg)wg.innerHTML=_archWidgetHtml();
+  const orders=getOrders();
+  const [rs,re]=_archRange();
+  const list=orders.filter(o=>{
+    if(o.status!=='fulfilled'&&o.status!=='cancel'&&o.dst!=='delivered')return false;
+    const ts=_archTs(o);
+    if(ts==null)return false;
+    if(new Date(ts).getFullYear()<2020)return false;
+    return ts>=rs&&ts<re;
+  }).sort((a,b)=>((b.srvId||b.id||0))-((a.srvId||a.id||0)));
+  const el=$('arch-list');
+  if(el)el.innerHTML=list.length?list.map(archCard).join(''):emptyMini('За этот период завершённых заказов нет');
+  const cnt=$('arch-count');
+  if(cnt)cnt.textContent=list.length?list.length+' заказов':'';
+}
 function renderOrders(){
   const wg=$('ord-per-widget');if(wg)wg.innerHTML=_ordWidgetHtml();
   const orders=getOrders(),today=todayStr(),yest=dstr(new Date(Date.now()-864e5));
@@ -1280,6 +1369,7 @@ function renderOrders(){
   $('ord-count').textContent=view.length?view.length+' заказов':'';
   $('active-list').innerHTML=view.length?view.map(orderCard).join(''):emptyMini('Нет активных заказов');
   renderCart();
+  renderArch();
   if(!_ordersSynced){_ordersSynced=true;syncOrdersFromServer().then(ok=>{_ordersSynced=ok;if(ok)renderOrders();});}
 }
 function trend(id,cur,prev){const el=$(id);if(!el)return;if(!prev){el.textContent=cur?'↑ new':'';el.className='tr up';return;}const d=((cur-prev)/prev)*100;el.textContent=(d>=0?'↑ ':'↓ ')+Math.abs(d).toFixed(0)+'%';el.className='tr '+(d>=0?'up':'down');}
@@ -1357,7 +1447,7 @@ async function syncOrdersFromServer(){
     if(!r.ok)return false;
     const d=await r.json();
     if(!(d&&d.ok&&Array.isArray(d.orders)))return false;
-    const srv=d.orders.map(o=>{const b=o.data||{};const items=Array.isArray(b.items)?b.items.map(i=>({id:i.id||i.name,name:i.name,qty:Number(i.qty)||0,price:Number(i.price)||0})):[];const num=Number(o.num);return {id:Number(o.id),num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',ts:Number(o.ts)||Date.now(),items,total:(Number(b.total)||0)+(Number(b.delivery)||0),status:o.status||'new',type:b.type||'delivery',name:b.name||'',phone:b.phone||'',food:Number(b.total)||0,deliv:Number(b.delivery)||0,address:b.address?String(b.address).trim():'',comment:b.comment?String(b.comment):'',pay:b.pay_method||'',source:b.source||'direct',payFact:cf[String(o.id)]||null,_srv:true,srvId:Number(o.id)};});
+    const srv=d.orders.map(o=>{const b=o.data||{};const items=Array.isArray(b.items)?b.items.map(i=>({id:i.id||i.name,name:i.name,qty:Number(i.qty)||0,price:Number(i.price)||0})):[];const num=Number(o.num);return {id:Number(o.id),num,date:dstr(new Date(Number(o.ts)||Date.now())),time:'',ts:Number(o.ts)||Date.now(),items,total:(Number(b.total)||0)+(Number(b.delivery)||0),status:o.status||'new',type:b.type||'delivery',name:b.name||'',phone:b.phone||'',food:Number(b.total)||0,deliv:Number(b.delivery)||0,address:b.address?String(b.address).trim():'',comment:b.comment?String(b.comment):'',pay:b.pay_method||'',source:b.source||'direct',dst:String((o.dst!=null?o.dst:(b.dst||'')))||'__',payFact:cf[String(o.id)]||null,_srv:true,srvId:Number(o.id)};});
     const nums=new Set(srv.map(o=>String(o.num)));
     const local=getOrders().filter(o=>!o._srv||!nums.has(String(o.num)));
     setOrders(srv.concat(local).sort((a,b)=>((b.srvId||b.id||0))-((a.srvId||a.id||0))));
