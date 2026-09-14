@@ -265,7 +265,8 @@ input:focus,select:focus{border-color:var(--orange)}
           <input class="search" placeholder="Поиск по складу..." oninput="renderRaw(this.value)">
           <div class="itbl-head"><span>Позиция</span><span>Остаток</span><span>Статус</span></div>
           <div id="raw-list"></div>
-          <button class="btn btn-primary btn-block" style="margin-top:6px;padding:13px" onclick="openAdj()">＋ Корректировка / приёмка</button>
+          <button class="btn btn-primary btn-block" style="margin-top:6px;padding:13px" onclick="openAdj()">＋ Корректировка</button>
+          <button class="btn btn-line btn-block" style="margin-top:8px;padding:13px" onclick="openNewStock()">＋ Новая позиция</button>
         </div>
         <div id="stock-pf" style="display:none">
           <div class="note" style="text-align:left;padding:0 4px 12px">Полуфабрикаты приходят из цеха (передача Цех → Кухня).</div>
@@ -359,7 +360,7 @@ input:focus,select:focus{border-color:var(--orange)}
   <div class="sheet-bg" id="sheet-bg" onclick="closeSheet()"></div>
 
   <div class="sheet" id="sh-adj">
-    <div class="sheet-h"></div><div class="sheet-t">Корректировка / приёмка</div>
+    <div class="sheet-h"></div><div class="sheet-t">Корректировка</div>
     <div class="field"><label>Позиция склада кухни</label><select id="adj-item"></select></div>
     <div class="field"><label>Операция</label><select id="adj-reason" onchange="adjHint()"><option>Внутренний приход</option><option>Списание</option><option>Пересчёт</option></select></div>
     <div class="field"><label id="adj-qlbl">Количество для добавления</label><input id="adj-qty" type="number" step="0.01" value="1"></div>
@@ -367,6 +368,20 @@ input:focus,select:focus{border-color:var(--orange)}
     <div class="field" id="adj-photo-f" style="display:none"><label>Фото товара (обязательно)</label><div class="photo-prev" id="adj-photo-prev" style="display:none"><img id="adj-photo-img"><button class="rm" onclick="clearAdjPhoto()">✕</button></div><label class="photo-btn" id="adj-photo-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg> Фото товара (обязательно)<input id="adj-photo" type="file" accept="image/*" style="display:none" onchange="onAdjPhoto(this)"></label></div>
     <div class="note" id="adj-hint" style="text-align:left;padding:0 0 12px;color:var(--green)">Добавится на склад кухни</div>
     <button class="btn btn-primary btn-block" style="padding:14px" onclick="applyAdj()">Применить</button>
+  </div>
+
+  <div class="sheet" id="sh-newstock">
+    <div class="sheet-h"></div><div class="sheet-t">Новая позиция</div>
+    <div class="field"><label>Название</label><input id="ns-name" placeholder="напр. Куриное филе"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>Начальный остаток</label><input id="ns-qty" type="number" step="0.01" value="0"></div>
+      <div class="field"><label>Единица</label><select id="ns-unit"><option>кг</option><option>шт</option><option>л</option><option>уп</option></select></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="field"><label>Мин</label><input id="ns-min" type="number" step="0.01" value="1"></div>
+      <div class="field"><label>Макс</label><input id="ns-max" type="number" step="0.01" placeholder="авто"></div>
+    </div>
+    <button class="btn btn-primary btn-block" style="padding:14px" onclick="applyNewStock()">Добавить</button>
   </div>
 
   <div class="sheet" id="sh-tc">
@@ -943,6 +958,26 @@ async function applyAdj(){
     else{toast('warn','Не сохранено на сервере',errMsg+' — повторите');}
   }finally{_adjBusy=false;}
 }
+function openNewStock(){$('ns-name').value='';$('ns-qty').value=0;$('ns-unit').value='кг';$('ns-min').value=1;$('ns-max').value='';openSheet('sh-newstock');}
+let _nsBusy=false;
+async function applyNewStock(){
+  const name=$('ns-name').value.trim();
+  if(!name){toast('warn','Введите название','');return;}
+  if(_nsBusy)return;_nsBusy=true;
+  try{
+    const body={name,qty:parseFloat($('ns-qty').value)||0,unit:$('ns-unit').value||'кг',min:parseFloat($('ns-min').value)||1,location:'kitchen'};
+    const mv=$('ns-max').value.trim();if(mv!=='')body.max=parseFloat(mv)||null;
+    let ok=false,errMsg='';
+    try{
+      const r=await fetch(YAYA_API+'/stock',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify(body),cache:'no-store'});
+      let d=null;try{d=await r.json();}catch(e){}
+      ok=!!(r.ok&&d&&d.ok);
+      if(!ok)errMsg=(d&&d.error)||('HTTP '+r.status);
+    }catch(e){console.error('ns',e.stack||e);errMsg=e.message||String(e);}
+    if(ok){_stockCache=null;closeSheet();renderStock();toast('success','Позиция добавлена',name);}
+    else{toast('warn','Не сохранено на сервере',errMsg+' — повторите');}
+  }finally{_nsBusy=false;}
+}
 
 /* ТЕХКАРТЫ */
 function renderTechAll(){
@@ -1030,7 +1065,7 @@ function saveAddIng(){const name=$('ai-name').value.trim();if(!name){toast('warn
 
 /* АВТО-РЕФЕТЧ (как manager-mobile: 15с + visibilitychange, read-only) */
 function _kitPollActive(){
-  if(_adjBusy||_ksBusy)return false;
+  if(_adjBusy||_ksBusy||_nsBusy)return false;
   if(document.querySelector('.sheet.show'))return false;
   const a=document.activeElement;
   if(a&&(a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA'))return false;
