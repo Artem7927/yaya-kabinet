@@ -238,7 +238,7 @@ input:focus,select:focus{border-color:var(--orange)}
     <section class="screen" id="s-stock" data-title="Склад цеха">
       <div class="scroll">
         <div id="incoming"></div>
-        <div class="seg"><button id="sg-raw" class="on" onclick="stockSeg('raw')">Сырьё</button><button id="sg-pf" onclick="stockSeg('pf')">Полуфабрикаты</button></div>
+        <div class="seg"><button id="sg-raw" class="on" onclick="stockSeg('raw')">Сырьё</button><button id="sg-pf" onclick="stockSeg('pf')">Полуфабрикаты</button><button id="sg-log" onclick="stockSeg('log')">Списания</button></div>
         <div id="stock-raw">
           <input class="search" placeholder="Поиск сырья..." oninput="renderRaw(this.value)">
           <div class="itbl-head"><span>Сырьё</span><span>Остаток</span><span>Статус</span></div>
@@ -253,6 +253,10 @@ input:focus,select:focus{border-color:var(--orange)}
           </div>
           <div id="pf-list"></div>
           <button class="btn btn-teal btn-block" style="margin-top:6px;padding:13px" onclick="openTransfer()">Передать на кухню →</button>
+        </div>
+        <div id="stock-log" style="display:none">
+          <div id="sl-pw"></div>
+          <div id="sl-list"></div>
         </div>
       </div>
     </section>
@@ -366,6 +370,11 @@ input:focus,select:focus{border-color:var(--orange)}
     </div>
     <div class="field"><label>Минимум (порог)</label><input id="ai-min" type="number" step="0.01" value="1"></div>
     <button class="btn btn-primary btn-block" style="padding:14px" onclick="saveAddIng()">Добавить</button>
+  </div>
+
+  <div class="sheet" id="sh-slphoto">
+    <div class="sheet-h"></div><div class="sheet-t">Фото списания</div>
+    <div id="sl-photos"></div>
   </div>
 
   <div class="toasts" id="toasts"></div>
@@ -579,8 +588,98 @@ async function produce(){
 }
 
 /* СКЛАД */
-function stockSeg(v){stockView=v;$('sg-raw').classList.toggle('on',v==='raw');$('sg-pf').classList.toggle('on',v==='pf');$('stock-raw').style.display=v==='raw'?'':'none';$('stock-pf').style.display=v==='pf'?'':'none';renderStock();}
-function renderStock(){if(stockView==='raw')renderRaw(window._rawQ||'');else{renderPf();renderPfReq();}updCrit();renderIncoming();}
+function stockSeg(v){stockView=v;$('sg-raw').classList.toggle('on',v==='raw');$('sg-pf').classList.toggle('on',v==='pf');$('sg-log').classList.toggle('on',v==='log');$('stock-raw').style.display=v==='raw'?'':'none';$('stock-pf').style.display=v==='pf'?'':'none';$('stock-log').style.display=v==='log'?'':'none';renderStock();}
+function renderStock(){if(stockView==='raw')renderRaw(window._rawQ||'');else if(stockView==='log')renderStockLog();else{renderPf();renderPfReq();}updCrit();renderIncoming();}
+/* ЖУРНАЛ СПИСАНИЙ (вкладка склада, loc=workshop) */
+let _slPeriod='day',_slCursor=(()=>{const t=new Date();return{y:t.getFullYear(),m:t.getMonth(),d:t.getDate()}})();
+let _slCache=null,_slCacheT=0,_slFetching=false;
+function _slToday(){return new Date();}
+function _slIsFuture(){
+  const t=_slToday();
+  if(_slPeriod==='day')return _slCursor.y===t.getFullYear()&&_slCursor.m===t.getMonth()&&_slCursor.d===t.getDate();
+  if(_slPeriod==='month')return _slCursor.y===t.getFullYear()&&_slCursor.m===t.getMonth();
+  return _slCursor.y===t.getFullYear();
+}
+function _slSetMode(m){
+  _slPeriod=m;const t=_slToday();
+  if(m==='day')_slCursor={y:t.getFullYear(),m:t.getMonth(),d:t.getDate()};
+  else if(m==='month')_slCursor={y:t.getFullYear(),m:t.getMonth()};
+  else _slCursor={y:t.getFullYear()};
+  renderStockLog();
+}
+function _slStep(dir){
+  const c=_slCursor,t=_slToday();
+  if(_slPeriod==='day'){
+    const d=new Date(c.y,c.m,c.d+dir);
+    if(dir>0&&d>t)return;
+    _slCursor={y:d.getFullYear(),m:d.getMonth(),d:d.getDate()};
+  }else if(_slPeriod==='month'){
+    if(dir>0&&c.y===t.getFullYear()&&c.m===t.getMonth())return;
+    let nm=c.m+dir,ny=c.y;
+    if(nm<0){nm=11;ny--;}else if(nm>11){nm=0;ny++;}
+    _slCursor={y:ny,m:nm};
+  }else{
+    if(dir>0&&c.y===t.getFullYear())return;
+    _slCursor={y:c.y+dir};
+  }
+  renderStockLog();
+}
+function _slCenter(){
+  if(_slPeriod==='day')return _slCursor.d+' '+(['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'][_slCursor.m])+' '+_slCursor.y;
+  if(_slPeriod==='month')return ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'][_slCursor.m]+' '+_slCursor.y;
+  return String(_slCursor.y);
+}
+function _slRange(){
+  const c=_slCursor;let s,t;
+  if(_slPeriod==='day'){s=new Date(c.y,c.m,c.d,0,0,0,0);t=new Date(c.y,c.m,c.d+1,0,0,0,0);}
+  else if(_slPeriod==='month'){s=new Date(c.y,c.m,1);t=new Date(c.y,c.m+1,1);}
+  else {s=new Date(c.y,0,1);t=new Date(c.y+1,0,1);}
+  return [s.getTime(),t.getTime()];
+}
+function _slWidgetHtml(){
+  return `<div class="ptabs"><button class="ptab ${_slPeriod==='day'?'on':''}" onclick="_slSetMode('day')">День</button><button class="ptab ${_slPeriod==='month'?'on':''}" onclick="_slSetMode('month')">Месяц</button><button class="ptab ${_slPeriod==='year'?'on':''}" onclick="_slSetMode('year')">Год</button></div><div class="arow"><button class="ab" onclick="_slStep(-1)">◄</button><span class="ac">${_slCenter()}</span><button class="ab" ${_slIsFuture()?'disabled':''} onclick="_slStep(1)">►</button></div>`;
+}
+function _slDate(ts){try{return new Date(ts).toLocaleDateString('ru',{day:'numeric',month:'short'});}catch(e){return'';}}
+function _slTime(ts){try{return new Date(ts).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});}catch(e){return'';}}
+function renderStockLog(){
+  const pw=$('sl-pw');if(pw)pw.innerHTML=_slWidgetHtml();
+  if(Date.now()>_slCacheT&&!_slFetching){
+    _slFetching=true;
+    fetch(YAYA_API+'/deductions',{headers:{'X-Admin-Token':yTok()},cache:'no-store'})
+      .then(r=>r.ok?r.json():Promise.reject(r.status))
+      .then(d=>{_slCache=(d&&Array.isArray(d.items))?d.items:[];})
+      .catch(()=>{_slCache=[];})
+      .finally(()=>{_slFetching=false;_slCacheT=Date.now()+20000;renderStockLog();});
+  }
+  const src=Array.isArray(_slCache)?_slCache:[];
+  const [s,e]=_slRange();
+  const list=src.filter(r=>(r.location||(r.emp==='Кухня'?'kitchen':r.emp==='Цех'?'workshop':null))==='workshop')
+                .filter(r=>{const ts=+r.ts||0;return ts>=s&&ts<e;});
+  const el=$('sl-list');if(!el)return;
+  el.innerHTML=list.length?list.slice(0,80).map(d=>{
+    const inc=/приход|\+|переда/i.test((d.reason||'')+(d.qty||''));
+    const q=String(d.qty).replace(/^[+-]/,'');
+    const ts=+d.ts||0;
+    return `<div class="jrow">
+      <span class="jdot" style="background:${inc?'var(--green)':'var(--red)'}"></span>
+      <div class="jinfo"><div class="jname">🏭 ${d.ing}</div><div class="jtime">${_slDate(ts)} ${_slTime(ts)} · Цех · ${d.reason||''} · ${d.emp||''}</div>${d.has_media?`<span style="display:inline-block;margin-top:4px;padding:3px 10px;border:1px solid var(--line);border-radius:8px;font-size:11px;color:var(--blue);cursor:pointer" onclick="slPhoto(${d.id})">📷 Фото списания</span>`:''}</div>
+      <div class="jval" style="color:${inc?'var(--green)':'var(--red)'}">${inc?'+':'−'}${q} ${d.unit||''}</div></div>`;
+  }).join(''):'<div class="empty-mini">Списаний нет</div>';
+}
+let _slPhotoBusy=false;
+function slPhoto(id){
+  if(_slPhotoBusy)return;_slPhotoBusy=true;
+  fetch(YAYA_API+'/deductions/'+encodeURIComponent(id)+'/media',{headers:{'X-Admin-Token':yTok()},cache:'no-store'})
+    .then(r=>r.ok?r.json():Promise.reject(r.status))
+    .then(d=>{
+      const imgs=((d&&Array.isArray(d.items))?d.items:[]).filter(m=>m&&m.url).map(m=>m.url);
+      if(!imgs.length){toast('warn','Нет фото','');return;}
+      $('sl-photos').innerHTML=imgs.map(u=>'<img src="'+u+'" style="width:100%;border-radius:11px;margin-bottom:10px;display:block">').join('');
+      openSheet('sh-slphoto');
+    })
+    .catch(()=>toast('warn','Ошибка загрузки фото',''))
+    .finally(()=>{_slPhotoBusy=false;});
+}
 const RECV_LOC='workshop';   // в kitchen-stock-mobile.html поставить 'kitchen'
 async function renderIncoming(){
   const box=$('incoming');if(!box)return;
