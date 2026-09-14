@@ -290,7 +290,7 @@ input:focus,select:focus{border-color:var(--orange)}
   <div class="sheet" id="sh-purch">
     <div class="sheet-h"></div><div class="sheet-t">Записать закупку</div>
     <div class="seg"><button id="pl-workshop" class="on" onclick="purchLoc('workshop')">🏭 В цех</button><button id="pl-kitchen" onclick="purchLoc('kitchen')">🍳 На кухню</button></div>
-    <div class="field"><label>Позиция</label><select id="pu-ing" onchange="puUnitSync()"></select></div>
+    <div class="field"><label>Позиция</label><select id="pu-ing" onchange="puIngChange()"></select></div>
     <div style="display:grid;grid-template-columns:1fr 90px;gap:10px">
       <div class="field"><label>Количество</label><input id="pu-qty" type="number" step="0.01" value="1" oninput="puTotal()"></div>
       <div class="field"><label>Ед.</label><input id="pu-unit" value="кг"></div>
@@ -303,6 +303,22 @@ input:focus,select:focus{border-color:var(--orange)}
     <div class="photo-prev" id="pu-receipt-prev" style="display:none"><img id="pu-receipt-img"><button class="rm" onclick="clearPhoto('receipt')">✕</button></div>
     <label class="photo-btn" id="pu-receipt-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg> Фото чека (обязательно)<input type="file" accept="image/*" style="display:none" onchange="onPhoto('receipt',this)"></label>
     <button class="btn btn-primary btn-block" style="margin-top:14px;padding:14px" onclick="savePurch()">Записать закупку</button>
+  </div>
+
+  <!-- new stock position sheet -->
+  <div class="sheet" id="sh-newstock">
+    <div class="sheet-h"></div><div class="sheet-t">Новая позиция</div>
+    <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-bottom:12px" id="ns-loc-hint"></div>
+    <div class="field"><label>Название</label><input id="ns-name" placeholder="напр. Куриное филе"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>Начальный остаток</label><input id="ns-qty" type="number" step="0.01" value="0"></div>
+      <div class="field"><label>Единица</label><select id="ns-unit"><option>кг</option><option>шт</option><option>л</option><option>уп</option></select></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>Мин</label><input id="ns-min" type="number" step="0.01" value="1"></div>
+      <div class="field"><label>Макс</label><input id="ns-max" type="number" step="0.01" placeholder="авто"></div>
+    </div>
+    <button class="btn btn-primary btn-block" style="margin-top:14px;padding:14px" onclick="applyNewStock()">Добавить позицию</button>
   </div>
 
   <div class="toasts" id="toasts"></div>
@@ -565,7 +581,9 @@ async function renderWsReq(){
 
 /* ЗАПИСЬ ЗАКУПКИ */
 function purchLoc(l){purchLocation=l;$('pl-workshop').classList.toggle('on',l==='workshop');$('pl-kitchen').classList.toggle('on',l==='kitchen');fillPurchIng();}
-function fillPurchIng(){const items=getStock().filter(i=>(i.location||'workshop')===purchLocation);$('pu-ing').innerHTML=items.map(i=>`<option value="${i.id}" data-unit="${i.unit}">${i.name} (${parseFloat(i.qty.toFixed(1))}${i.unit})</option>`).join('')||'<option value="">нет позиций</option>';puUnitSync();}
+let _puIngPrev='';
+function fillPurchIng(){const prev=_puIngPrev;const items=getStock().filter(i=>(i.location||'workshop')===purchLocation);$('pu-ing').innerHTML='<option value="__new__">＋ Новая позиция…</option>'+items.map(i=>`<option value="${i.id}" data-unit="${i.unit}">${i.name} (${parseFloat(i.qty.toFixed(1))}${i.unit})</option>`).join('');if(prev&&items.find(i=>i.id===prev))$('pu-ing').value=prev;else if(items.length)$('pu-ing').value=items[0].id;_puIngPrev=$('pu-ing').value;puUnitSync();}
+function puIngChange(){if($('pu-ing').value==='__new__'){fillPurchIng();openNewStock();return;}puUnitSync();}
 function puUnitSync(){const o=$('pu-ing').selectedOptions[0];if(o&&o.dataset.unit)$('pu-unit').value=o.dataset.unit;}
 function puTotal(){const q=parseFloat($('pu-qty').value)||0,p=parseFloat($('pu-price').value)||0;$('pu-total').textContent=money(q*p);}
 function openPurch(id){
@@ -576,6 +594,7 @@ function openPurch(id){
   if(id){$('pu-ing').value=id;puUnitSync();const it=getStock().find(x=>x.id===id);if(it)$('pu-qty').value=needQty(it)||1;}
   else $('pu-qty').value=1;
   const prices=lastPrices();const sel=getStock().find(x=>x.id===$('pu-ing').value);$('pu-price').value=sel&&prices[sel.name]?prices[sel.name]:0;
+  _puIngPrev=$('pu-ing').value;
   $('pu-supplier').value='';
   $('sup-datalist').innerHTML=getSuppliers().map(s=>`<option value="${s.name}">`).join('');
   puTotal();openSheet('sh-purch');
@@ -617,6 +636,41 @@ async function savePurch(){
   finally{
     _purchBusy=false;
   }
+}
+
+/* НОВАЯ ПОЗИЦИЯ */
+function openNewStock(){$('ns-name').value='';$('ns-qty').value=0;$('ns-unit').value=purchLocation==='kitchen'?'шт':'кг';$('ns-min').value=1;$('ns-max').value='';$('ns-loc-hint').textContent='Будет добавлена на склад: '+(purchLocation==='kitchen'?'Кухня':'Цех');openSheet('sh-newstock');}
+function closeNewStock(){const sh=$('sh-newstock');if(sh)sh.classList.remove('show');if(!document.querySelectorAll('.sheet.show').length)$('sheet-bg').classList.remove('show');}
+let _nsBusy=false;
+async function applyNewStock(){
+  if(_nsBusy)return;
+  const name=$('ns-name').value.trim();
+  if(!name){toast('warn','Введите название','');return;}
+  const location=purchLocation==='kitchen'?'kitchen':'workshop';
+  const body={name:name,qty:parseFloat($('ns-qty').value)||0,unit:$('ns-unit').value||'кг',min:parseFloat($('ns-min').value)||1,location:location};
+  const mx=$('ns-max').value.trim();if(mx!=='')body.max=parseFloat(mx)||null;
+  _nsBusy=true;
+  try{
+    let ok=false,errMsg='',newId='',srvName=name;
+    try{
+      const r=await fetch(YAYA_API+'/stock',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Token':yTok()},body:JSON.stringify(body),cache:'no-store'});
+      let d=null;try{d=await r.json();}catch(e){}
+      ok=!!(r.ok&&d&&d.ok);if(ok&&d&&d.item){newId=String(d.item.id||'');if(d.item.name)srvName=d.item.name;}
+      if(!ok)errMsg=(d&&d.error)||('HTTP '+r.status);
+    }catch(e){errMsg=e.message||String(e);}
+    if(!ok){toast('warn','Не сохранено',errMsg+', повторите');return;}
+    const stock=getStock();
+    if(!stock.some(i=>String(i.id)===String(newId)))stock.push({id:newId||('ns'+Date.now()),name:srvName,qty:Number(body.qty)||0,unit:body.unit,min:Number(body.min)||1,max:body.max!=null?Number(body.max):null,location:location});
+    setStock(stock);
+    _stockCache=null;
+    fillPurchIng();
+    if(newId&&getStock().find(i=>String(i.id)===String(newId)))$('pu-ing').value=newId;
+    else{const f=getStock().find(i=>i.name===srvName&&(i.location||'workshop')===purchLocation);if(f)$('pu-ing').value=f.id;}
+    _puIngPrev=$('pu-ing').value;
+    puUnitSync();
+    closeNewStock();
+    toast('success','Позиция добавлена',srvName);
+  }finally{_nsBusy=false;}
 }
 
 /* ЖУРНАЛ */
@@ -667,7 +721,7 @@ function exportCsv(){
 
 /* АВТО-РЕФЕТЧ (как manager-mobile: 15с + visibilitychange, read-only) */
 function _buyPollActive(){
-  if(_purchBusy)return false;
+  if(_purchBusy||_nsBusy)return false;
   if(document.querySelector('.sheet.show'))return false;
   const a=document.activeElement;
   if(a&&(a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA'))return false;
