@@ -643,6 +643,8 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
     window.autoDeductForOrder=function(){};
   }
 })();
+/* журнал списаний — только сервер (GET /deductions); фантомные локальные yaya_deductions не показываем */
+try{localStorage.removeItem('yaya_deductions');}catch(e){}
 
 const STATUS={new:{l:'Новый',c:'b-new'},cook:{l:'Готовится',c:'b-cook'},done:{l:'Готово',c:'b-done'},fulfilled:{l:'Выдан',c:'b-done'},cancel:{l:'Отменён',c:'b-cancel'}};
 const $=id=>document.getElementById(id);
@@ -1374,17 +1376,11 @@ function dedKey(r,ts){
 function fmtDate(ts){try{return new Date(ts).toLocaleDateString('ru',{day:'numeric',month:'short'});}catch(e){return'';}}
 function fmtTime(ts){try{return new Date(ts).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});}catch(e){return'';}}
 function mergeDed(){
-  const server=Array.isArray(_dedServer)?_dedServer:[],local=getDeductions(),seen=new Set(),out=[];
+  const server=Array.isArray(_dedServer)?_dedServer:[],seen=new Set(),out=[];
   server.forEach(s=>{
     if(seen.has('srv:'+s.id))return;seen.add('srv:'+s.id);
     const ts=+s.ts;
     out.push(Object.assign({},s,{ts:ts,date:fmtDate(ts),time:fmtTime(ts)}));
-  });
-  const srvKeys=new Set(server.map(s=>dedKey(s,+s.ts)));
-  local.forEach(l=>{
-    const ts=dedTs(l);
-    if(srvKeys.has(dedKey(l,ts)))return;
-    out.push(Object.assign({},l,{ts:ts}));
   });
   return out.sort((a,b)=>(b.ts||0)-(a.ts||0));
 }
