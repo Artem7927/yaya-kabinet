@@ -329,7 +329,7 @@ input:focus,select:focus{border-color:var(--orange)}
 (function(){
   if(typeof MENU==='undefined')window.MENU=[];
   if(typeof getStock!=='function'){
-    const g=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}},s=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+    const g=(k,d)=>{try{const v=localStorage.getItem(k);if(!v)return d;const p=JSON.parse(v);if(Array.isArray(d)&&!Array.isArray(p))return d;return p}catch{return d}},s=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
     window.getStock=()=>g('yaya_stock_v3',[]);window.setStock=v=>s('yaya_stock_v3',v);
     window.getPurchases=()=>g('yaya_purchases',[]);window.setPurchases=v=>s('yaya_purchases',v);
     window.getDeductions=()=>g('yaya_deductions',[]);window.setDeductions=v=>s('yaya_deductions',v);
@@ -627,7 +627,7 @@ async function savePurch(){
     const pid=srvPurchaseId||('p'+Date.now()),loc=ing.location||'workshop';
     const purch=getPurchases();purch.unshift({id:pid,date:todayStr(),time:nowStr(),ing:ing.name,location:loc,qty:qty.toFixed(2),unit,price,total:price*qty,supplier,note:'',hasReceipt:true,status:'pending'});setPurchases(purch);
     /* без локального списания — приход ожидает приёмки */
-    {const rec=getReceipts();rec.push({id:'r'+Date.now(),purchaseId:pid,date:todayStr(),time:nowStr(),supplier,ing:ing.name,location:loc,goods:_photoGoods,receipt:_photoReceipt});setReceipts(rec);}
+    {const rec=Array.isArray(getReceipts())?getReceipts():[];rec.push({id:'r'+Date.now(),purchaseId:pid,date:todayStr(),time:nowStr(),supplier,ing:ing.name,location:loc,goods:_photoGoods,receipt:_photoReceipt});setReceipts(rec);}
     if(supplier){const sup=getSuppliers();if(!sup.find(s=>s.name===supplier)){sup.push({name:supplier,info:''});setSuppliers(sup);}}
     _stockCache=null;
     if(serverOk){toast('success','Отправлено на приёмку',ing.name+' +'+qty+unit+' · ждёт подтверждения складом');clearPhoto();closeSheet();renderBuy();loadPurchasesSrv().then(()=>{if(curTab==='log')renderLog();else if(curTab==='spend')renderSpend();});}
