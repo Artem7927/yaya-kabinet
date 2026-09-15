@@ -272,7 +272,7 @@ input:focus,select:focus{border-color:var(--orange)}
           <div class="note" style="text-align:left;padding:0 4px 12px">Полуфабрикаты приходят из цеха (передача Цех → Кухня).</div>
           <div id="pf-incoming"></div>
           <div id="pf-list"></div>
-          <button class="btn btn-teal btn-block" style="margin-top:10px" onclick="openKsTransfer()">Передать в цех ←</button>
+          <button class="btn btn-teal btn-block" style="margin-top:10px" onclick="openKsTransfer()">Возврат в цех ←</button>
         </div>
         <div id="stock-log" style="display:none">
           <div id="sl-pw"></div>
@@ -394,7 +394,7 @@ input:focus,select:focus{border-color:var(--orange)}
   </div>
 
   <div class="sheet" id="sh-kstransfer">
-    <div class="sheet-h"></div><div class="sheet-t">Передать в цех</div>
+    <div class="sheet-h"></div><div class="sheet-t">Возврат в цех</div>
     <div id="kt-list"></div>
     <button class="btn btn-teal btn-block" style="padding:14px" onclick="doKsTransfer()">Передать</button>
   </div>
@@ -1012,7 +1012,7 @@ async function doKsTransfer(){
       ok=!!(res.ok&&d&&d.ok);
       if(!ok)errMsg=(d&&d.error)||('HTTP '+res.status);
     }catch(e){console.error('ksTransfer',e.stack||e);errMsg=e.message||String(e);}
-    if(ok){_pfCache=null;_stockCache=null;closeSheet();renderStock();toast('success','Передано в цех',items.length+' поз.');}
+    if(ok){_pfCache=null;_stockCache=null;closeSheet();renderStock();toast('success','Возвращено в цех',items.length+' поз.');}
     else{toast('warn','Не передано',errMsg);}
   }finally{_ksBusy=false;}
 }
