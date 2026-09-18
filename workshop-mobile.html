@@ -157,9 +157,10 @@ input:focus,select:focus{border-color:var(--orange)}
 
 /* tabbar */
 .tabbar{display:flex;flex-shrink:0;background:rgba(16,15,18,.94);backdrop-filter:blur(20px);border-top:1px solid var(--line);padding:8px 4px calc(8px + var(--safe-b))}
-.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;border:none;background:none;color:var(--muted2);cursor:pointer;font-family:inherit;padding:2px}
+.tab{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;border:none;background:none;color:var(--muted2);cursor:pointer;font-family:inherit;padding:2px}
 .tab.on{color:var(--orange)}
 .tab .tl{font-size:9px;font-weight:600}
+.tab .nb{position:absolute;top:0;right:14px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:var(--red-soft);color:var(--red);font-size:10px;font-weight:700;align-items:center;justify-content:center;display:none}
 
 /* drawer */
 .drawer-bg{position:absolute;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:.25s;z-index:40}
@@ -312,7 +313,7 @@ input:focus,select:focus{border-color:var(--orange)}
   <nav class="tabbar">
     <button class="tab on" data-tab="prod" onclick="go('prod')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M4 20V8l5 4V8l5 4V4l6 4v12"/></svg><span class="tl">Произв.</span></button>
     <button class="tab" data-tab="orders" onclick="go('orders')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg><span class="tl">Заказы</span></button>
-    <button class="tab" data-tab="stock" onclick="go('stock')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21 8-9-5-9 5 9 5 9-5ZM3 8v8l9 5 9-5V8"/></svg><span class="tl">Склад</span></button>
+    <button class="tab" data-tab="stock" onclick="go('stock')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21 8-9-5-9 5 9 5 9-5ZM3 8v8l9 5 9-5V8"/></svg><span class="tl">Склад</span><span class="nb" id="nb-stock"></span></button>
     <button class="tab" data-tab="recipes" onclick="go('recipes')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg><span class="tl">Рецепты</span></button>
     <button class="tab" data-tab="reports" onclick="go('reports')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/></svg><span class="tl">Отчёты</span></button>
   </nav>
@@ -711,6 +712,7 @@ async function renderPfReq(){
   let items=[];
   try{const r=await fetch(YAYA_API+'/pf-requests?status=open',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();if(d&&d.ok&&Array.isArray(d.items))items=d.items;}catch(e){}
   _ynAnnounce('w_req', items.map(x=>String(x.id)), function(){return 'Новая заявка от кухни';}, 'Новых заявок: {n}');
+  const _nb=document.getElementById('nb-stock'); if(_nb){_nb.textContent=String(items.length);_nb.style.display=items.length>0?'flex':'none';}
   const wrap=$('pf-req-wrap');
   if(!items.length){wrap.style.display='none';$('pf-req-list').innerHTML='';return;}
   wrap.style.display='';
