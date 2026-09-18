@@ -215,6 +215,7 @@ input:focus,select:focus{border-color:var(--orange)}
 
   <div class="appbar">
     <button class="ib" onclick="openDrawer()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    <button id="yn-toggle" title="Звук уведомлений" onclick="_ynSetSound(!_ynSoundOn())" style="background:none;border:none;font-size:20px;cursor:pointer;line-height:1;">🔔</button>
     <h1 id="ab-title">Заказы</h1>
     <span class="badge-crit" id="crit-badge" style="display:none">0 крит.</span>
   </div>
@@ -617,6 +618,7 @@ async function renderOrders(){
   $('ord-done2').textContent=doneOnes.length+fulOnes.length;
   const badge=$('ord-badge');
   const nNew=newOnes.length;badge.style.display=nNew?'flex':'none';badge.textContent=nNew>99?'99+':nNew;
+  _ynAnnounce('k_ord', newOnes.map(o=>String(o.num)), function(n){return 'Новый заказ №'+n;}, 'Новых заказов: {n}');
   const wg=$('dfWidget');
   if(wg){wg.style.display='';wg.innerHTML=_dfWidgetHtml();}
   // сортировка: старые сверху по времени оформления, горящие не прыгают
@@ -975,6 +977,7 @@ async function renderPfIncoming(){
   const box=$('pf-incoming');if(!box)return;
   let d=null;try{const r=await fetch(YAYA_API+'/transfers/incoming',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});d=await r.json();}catch(e){}
   const ts=(d&&d.ok&&Array.isArray(d.transfers))?d.transfers:[];
+  _ynAnnounce('k_tr', ts.map(t=>String(t.id)), function(){return 'Передача ПФ на приёмку';}, 'Передач на приёмку: {n}');
   if(!ts.length){box.innerHTML='';return;}
   box.innerHTML=`<div class="itbl-head" style="margin-top:2px"><span>Входящие передачи</span><span>${ts.length}</span></div>`+ts.map(t=>{
     const who=t.performer?(' · привёз '+(PF_ROLE_RU[t.performer]||t.performer)):'',when=new Date(Number(t.ts)).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
@@ -1162,6 +1165,16 @@ function delIng(id){if(!confirm('Удалить позицию?'))return;setStoc
 function openAddIng(){$('ai-name').value='';$('ai-qty').value=0;$('ai-unit').value='шт.';$('ai-min').value=1;openSheet('sh-adding');}
 function saveAddIng(){const name=$('ai-name').value.trim();if(!name){toast('warn','Введите название','');return;}const stock=getStock();stock.push({id:'i'+Date.now(),name,qty:parseFloat($('ai-qty').value)||0,unit:$('ai-unit').value.trim()||'шт.',min:parseFloat($('ai-min').value)||1,location:'kitchen'});setStock(stock);closeSheet();renderIng('');toast('success','Ингредиент добавлен',name);}
 
+/* --- YaYa notify --- */
+function _ynSoundOn(){try{return localStorage.getItem('yaya_notify_sound')!=='0';}catch(e){return true;}}
+function _ynSetSound(o){try{localStorage.setItem('yaya_notify_sound',o?'1':'0');}catch(e){}_ynSyncToggle();}
+function _ynSyncToggle(){var b=document.getElementById('yn-toggle');if(b)b.textContent=_ynSoundOn()?'🔔':'🔕';}
+function _ynBeep(){if(!_ynSoundOn())return;try{var A=window.AudioContext||window.webkitAudioContext;var ac=new A();var o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(0.0001,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.3,ac.currentTime+0.01);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+0.25);o.start();o.stop(ac.currentTime+0.26);}catch(e){}}
+function _ynToast(m){try{toast(m,'info');}catch(e){try{toast(m);}catch(_){}}}
+var _ynSeen={};
+function _ynNew(key,ids){var cur={};(ids||[]).forEach(function(x){cur[String(x)]=1;});var prev=_ynSeen[key];_ynSeen[key]=cur;if(!prev)return[];return(ids||[]).filter(function(x){return !prev[String(x)];});}
+function _ynAnnounce(key,ids,one,many){var n=_ynNew(key,ids);if(!n.length)return;if(n.length>2){_ynToast(many.replace('{n}',n.length));}else{n.forEach(function(id){_ynToast(one(id));});}_ynBeep();}
+_ynSyncToggle();
 /* АВТО-РЕФЕТЧ (как manager-mobile: 15с + visibilitychange, read-only) */
 function _kitPollActive(){
   if(_adjBusy||_ksBusy||_nsBusy)return false;

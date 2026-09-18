@@ -193,6 +193,7 @@ input:focus,select:focus{border-color:var(--orange)}
 
   <div class="appbar">
     <button class="ib" onclick="openDrawer()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    <button id="yn-toggle" title="Звук уведомлений" onclick="_ynSetSound(!_ynSoundOn())" style="background:none;border:none;font-size:20px;cursor:pointer;line-height:1;">🔔</button>
     <h1 id="ab-title">Что купить</h1>
     <span class="spend" id="spend-badge">0 ₸</span>
   </div>
@@ -534,6 +535,7 @@ async function renderBuy(){
   $('bs-cnt').textContent=lowAll.length;
   $('bs-sum').textContent='≈ '+money(estAll);
   const b=lowAll.length;$('tab-badge').textContent=b;$('tab-badge').style.display=b?'flex':'none';
+  _ynAnnounce('b_def', lowAll.map(i=>String(i.id)), function(id){var it=lowAll.find(i=>String(i.id)===id); return 'Дефицит: '+(it?it.name:'позиция');}, 'Новых дефицитов: {n}');
   updSpend();
   if(!low.length){$('buy-list').innerHTML=`<div class="empty-full"><svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg><b>Всё в наличии</b><p>Ниже минимума ничего нет — докупать нечего.</p></div>`;return;}
   $('buy-list').innerHTML=low.map(i=>{const loc=i.location||'workshop',need=needQty(i),pr=prices[i.name];const est=pr?' · ≈'+money(need*pr):'';
@@ -719,6 +721,16 @@ function exportCsv(){
   toast('success','Экспорт готов',p.length+' записей');
 }
 
+/* --- YaYa notify --- */
+function _ynSoundOn(){try{return localStorage.getItem('yaya_notify_sound')!=='0';}catch(e){return true;}}
+function _ynSetSound(o){try{localStorage.setItem('yaya_notify_sound',o?'1':'0');}catch(e){}_ynSyncToggle();}
+function _ynSyncToggle(){var b=document.getElementById('yn-toggle');if(b)b.textContent=_ynSoundOn()?'🔔':'🔕';}
+function _ynBeep(){if(!_ynSoundOn())return;try{var A=window.AudioContext||window.webkitAudioContext;var ac=new A();var o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(0.0001,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.3,ac.currentTime+0.01);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+0.25);o.start();o.stop(ac.currentTime+0.26);}catch(e){}}
+function _ynToast(m){try{toast(m,'info');}catch(e){try{toast(m);}catch(_){}}}
+var _ynSeen={};
+function _ynNew(key,ids){var cur={};(ids||[]).forEach(function(x){cur[String(x)]=1;});var prev=_ynSeen[key];_ynSeen[key]=cur;if(!prev)return[];return(ids||[]).filter(function(x){return !prev[String(x)];});}
+function _ynAnnounce(key,ids,one,many){var n=_ynNew(key,ids);if(!n.length)return;if(n.length>2){_ynToast(many.replace('{n}',n.length));}else{n.forEach(function(id){_ynToast(one(id));});}_ynBeep();}
+_ynSyncToggle();
 /* АВТО-РЕФЕТЧ (как manager-mobile: 15с + visibilitychange, read-only) */
 function _buyPollActive(){
   if(_purchBusy||_nsBusy)return false;
