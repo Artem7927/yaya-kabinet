@@ -711,7 +711,6 @@ async function renderPf(){const ws=(await fetchPfSrv())||getWsStock();$('pf-list
 async function renderPfReq(){
   let items=[];
   try{const r=await fetch(YAYA_API+'/pf-requests?status=open',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();if(d&&d.ok&&Array.isArray(d.items))items=d.items;}catch(e){}
-  _ynAnnounce('w_req', items.map(x=>String(x.id)), function(){return 'Новая заявка от кухни';}, 'Новых заявок: {n}');
   const _nb=document.getElementById('nb-stock'); if(_nb){_nb.textContent=String(items.length);_nb.style.display=items.length>0?'flex':'none';}
   const wrap=$('pf-req-wrap');
   if(!items.length){wrap.style.display='none';$('pf-req-list').innerHTML='';return;}
@@ -812,12 +811,27 @@ function saveAddIng(){const name=$('ai-name').value.trim();if(!name){toast('warn
 function _ynSoundOn(){try{return localStorage.getItem('yaya_notify_sound')!=='0';}catch(e){return true;}}
 function _ynSetSound(o){try{localStorage.setItem('yaya_notify_sound',o?'1':'0');}catch(e){}_ynSyncToggle();}
 function _ynSyncToggle(){var b=document.getElementById('yn-toggle');if(b)b.textContent=_ynSoundOn()?'🔔':'🔕';}
-function _ynBeep(){if(!_ynSoundOn())return;try{var A=window.AudioContext||window.webkitAudioContext;var ac=new A();var o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(0.0001,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.3,ac.currentTime+0.01);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+0.25);o.start();o.stop(ac.currentTime+0.26);}catch(e){}}
+var _ynAC=null;
+function _ynUnlock(){if(_ynAC)return;try{var A=window.AudioContext||window.webkitAudioContext;_ynAC=new A();if(_ynAC.state==='suspended')_ynAC.resume();}catch(e){}}
+document.addEventListener('click',_ynUnlock,{once:true});
+document.addEventListener('touchstart',_ynUnlock,{once:true});
+function _ynBeep(){if(!_ynSoundOn())return;try{var ac=_ynAC||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();var o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(0.0001,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.3,ac.currentTime+0.01);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+0.25);o.start();o.stop(ac.currentTime+0.26);}catch(e){}}
 function _ynToast(m){try{toast('info','',m);}catch(e){}}
 var _ynSeen={};
 function _ynNew(key,ids){var cur={};(ids||[]).forEach(function(x){cur[String(x)]=1;});var prev=_ynSeen[key];_ynSeen[key]=cur;if(!prev)return[];return(ids||[]).filter(function(x){return !prev[String(x)];});}
 function _ynAnnounce(key,ids,one,many){var n=_ynNew(key,ids);if(!n.length)return;if(n.length>2){_ynToast(many.replace('{n}',n.length));}else{n.forEach(function(id){_ynToast(one(id));});}_ynBeep();}
 _ynSyncToggle();
+async function _ynPoll(){
+  if(document.hidden)return;
+  try{
+    const r=await fetch(YAYA_API+'/pf-requests?status=open',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+    const d=await r.json();
+    if(d&&d.ok&&Array.isArray(d.items))_ynAnnounce('w_req', d.items.map(x=>String(x.id)), function(){return 'Новая заявка от кухни';}, 'Новых заявок: {n}');
+  }catch(e){}
+}
+setInterval(function(){_ynPoll();},15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)_ynPoll();});
+_ynPoll();
 /* АВТО-РЕФЕТЧ (как manager-mobile: 15с + visibilitychange, read-only) */
 function _wsPollActive(){
   if(_adjBusy||_trBusy||_prodBusy||_nsBusy)return false;

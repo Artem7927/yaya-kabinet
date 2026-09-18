@@ -1281,7 +1281,6 @@ function renderOrders(){
   $('st-rev').textContent=fmt(rev); trend('st-rev-tr',rev,yRev);
   $('st-active').textContent=active.length; $('st-low').textContent=low;
   const b=active.length; ['bell-badge','tab-badge'].forEach(i=>{const e=$(i);e.textContent=b;e.style.display=b?'flex':'none';});
-  _ynAnnounce('m_ord', orders.filter(o=>o.status==='new'&&o.num!=null).map(o=>String(o.num)), function(n){return 'Новый заказ №'+n;}, 'Новых заказов: {n}');
   const isLive=_ordSeg==='new'||_ordSeg==='cook'||_ordSeg==='done';
   const [rs,re]=isLive?[0,Infinity]:_ordDayRange();
   const view=orders.filter(o=>{
@@ -1600,7 +1599,6 @@ async function renderMoveLog(){
 async function renderPfReq(){
   let items=[];
   try{const r=await fetch(DED_API+'/pf-requests?status=open',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();if(d&&d.ok&&Array.isArray(d.items))items=d.items;}catch(e){}
-  _ynAnnounce('m_pf', items.map(x=>String(x.id)), function(){return 'Новая заявка ПФ';}, 'Новых заявок ПФ: {n}');
   const wrap=$('pf-req-wrap');
   if(!items.length){wrap.style.display='none';$('pf-req-list').innerHTML='';return;}
   wrap.style.display='';
@@ -1613,7 +1611,6 @@ async function renderPfReq(){
 async function renderBuyReq(){
   let items=[];
   try{const r=await fetch(DED_API+'/buy-requests?status=open',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();if(d&&d.ok&&Array.isArray(d.items))items=d.items;}catch(e){}
-  _ynAnnounce('m_buy', items.map(x=>String(x.id)), function(){return 'Новая заявка на закупку';}, 'Новых закупок: {n}');
   const wrap=$('buy-req-wrap');
   if(!items.length){wrap.style.display='none';$('buy-req-list').innerHTML='';return;}
   wrap.style.display='';
@@ -1840,12 +1837,37 @@ boot();
 function _ynSoundOn(){try{return localStorage.getItem('yaya_notify_sound')!=='0';}catch(e){return true;}}
 function _ynSetSound(o){try{localStorage.setItem('yaya_notify_sound',o?'1':'0');}catch(e){}_ynSyncToggle();}
 function _ynSyncToggle(){var b=document.getElementById('yn-toggle');if(b)b.textContent=_ynSoundOn()?'🔔':'🔕';}
-function _ynBeep(){if(!_ynSoundOn())return;try{var A=window.AudioContext||window.webkitAudioContext;var ac=new A();var o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(0.0001,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.3,ac.currentTime+0.01);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+0.25);o.start();o.stop(ac.currentTime+0.26);}catch(e){}}
+var _ynAC=null;
+function _ynUnlock(){if(_ynAC)return;try{var A=window.AudioContext||window.webkitAudioContext;_ynAC=new A();if(_ynAC.state==='suspended')_ynAC.resume();}catch(e){}}
+document.addEventListener('click',_ynUnlock,{once:true});
+document.addEventListener('touchstart',_ynUnlock,{once:true});
+function _ynBeep(){if(!_ynSoundOn())return;try{var ac=_ynAC||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();var o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(0.0001,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.3,ac.currentTime+0.01);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+0.25);o.start();o.stop(ac.currentTime+0.26);}catch(e){}}
 function _ynToast(m){try{toast('info','',m);}catch(e){}}
 var _ynSeen={};
 function _ynNew(key,ids){var cur={};(ids||[]).forEach(function(x){cur[String(x)]=1;});var prev=_ynSeen[key];_ynSeen[key]=cur;if(!prev)return[];return(ids||[]).filter(function(x){return !prev[String(x)];});}
 function _ynAnnounce(key,ids,one,many){var n=_ynNew(key,ids);if(!n.length)return;if(n.length>2){_ynToast(many.replace('{n}',n.length));}else{n.forEach(function(id){_ynToast(one(id));});}_ynBeep();}
 _ynSyncToggle();
+async function _ynPoll(){
+  if(document.hidden)return;
+  try{
+    const r=await fetch(DED_API+'/orders?limit=300',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+    const d=await r.json();
+    if(d&&d.ok&&Array.isArray(d.orders))_ynAnnounce('m_ord', d.orders.filter(o=>o&&(o.status||'')==='new'&&o.num!=null).map(o=>String(o.num)), function(n){return 'Новый заказ №'+n;}, 'Новых заказов: {n}');
+  }catch(e){}
+  try{
+    const r=await fetch(DED_API+'/pf-requests?status=open',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+    const d=await r.json();
+    if(d&&d.ok&&Array.isArray(d.items))_ynAnnounce('m_pf', d.items.map(x=>String(x.id)), function(){return 'Новая заявка ПФ';}, 'Новых заявок ПФ: {n}');
+  }catch(e){}
+  try{
+    const r=await fetch(DED_API+'/buy-requests?status=open',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});
+    const d=await r.json();
+    if(d&&d.ok&&Array.isArray(d.items))_ynAnnounce('m_buy', d.items.map(x=>String(x.id)), function(){return 'Новая заявка на закупку';}, 'Новых закупок: {n}');
+  }catch(e){}
+}
+setInterval(function(){_ynPoll();},15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)_ynPoll();});
+_ynPoll();
 setInterval(()=>{if(curTab==='orders'&&!subKind)syncOrdersFromServer().then(ok=>{if(ok)renderOrders();});},15000);
 setInterval(()=>{if(curTab==='move')renderMoveLog();},15000);
 setInterval(()=>{if(curTab==='move')renderPfReq();},15000);
