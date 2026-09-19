@@ -430,10 +430,6 @@ body.help [data-tip]{outline:2px dashed rgba(241,90,41,.55);outline-offset:2px;b
     </button>
     <h1 id="ab-title">Заказы</h1>
     <button id="yn-bell" title="Звук уведомлений включён" onclick="_ynSetSound(!_ynSoundOn())" style="position:relative;display:flex;align-items:center;justify-content:center;padding:2px;background:none;border:none;cursor:pointer;color:var(--orange)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="ynb ynb-null" id="yn-bell-n">0</span></button>
-    <button class="ib bell" onclick="toast('info','Уведомления','Активных заказов: '+activeCount())">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-      <span class="dot" id="bell-badge">0</span>
-    </button>
   </div>
 
   <div class="screens">
@@ -1282,7 +1278,7 @@ function renderOrders(){
   $('st-cnt').textContent=tOrd.length; trend('st-cnt-tr',tOrd.length,yOrd.length);
   $('st-rev').textContent=fmt(rev); trend('st-rev-tr',rev,yRev);
   $('st-active').textContent=active.length; $('st-low').textContent=low;
-  const b=active.length; ['bell-badge','tab-badge'].forEach(i=>{const e=$(i);e.textContent=b;e.style.display=b?'flex':'none';});
+  const b=active.length; ['tab-badge'].forEach(i=>{const e=$(i);e.textContent=b;e.style.display=b?'flex':'none';});
   const yb=$('yn-bell-n'); if(yb){yb.textContent=b>99?'99+':b;yb.classList.toggle('ynb-null',!b);}
   const isLive=_ordSeg==='new'||_ordSeg==='cook'||_ordSeg==='done';
   const [rs,re]=isLive?[0,Infinity]:_ordDayRange();
