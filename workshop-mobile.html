@@ -200,6 +200,8 @@ input:focus,select:focus{border-color:var(--orange)}
 .tst.error .ti{background:var(--red-soft);color:var(--red)}
 .tst.warn .ti{background:var(--amber-soft);color:var(--amber)}
 .tst.info .ti{background:var(--blue-soft);color:var(--blue)}
+.ynb{position:absolute;top:-6px;right:-10px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:var(--orange);color:#1A120C;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
+.ynb.ynb-null{display:none}
 .note{font-size:11px;color:var(--muted2);text-align:center;padding:10px;line-height:1.5}
 .photo-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;border:1px dashed var(--line);border-radius:11px;background:var(--card2);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer}.photo-prev{position:relative;margin-bottom:11px}.photo-prev img{width:100%;max-height:160px;object-fit:cover;border-radius:11px;display:block}.photo-prev .rm{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;font-size:15px}</style>
 </head>
@@ -208,7 +210,7 @@ input:focus,select:focus{border-color:var(--orange)}
 
   <div class="appbar">
     <button class="ib" onclick="openDrawer()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
-    <button id="yn-toggle" title="Звук уведомлений" onclick="_ynSetSound(!_ynSoundOn())" style="background:none;border:none;font-size:20px;cursor:pointer;line-height:1;">🔔</button>
+    <button id="yn-bell" title="Звук уведомлений включён" onclick="_ynSetSound(!_ynSoundOn())" style="position:relative;display:flex;align-items:center;justify-content:center;padding:2px;background:none;border:none;cursor:pointer;color:var(--orange)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="ynb ynb-null" id="yn-bell-n">0</span></button>
     <h1 id="ab-title">Производство</h1>
     <span class="badge-crit" id="crit-badge" style="display:none">0 крит.</span>
   </div>
@@ -712,6 +714,7 @@ async function renderPfReq(){
   let items=[];
   try{const r=await fetch(YAYA_API+'/pf-requests?status=open',{headers:{'X-Admin-Token':yTok()},cache:'no-store'});const d=await r.json();if(d&&d.ok&&Array.isArray(d.items))items=d.items;}catch(e){}
   const _nb=document.getElementById('nb-stock'); if(_nb){_nb.textContent=String(items.length);_nb.style.display=items.length>0?'flex':'none';}
+  const _yb=document.getElementById('yn-bell-n'); if(_yb){_yb.textContent=String(items.length);_yb.classList.toggle('ynb-null',!items.length);}
   const wrap=$('pf-req-wrap');
   if(!items.length){wrap.style.display='none';$('pf-req-list').innerHTML='';return;}
   wrap.style.display='';
@@ -810,7 +813,9 @@ function saveAddIng(){const name=$('ai-name').value.trim();if(!name){toast('warn
 /* --- YaYa notify --- */
 function _ynSoundOn(){try{return localStorage.getItem('yaya_notify_sound')!=='0';}catch(e){return true;}}
 function _ynSetSound(o){try{localStorage.setItem('yaya_notify_sound',o?'1':'0');}catch(e){}_ynSyncToggle();}
-function _ynSyncToggle(){var b=document.getElementById('yn-toggle');if(b)b.textContent=_ynSoundOn()?'🔔':'🔕';}
+var _ynBellPath='<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>';
+var _ynBellPathOff='<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="m3 3 18 18"/>';
+function _ynSyncToggle(){var b=document.getElementById('yn-bell');if(!b)return;var on=_ynSoundOn();b.style.color=on?'var(--orange)':'var(--muted)';b.title=on?'Звук уведомлений включён':'Звук выключен';var s=b.querySelector('svg');if(s)s.innerHTML=on?_ynBellPath:_ynBellPathOff;}
 var _ynAC=null;
 function _ynUnlock(){if(_ynAC)return;try{var A=window.AudioContext||window.webkitAudioContext;_ynAC=new A();if(_ynAC.state==='suspended')_ynAC.resume();}catch(e){}}
 document.addEventListener('click',_ynUnlock,{once:true});
