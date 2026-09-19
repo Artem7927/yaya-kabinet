@@ -197,16 +197,19 @@ input:focus,select:focus{border-color:var(--orange)}
 .mini-ing:last-child{border-bottom:none}
 
 .toasts{position:absolute;top:calc(var(--safe-t) + 10px);left:12px;right:12px;z-index:80;display:flex;flex-direction:column;gap:8px;pointer-events:none}
-.tst{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:0 10px 34px rgba(0,0,0,.5);transform:translateY(-16px);opacity:0;transition:.25s;pointer-events:auto}
+.tst{display:flex;align-items:center;gap:12px;background:rgba(20,19,16,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);border-left:3px solid var(--orange);border-radius:14px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.4);transform:translateY(16px);opacity:0;transition:transform .25s ease,opacity .25s ease;pointer-events:auto}
 .tst.show{transform:translateY(0);opacity:1}
-.tst .ti{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800}
+.tst .ti{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tst .ti svg{width:18px;height:18px}
 .tst .tc{flex:1;min-width:0}
 .tst .tc b{font-size:13px;font-weight:700;display:block}
 .tst .tc span{font-size:11px;color:var(--muted)}
 .tst.success .ti{background:var(--green-soft);color:var(--green)}
 .tst.error .ti{background:var(--red-soft);color:var(--red)}
 .tst.warn .ti{background:var(--amber-soft);color:var(--amber)}
-.tst.info .ti{background:var(--blue-soft);color:var(--blue)}
+.tst.info .ti{background:var(--orange-soft);color:var(--orange)}
+.ynb{position:absolute;top:-6px;right:-10px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:var(--orange);color:#1A120C;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
+.ynb.ynb-null{display:none}
 .note{font-size:11px;color:var(--muted2);text-align:center;padding:10px;line-height:1.5}
 .photo-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;border:1px dashed var(--line);border-radius:11px;background:var(--card2);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer}.photo-prev{position:relative;margin-bottom:11px}.photo-prev img{width:100%;max-height:160px;object-fit:cover;border-radius:11px;display:block}.photo-prev .rm{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;font-size:15px}</style>
 </head>
@@ -215,7 +218,8 @@ input:focus,select:focus{border-color:var(--orange)}
 
   <div class="appbar">
     <button class="ib" onclick="openDrawer()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
-    <button id="yn-toggle" title="Звук уведомлений" onclick="_ynSetSound(!_ynSoundOn())" style="background:none;border:none;font-size:20px;cursor:pointer;line-height:1;">🔔</button>
+    <div id="yn-bell" title="Новых заказов" style="position:relative;display:flex;align-items:center;justify-content:center;color:var(--muted)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="ynb ynb-null" id="yn-bell-n">0</span></div>
+    <button id="yn-toggle" title="Звук уведомлений" onclick="_ynSetSound(!_ynSoundOn())" style="background:none;border:none;padding:2px;display:flex;align-items:center;justify-content:center;cursor:pointer;"></button>
     <h1 id="ab-title">Заказы</h1>
     <span class="badge-crit" id="crit-badge" style="display:none">0 крит.</span>
   </div>
@@ -440,7 +444,7 @@ function setCookLog(v){try{localStorage.setItem('yaya_cooklog',JSON.stringify(v)
 const CAT_NAMES={sets:'🎁 Сеты',wings:'🍗 Крылышки',snacks:'🍟 Снеки',burgers:'🍔 Бургеры',doners:'🌯 Донеры',pizza:'🍕 Пицца',bliny:'🥞 Блины',drinks:'🥤 Напитки',coffee:'☕ Кофе',cocktails:'🍦 Коктейли',mohito:'🍹 Мохито',lemonade:'🍋 Лимонад',sauces:'🫙 Соусы'};
 const $=id=>document.getElementById(id);
 let curTab='orders', cookQty=1, stockView='raw', tcCat='all', tcEditId=null;
-const TICON={success:'✓',error:'✕',warn:'!',info:'i'};
+const TICON={success:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>',error:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></svg>',warn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4"/><path d="M12 17v.01"/></svg>',info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'};
 function toast(type,title,sub){const el=document.createElement('div');el.className='tst '+type;el.innerHTML=`<div class="ti">${TICON[type]||'i'}</div><div class="tc"><b>${title}</b>${sub?`<span>${sub}</span>`:''}</div>`;$('toasts').appendChild(el);requestAnimationFrame(()=>el.classList.add('show'));setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),260)},3200);}
 window.addEventListener('error',e=>console.error('GLOBAL',e.message,(e.error&&e.error.stack)||e.error));
 window.addEventListener('unhandledrejection',e=>console.error('REJECT',(e.reason&&e.reason.stack)||e.reason));
@@ -618,6 +622,7 @@ async function renderOrders(){
   $('ord-done2').textContent=doneOnes.length+fulOnes.length;
   const badge=$('ord-badge');
   const nNew=newOnes.length;badge.style.display=nNew?'flex':'none';badge.textContent=nNew>99?'99+':nNew;
+  const yb=$('yn-bell-n');if(yb){yb.textContent=nNew>99?'99+':nNew;yb.classList.toggle('ynb-null',!nNew);}
   const wg=$('dfWidget');
   if(wg){wg.style.display='';wg.innerHTML=_dfWidgetHtml();}
   // сортировка: старые сверху по времени оформления, горящие не прыгают
@@ -1166,7 +1171,9 @@ function saveAddIng(){const name=$('ai-name').value.trim();if(!name){toast('warn
 /* --- YaYa notify --- */
 function _ynSoundOn(){try{return localStorage.getItem('yaya_notify_sound')!=='0';}catch(e){return true;}}
 function _ynSetSound(o){try{localStorage.setItem('yaya_notify_sound',o?'1':'0');}catch(e){}_ynSyncToggle();}
-function _ynSyncToggle(){var b=document.getElementById('yn-toggle');if(b)b.textContent=_ynSoundOn()?'🔔':'🔕';}
+var _ynBellOn='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
+var _ynBellOff='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="m3 3 18 18"/></svg>';
+function _ynSyncToggle(){var b=document.getElementById('yn-toggle');if(b){b.innerHTML=_ynSoundOn()?_ynBellOn:_ynBellOff;b.style.color=_ynSoundOn()?'var(--orange)':'var(--muted)';}}
 var _ynAC=null;
 function _ynUnlock(){if(_ynAC)return;try{var A=window.AudioContext||window.webkitAudioContext;_ynAC=new A();if(_ynAC.state==='suspended')_ynAC.resume();}catch(e){}}
 document.addEventListener('click',_ynUnlock,{once:true});
